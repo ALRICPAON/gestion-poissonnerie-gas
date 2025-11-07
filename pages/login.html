@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../css/styles.css" />
+<title>Gestion Poissonnerie</title>
+<link rel="stylesheet" href="../css/login.css" />
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <div class="brand">
+      <img src="../assets/fish.svg" alt="Logo poissonnerie" class="brand-logo" />
+      <h1>Gestion Poissonnerie</h1>
+      <p class="muted">Connexion sécurisée</p>
+    </div>
+
+    <form id="login-form" class="login-form">
+      <label>Email</label>
+      <input id="email" type="email" autocomplete="username" required />
+
+      <label>Mot de passe</label>
+      <input id="password" type="password" autocomplete="current-password" required />
+
+      <button id="login-btn" type="submit">Se connecter</button>
+      <p id="login-error" class="error" aria-live="polite"></p>
+    </form>
+
+    <div class="foot">
+      <small>Besoin d'un accès ? Contactez l'administrateur.</small>
+    </div>
+  </div>
+
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+  <script>
+    // Si déjà connecté → redirection home
+    window.addEventListener('DOMContentLoaded', () => {
+      import('../js/auth.js').then(m => m.redirectIfLoggedIn('/pages/home.html'));
+    });
+  </script>
+</body>
+</html>

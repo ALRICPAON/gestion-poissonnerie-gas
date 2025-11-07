@@ -1,0 +1,8 @@
+# Build-less SPA config (static)
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/"
+  to = "/pages/login.html"
+  status = 302
