@@ -31,6 +31,14 @@ Interface claire (web ou Sheets) permettant d'accéder aux modules suivants :
 - Authentification obligatoire via Firebase Auth.
 - Fichiers : `load-articles.js`, `submit-article.js`, `edit-article.js`
 
+### Fournisseurs
+
+- Fichier Excel importé dans Firestore (script `import-fournisseurs.js`)
+- Interface design identique aux articles, avec les champs : code, nom, contact, téléphone, email, adresse, notes.
+- Ajout via formulaire, suppression et modification inline par `prompt()`
+- Tri, recherche, authentification Firebase.
+- Fichiers : `load-fournisseurs.js`, `submit-fournisseur.js`, `edit-fournisseur.js`
+
 ---
 
 ## 💼 ACHATS
@@ -52,7 +60,7 @@ Interface claire (web ou Sheets) permettant d'accéder aux modules suivants :
 
 ---
 
-## 👛 TRANSFORMATIONS
+## 💻 TRANSFORMATIONS
 
 - Saisie d’une transformation = consommation d'un ou plusieurs articles sources, création d'un produit fini.
 - Recalcul automatique du prix de revient en tenant compte du rendement.
@@ -88,7 +96,7 @@ Interface claire (web ou Sheets) permettant d'accéder aux modules suivants :
 
 ---
 
-## 📆 EXPORT ÉTIQUETTES
+## 🗖️ EXPORT ÉTIQUETTES
 
 - Préparation d'étiquettes conformes (type Evolis).
 - Normalisation automatique (zone, engin, élevé/décongelé, allergènes).
@@ -103,7 +111,7 @@ Interface claire (web ou Sheets) permettant d'accéder aux modules suivants :
 
 ---
 
-## 🧠 Objectif final
+## 🧐 Objectif final
 
 > Outil duplicable, fluide, multi-rayon, avec base traçable FIFO, exportable, propre, rapide à utiliser sur le terrain.
 
@@ -111,8 +119,7 @@ Interface claire (web ou Sheets) permettant d'accéder aux modules suivants :
 
 ---
 
-📅 **Document mis à jour automatiquement le 2025-11-08 à partir des échanges avec l’utilisateur Alric.**
-
+🗓️ **Document mis à jour automatiquement le 2025-11-08 à partir des échanges avec l’utilisateur Alric.**
 
 ---
 
@@ -169,6 +176,6 @@ onAuthStateChanged(auth, (user) => {
 
 ---
 
-📌 Pense-bête : bien importer les modules `firebase/firestore.js` (⚠️ pas `firestore-lite.js`) pour éviter les erreurs de type "Expected CollectionReference…"
+📌 Pense-bête : bien importer les modules `firebase/firestore.js` (et non `firestore-lite.js`) pour éviter les erreurs de type "Expected CollectionReference…"
 
-📅 Mise à jour le 2025-11-08
+🔽 Mise à jour le 2025-11-08
