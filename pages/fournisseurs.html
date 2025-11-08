@@ -1,27 +1,65 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="../css/styles.css" />
-<title>Gestion Poissonnerie</title>
-
-</head>
-<body>
-  <header id="topbar"></header>
-  <main class="container">
-    <h2 class="page-title">Fournisseurs</h2>
-    <div class="panel">
-      <p>TODO : intégrer l'interface fournisseurs (Apps Script / API) ici.</p>
-      <p class="muted">Cette page est protégée par Firebase Auth.</p>
-    </div>
-  </main>
+  <meta charset="UTF-8">
+  <title>Fournisseurs</title>
+  <link rel="stylesheet" href="../css/style.css">
 
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth.js"></script>
-  <script type="module" src="../js/menu.js"></script>
+  <script type="module" src="../js/load-fournisseurs.js"></script>
+  <script type="module" src="../js/submit-fournisseur.js"></script>
+  <script type="module" src="../js/edit-fournisseur.js"></script>
+</head>
+<body>
+  <div class="top-bar">
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
+    <input type="text" id="search" class="search-input" placeholder="🔍 Rechercher un fournisseur…">
+  </div>
+
+  <form id="fournisseur-form">
+    <input type="text" name="code" placeholder="Code fournisseur" required>
+    <input type="text" name="nom" placeholder="Nom fournisseur" required>
+    <input type="text" name="contact" placeholder="Contact">
+    <input type="text" name="telephone" placeholder="Téléphone">
+    <input type="email" name="email" placeholder="Email">
+    <input type="text" name="adresse" placeholder="Adresse">
+    <input type="text" name="notes" placeholder="Notes">
+    <button type="submit" class="btn btn-accent">Ajouter</button>
+  </form>
+
+  <h1>Liste des fournisseurs</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Nom</th>
+        <th>Contact</th>
+        <th>Téléphone</th>
+        <th>Email</th>
+        <th>Adresse</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="fournisseurs-list">
+      <!-- Rempli dynamiquement -->
+    </tbody>
+  </table>
+
+  <script type="module">
+    import { requireAuth } from '../js/auth.js';
+    requireAuth();
+  </script>
+
   <script>
-    window.addEventListener('DOMContentLoaded', () => { window.__requireAuth && window.__requireAuth('fournisseurs'); });
+    document.querySelector('#search').addEventListener('input', function () {
+      const query = this.value.toLowerCase();
+      document.querySelectorAll('#fournisseurs-list tr').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+      });
+    });
   </script>
 </body>
 </html>
