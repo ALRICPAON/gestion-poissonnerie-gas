@@ -43,5 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('[loadFournisseurs] Erreur Firestore:', err);
       tableBody.innerHTML = '<tr><td colspan="8">Erreur de chargement</td></tr>';
     }
+    window.reloadFournisseurs = loadFournisseurs;
   });
 });
