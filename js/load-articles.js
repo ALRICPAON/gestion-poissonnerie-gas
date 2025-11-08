@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const snapshot = await getDocs(collection(db, `articles/${user.uid}/items`));
+     const snapshot = await getDocs(collection(db, 'articles'));
       const rows = [];
 
       snapshot.forEach(doc => {
