@@ -3,7 +3,7 @@ import { db } from './firebase-init.js';
 import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const tableBody = document.querySelector('#articles-table tbody');
+  const tableBody = document.querySelector('#articles-list');
 
   async function loadArticles() {
     if (!tableBody) {
