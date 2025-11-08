@@ -3,42 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <title>Articles</title>
+  <link rel="stylesheet" href="../css/style.css">
+
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth.js"></script>
   <script type="module" src="../js/load-articles.js"></script>
   <script type="module" src="../js/submit-article.js"></script>
   <script type="module" src="../js/edit-article.js"></script>
-
-  <style>
-    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
-    h1, h2 { margin-top: 0; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
-    .top-bar button { padding: 0.5em 1em; font-size: 14px; }
-    .search-input { padding: 0.4em; font-size: 14px; width: 200px; margin-left: 1em; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1em; background: white; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background: #eee; }
-    form { margin-bottom: 1em; }
-    form input { margin-right: 1em; padding: 4px; }
-  </style>
 </head>
 <body>
 
   <div class="top-bar">
-    <button onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
-    <div>
-      🔎 <input type="text" id="search" class="search-input" placeholder="Rechercher PLU ou nom…">
-    </div>
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
+    <input type="text" id="search" class="search-input" placeholder="🔍 Rechercher PLU ou nom…">
   </div>
 
-  <h2>Ajouter un article</h2>
   <form id="article-form">
     <input type="text" name="plu" placeholder="PLU" required>
     <input type="text" name="designation" placeholder="Désignation" required>
     <input type="text" name="nomLatin" placeholder="Nom latin">
     <input type="text" name="categorie" placeholder="Catégorie">
     <input type="text" name="unite" placeholder="Unité (€/kg ou pièce)">
-    <button type="submit">Ajouter</button>
+    <button type="submit" class="btn btn-accent">Ajouter</button>
   </form>
 
   <h1>Liste des articles</h1>
