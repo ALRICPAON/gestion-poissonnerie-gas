@@ -1,39 +1,39 @@
 import { db } from './firebase-init.js';
-import { doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-lite.js';
+import { doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
+document.addEventListener('DOMContentLoaded', () => {
+  const table = document.querySelector('#articles-list');
 
-document.addEventListener("click", async (e) => {
-  const editBtn = e.target.closest(".edit-btn");
-  const deleteBtn = e.target.closest(".delete-btn");
+  table.addEventListener('click', async (e) => {
+    const tr = e.target.closest('tr');
+    const articleId = tr?.dataset?.id;
+    if (!articleId) return;
 
-  if (editBtn) {
-    const row = editBtn.closest("tr");
-    const docId = row.dataset.id;
+    // 🔴 Suppression
+    if (e.target.classList.contains('delete-btn')) {
+      const ok = confirm('🗑️ Supprimer cet article ?');
+      if (ok) {
+        await deleteDoc(doc(db, 'articles', articleId));
+        tr.remove();
+        console.log(`✅ Article ${articleId} supprimé`);
+      }
+    }
 
-    const newPLU = prompt("Modifier le PLU :", row.cells[0].textContent);
-    const newDesignation = prompt("Modifier la désignation :", row.cells[1].textContent);
-    const newNomLatin = prompt("Modifier le nom latin :", row.cells[2].textContent);
-    const newPV = prompt("Modifier le prix de vente TTC :", row.cells[3].textContent);
+    // ✏️ Édition
+    if (e.target.classList.contains('edit-btn')) {
+      const cells = tr.querySelectorAll('td');
+      const champs = ['PLU', 'Designation', 'NomLatin', 'Categorie', 'Unite', 'Allergenes', 'Zone', 'SousZone', 'Engin'];
+      const data = {};
 
-    if (newPLU && newDesignation && newNomLatin && newPV) {
-      const ref = doc(db, "articles", docId);
-      await updateDoc(ref, {
-        PLU: newPLU,
-        designation: newDesignation,
-        nomLatin: newNomLatin,
-        prixVenteTTC: parseFloat(newPV)
+      champs.forEach((champ, i) => {
+        const oldVal = cells[i]?.textContent?.trim() || '';
+        const newVal = prompt(`Modifier ${champ} :`, oldVal);
+        if (newVal !== null) data[champ] = newVal;
       });
-      window.reloadArticles();
-    }
-  }
 
-  if (deleteBtn) {
-    const row = deleteBtn.closest("tr");
-    const docId = row.dataset.id;
-    if (confirm("Supprimer cet article ?")) {
-      const ref = doc(db, "articles", docId);
-      await deleteDoc(ref);
+      await updateDoc(doc(db, 'articles', articleId), data);
+      console.log(`✏️ Article ${articleId} modifié`);
       window.reloadArticles();
     }
-  }
+  });
 });
