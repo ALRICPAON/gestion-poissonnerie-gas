@@ -1,8 +1,10 @@
-// js/auth.js — version avec logs & états UI
+// js/auth.js — version CDN-compatible avec logs et UI
 import { auth } from './firebase-init.js';
 import {
-  onAuthStateChanged, signInWithEmailAndPassword, signOut
-} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'; // ✅ CORRIGÉ
 
 // --- Helpers UI ---
 function setLoading(isLoading) {
@@ -70,7 +72,7 @@ window.addEventListener('DOMContentLoaded', () => {
       location.replace(next);
     } catch (err) {
       console.error('[auth] login error:', err);
-      showError(err && err.message ? err.message : 'Connexion impossible.');
+      showError(err?.message || 'Connexion impossible.');
     } finally {
       setLoading(false);
     }
@@ -86,3 +88,4 @@ export async function doLogout() {
   }
   location.replace('/pages/login.html');
 }
+
