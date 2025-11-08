@@ -1,5 +1,6 @@
 import { db } from './firebase-init.js';
-import { doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-lite.js';
+import { doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-lite.js';
+
 
 document.addEventListener("click", async (e) => {
   const editBtn = e.target.closest(".edit-btn");
