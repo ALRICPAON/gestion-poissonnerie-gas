@@ -28,7 +28,10 @@
       </tr>
     </thead>
     <tbody id="articles-list">
-      <!-- les lignes sont ajoutées dynamiquement ici -->
+      <script type="module">
+  import { requireAuth } from '../js/auth.js';
+  requireAuth();
+</script>
     </tbody>
   </table>
 
