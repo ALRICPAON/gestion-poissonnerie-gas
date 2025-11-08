@@ -25,14 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${data.PLU || ''}</td>
             <td>${data.Designation || ''}</td>
             <td>${data.NomLatin || ''}</td>
-            <td></td> <!-- PV TTC -->
-            <td>${data.Unite || ''}</td> <!-- €/kg ou pièce -->
+            <td>${data.Categorie || ''}</td>
+            <td>${data.Unite || ''}</td>
             <td>${data.Allergenes || ''}</td>
             <td>${data.Zone || ''}</td>
             <td>${data.SousZone || ''}</td>
             <td>${data.Engin || ''}</td>
-            <td></td> <!-- Décongelé -->
-            <td></td> <!-- Type -->
+            <td>
+              <button class="edit-btn">✏️</button>
+              <button class="delete-btn">🗑️</button>
+            </td>
           </tr>`;
         rows.push(row);
       });
