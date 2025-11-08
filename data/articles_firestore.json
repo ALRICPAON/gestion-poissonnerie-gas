@@ -1,5 +1,6 @@
 {
   "3649": {
+    "PLU": "3649",
     "Designation": "JOUE DE RAIE",
     "NomLatin": "RAJA MICROOCELLATA",
     "Categorie": "Pêché en",
@@ -11,6 +12,7 @@
     "Unite": "€/kg"
   },
   "3144": {
+    "PLU": "3144",
     "Designation": "ANCHOIS",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -22,6 +24,7 @@
     "Unite": "€/kg"
   },
   "3587": {
+    "PLU": "3587",
     "Designation": "BAR TACHETE DE LIGNE",
     "NomLatin": "Dicentrarchus punctatus",
     "Categorie": "Pêché en",
@@ -33,6 +36,7 @@
     "Unite": "€/kg"
   },
   "3580": {
+    "PLU": "3580",
     "Designation": "BAR TACHETE DE LIGNE",
     "NomLatin": "Dicentrarchus punctatus",
     "Categorie": "Pêché en",
@@ -44,6 +48,7 @@
     "Unite": "€/kg"
   },
   "3589": {
+    "PLU": "3589",
     "Designation": "BAR COMMUN DE LIGNE",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -55,6 +60,7 @@
     "Unite": "€/kg"
   },
   "3590": {
+    "PLU": "3590",
     "Designation": "BAR COMMUN BLESSE DE LIGNE",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -66,6 +72,7 @@
     "Unite": "€/kg"
   },
   "3591": {
+    "PLU": "3591",
     "Designation": "BAR COMMUN CHALUT",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -77,6 +84,7 @@
     "Unite": "€/kg"
   },
   "3592": {
+    "PLU": "3592",
     "Designation": "bar promo",
     "NomLatin": "DICENTRARCHUS LABRAX",
     "Categorie": "Elevé en",
@@ -88,6 +96,7 @@
     "Unite": "piece"
   },
   "3593": {
+    "PLU": "3593",
     "Designation": "BAR COMMUN IKEJIME",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -99,6 +108,7 @@
     "Unite": "€/kg"
   },
   "": {
+    "PLU": "",
     "Designation": "FILET DE MOSTELLE",
     "NomLatin": "",
     "Categorie": "",
@@ -110,6 +120,7 @@
     "Unite": ""
   },
   "3595": {
+    "PLU": "3595",
     "Designation": "BAR COMMUN DE FILET",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -121,6 +132,7 @@
     "Unite": "€/kg"
   },
   "3048": {
+    "PLU": "3048",
     "Designation": "CONGRE ENTIER",
     "NomLatin": "Conger conger",
     "Categorie": "Pêché en",
@@ -132,6 +144,7 @@
     "Unite": "€/kg"
   },
   "3603": {
+    "PLU": "3603",
     "Designation": "CONGRE DE LIGNE",
     "NomLatin": "Conger conger",
     "Categorie": "Pêché en",
@@ -143,6 +156,7 @@
     "Unite": "€/kg"
   },
   "3404": {
+    "PLU": "3404",
     "Designation": "SEBASTE ENTIERE",
     "NomLatin": "SEBASTES NORVEGICUS",
     "Categorie": "Pêché en",
@@ -154,6 +168,7 @@
     "Unite": "€/kg"
   },
   "3604": {
+    "PLU": "3604",
     "Designation": "DORADE GRISE",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -165,6 +180,7 @@
     "Unite": "€/kg"
   },
   "3607": {
+    "PLU": "3607",
     "Designation": "DORADE GRISE PORTION DE LIGNE",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -176,6 +192,7 @@
     "Unite": "€/kg"
   },
   "3719": {
+    "PLU": "3719",
     "Designation": "LONGE ESPADON",
     "NomLatin": "XIPHIAS GLADIUS",
     "Categorie": "Pêché en",
@@ -187,6 +204,7 @@
     "Unite": "€/kg"
   },
   "3612": {
+    "PLU": "3612",
     "Designation": "GRONDIN ROUGE",
     "NomLatin": "Aspitrigla cuculus",
     "Categorie": "Pêché en",
@@ -198,6 +216,7 @@
     "Unite": "€/kg"
   },
   "3614": {
+    "PLU": "3614",
     "Designation": "GRONDIN GRIS",
     "NomLatin": "Eutrigla gurnardus",
     "Categorie": "Pêché en",
@@ -209,6 +228,7 @@
     "Unite": "€/kg"
   },
   "3052": {
+    "PLU": "3052",
     "Designation": "LIEU JAUNE ENTIER",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -220,6 +240,7 @@
     "Unite": "€/kg"
   },
   "3621": {
+    "PLU": "3621",
     "Designation": "LIEU JAUNE DE LIGNE",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -231,6 +252,7 @@
     "Unite": "€/kg"
   },
   "3347": {
+    "PLU": "3347",
     "Designation": "MAIGRE COMMUN",
     "NomLatin": "Argyrosomus regius",
     "Categorie": "Pêché en",
@@ -242,6 +264,7 @@
     "Unite": "€/kg"
   },
   "3628": {
+    "PLU": "3628",
     "Designation": "MAIGRE DE LIGNE",
     "NomLatin": "Argyrosomus regius",
     "Categorie": "Pêché en",
@@ -253,6 +276,7 @@
     "Unite": "€/kg"
   },
   "3629": {
+    "PLU": "3629",
     "Designation": "MAQUEREAU",
     "NomLatin": "Scomber scombrus",
     "Categorie": "Pêché en",
@@ -264,6 +288,7 @@
     "Unite": "€/kg"
   },
   "3807": {
+    "PLU": "3807",
     "Designation": "MAQUEREAU ESPANOL",
     "NomLatin": "SCOMBER JAPONICUS",
     "Categorie": "Pêché en",
@@ -275,6 +300,7 @@
     "Unite": "€/kg"
   },
   "3633": {
+    "PLU": "3633",
     "Designation": "MAQUEREAU BLANC DE LIGNE",
     "NomLatin": "SCOMBER JAPONICUS",
     "Categorie": "Pêché en",
@@ -286,6 +312,7 @@
     "Unite": "€/kg"
   },
   "3810": {
+    "PLU": "3810",
     "Designation": "MERLAN PORTION",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -297,6 +324,7 @@
     "Unite": "€/kg"
   },
   "3636": {
+    "PLU": "3636",
     "Designation": "MERLAN DE LIGNE",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -308,6 +336,7 @@
     "Unite": "€/kg"
   },
   "3016": {
+    "PLU": "3016",
     "Designation": "MERLU PORTION",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -319,6 +348,7 @@
     "Unite": "€/kg"
   },
   "3056": {
+    "PLU": "3056",
     "Designation": "MERLU ENTIER",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -330,6 +360,7 @@
     "Unite": "€/kg"
   },
   "3640": {
+    "PLU": "3640",
     "Designation": "MERLU PORTION DE LIGNE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -341,6 +372,7 @@
     "Unite": "€/kg"
   },
   "3641": {
+    "PLU": "3641",
     "Designation": "MERLU ENTIER GROS",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -352,6 +384,7 @@
     "Unite": "€/kg"
   },
   "3643": {
+    "PLU": "3643",
     "Designation": "QUEUE DE MERLU ENTIERE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -363,6 +396,7 @@
     "Unite": "€/kg"
   },
   "3644": {
+    "PLU": "3644",
     "Designation": "MERLU ENTIER DE LIGNE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -374,6 +408,7 @@
     "Unite": "€/kg"
   },
   "3646": {
+    "PLU": "3646",
     "Designation": "MULET",
     "NomLatin": "LIZA RAMADA",
     "Categorie": "Pêché en",
@@ -385,6 +420,7 @@
     "Unite": "€/kg"
   },
   "3648": {
+    "PLU": "3648",
     "Designation": "MULET LIPPU",
     "NomLatin": "Chelon labrosus",
     "Categorie": "Pêché en",
@@ -396,6 +432,7 @@
     "Unite": "€/kg"
   },
   "3224": {
+    "PLU": "3224",
     "Designation": "OMBRINE",
     "NomLatin": "Umbrina CANARIENSIS",
     "Categorie": "Pêché en",
@@ -407,6 +444,7 @@
     "Unite": "€/kg"
   },
   "3650": {
+    "PLU": "3650",
     "Designation": "OMBRINE DE LIGNE",
     "NomLatin": "Umbrina cirrosa",
     "Categorie": "Pêché en",
@@ -418,6 +456,7 @@
     "Unite": "€/kg"
   },
   "3828": {
+    "PLU": "3828",
     "Designation": "PAGEOT COMMUN",
     "NomLatin": "Pagellus erythrinus",
     "Categorie": "Pêché en",
@@ -429,6 +468,7 @@
     "Unite": "€/kg"
   },
   "3834": {
+    "PLU": "3834",
     "Designation": "CARRELET/PLIE",
     "NomLatin": "Pleuronectes platessa",
     "Categorie": "Pêché en",
@@ -440,6 +480,7 @@
     "Unite": "€/kg"
   },
   "3657": {
+    "PLU": "3657",
     "Designation": "FLET",
     "NomLatin": "Platichthys flesus",
     "Categorie": "Pêché en",
@@ -451,6 +492,7 @@
     "Unite": "€/kg"
   },
   "3969": {
+    "PLU": "3969",
     "Designation": "FLET",
     "NomLatin": "Platichthys flesus",
     "Categorie": "Pêché en",
@@ -462,6 +504,7 @@
     "Unite": "€/kg"
   },
   "3029": {
+    "PLU": "3029",
     "Designation": "ROUGET BARBET",
     "NomLatin": "MULLUS SURMULETUS",
     "Categorie": "Pêché en",
@@ -473,6 +516,7 @@
     "Unite": "€/kg"
   },
   "3027": {
+    "PLU": "3027",
     "Designation": "SAINT PIERRE",
     "NomLatin": "Zeus faber",
     "Categorie": "Pêché en",
@@ -484,6 +528,7 @@
     "Unite": "€/kg"
   },
   "3036": {
+    "PLU": "3036",
     "Designation": "SARDINE",
     "NomLatin": "SARDINA PILCHARDUS",
     "Categorie": "Pêché en",
@@ -495,6 +540,7 @@
     "Unite": "€/kg"
   },
   "3668": {
+    "PLU": "3668",
     "Designation": "SEBASTE CHEVRE",
     "NomLatin": "HELICOLENUS DACTYLOPTERUS",
     "Categorie": "Pêché en",
@@ -506,6 +552,7 @@
     "Unite": "€/kg"
   },
   "3669": {
+    "PLU": "3669",
     "Designation": "SOLE GROSSE",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -517,6 +564,7 @@
     "Unite": "€/kg"
   },
   "3040": {
+    "PLU": "3040",
     "Designation": "SOLE VIDEE",
     "NomLatin": "SOLEA SOLEA",
     "Categorie": "Pêché en",
@@ -528,6 +576,7 @@
     "Unite": "€/kg"
   },
   "3858": {
+    "PLU": "3858",
     "Designation": "dos de sebaste",
     "NomLatin": "sebastes marinus",
     "Categorie": "Pêché en",
@@ -539,6 +588,7 @@
     "Unite": "€/kg"
   },
   "3023": {
+    "PLU": "3023",
     "Designation": "SOLE BLONDE PORTION",
     "NomLatin": "pegusa lascaris",
     "Categorie": "Pêché en",
@@ -550,6 +600,7 @@
     "Unite": "€/kg"
   },
   "3019": {
+    "PLU": "3019",
     "Designation": "TACAUD",
     "NomLatin": "Trisopterus luscus",
     "Categorie": "Pêché en",
@@ -561,6 +612,7 @@
     "Unite": "€/kg"
   },
   "3677": {
+    "PLU": "3677",
     "Designation": "TACAUD DE LIGNE",
     "NomLatin": "Trisopterus luscus",
     "Categorie": "Pêché en",
@@ -572,6 +624,7 @@
     "Unite": "€/kg"
   },
   "3679": {
+    "PLU": "3679",
     "Designation": "THON BLANC ENTIER GERMON",
     "NomLatin": "Thunnus alalunga",
     "Categorie": "Pêché en",
@@ -583,6 +636,7 @@
     "Unite": "€/kg"
   },
   "3008": {
+    "PLU": "3008",
     "Designation": "THON GERMON",
     "NomLatin": "Thunnus alalunga",
     "Categorie": "Pêché en",
@@ -594,6 +648,7 @@
     "Unite": "€/kg"
   },
   "3680": {
+    "PLU": "3680",
     "Designation": "LONGE THON OBESE",
     "NomLatin": "Thunnus obesus",
     "Categorie": "Pêché en",
@@ -605,6 +660,7 @@
     "Unite": "€/kg"
   },
   "3009": {
+    "PLU": "3009",
     "Designation": "THONINE COMMUNE",
     "NomLatin": "EUTHYNNUS ALLETTERATUS",
     "Categorie": "Pêché en",
@@ -616,6 +672,7 @@
     "Unite": "€/kg"
   },
   "3854": {
+    "PLU": "3854",
     "Designation": "VIEILLE COMMUNE",
     "NomLatin": "Labrus bergylta",
     "Categorie": "Pêché en",
@@ -627,6 +684,7 @@
     "Unite": "€/kg"
   },
   "3024": {
+    "PLU": "3024",
     "Designation": "TURBOT VIDE",
     "NomLatin": "PSETTE MAXIMA",
     "Categorie": "Pêché en",
@@ -638,6 +696,7 @@
     "Unite": "€/kg"
   },
   "3683": {
+    "PLU": "3683",
     "Designation": "VIEILLE DE LIGNE",
     "NomLatin": "Labrus bergylta",
     "Categorie": "Pêché en",
@@ -649,6 +708,7 @@
     "Unite": "€/kg"
   },
   "3032": {
+    "PLU": "3032",
     "Designation": "SARDINE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -660,6 +720,7 @@
     "Unite": "€/kg"
   },
   "3686": {
+    "PLU": "3686",
     "Designation": "BOGUE",
     "NomLatin": "Boops boops",
     "Categorie": "Pêché en",
@@ -671,6 +732,7 @@
     "Unite": "€/kg"
   },
   "3689": {
+    "PLU": "3689",
     "Designation": "BAUDROIE ENTIERE",
     "NomLatin": "Lophius piscatorius",
     "Categorie": "Pêché en",
@@ -682,6 +744,7 @@
     "Unite": "€/kg"
   },
   "3692": {
+    "PLU": "3692",
     "Designation": "ORPHIE",
     "NomLatin": "Belone belone",
     "Categorie": "Pêché en",
@@ -693,6 +756,7 @@
     "Unite": "€/kg"
   },
   "3483": {
+    "PLU": "3483",
     "Designation": "ROUSSETTE ENTIERE",
     "NomLatin": "Scyliorhinus spp",
     "Categorie": "Pêché en",
@@ -704,6 +768,7 @@
     "Unite": "€/kg"
   },
   "3394": {
+    "PLU": "3394",
     "Designation": "POULPE",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -715,6 +780,7 @@
     "Unite": "€/kg"
   },
   "3702": {
+    "PLU": "3702",
     "Designation": "BONITE A DOS RAYE",
     "NomLatin": "SARDA SARDA",
     "Categorie": "Pêché en",
@@ -726,6 +792,7 @@
     "Unite": "€/kg"
   },
   "3703": {
+    "PLU": "3703",
     "Designation": "SAR COMMUN",
     "NomLatin": "Diplodus sargus",
     "Categorie": "Pêché en",
@@ -737,6 +804,7 @@
     "Unite": "€/kg"
   },
   "3397": {
+    "PLU": "3397",
     "Designation": "SEICHE ENTIERE",
     "NomLatin": "Sepia officinalis",
     "Categorie": "Pêché en",
@@ -748,6 +816,7 @@
     "Unite": "€/kg"
   },
   "3007": {
+    "PLU": "3007",
     "Designation": "TETE SEICHE",
     "NomLatin": "Sepia officinalis",
     "Categorie": "Pêché en",
@@ -759,6 +828,7 @@
     "Unite": "€/kg"
   },
   "3708": {
+    "PLU": "3708",
     "Designation": "FILET DE BAR MOUCHETE TACHETE",
     "NomLatin": "Dicentrarchus punctatus",
     "Categorie": "Pêché en",
@@ -770,6 +840,7 @@
     "Unite": "€/kg"
   },
   "3784": {
+    "PLU": "3784",
     "Designation": "FILET DE BAR SAUVAGE",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -781,6 +852,7 @@
     "Unite": "€/kg"
   },
   "3236": {
+    "PLU": "3236",
     "Designation": "FILET DE CONGRE",
     "NomLatin": "Conger conger",
     "Categorie": "Pêché en",
@@ -792,6 +864,7 @@
     "Unite": "€/kg"
   },
   "3792": {
+    "PLU": "3792",
     "Designation": "DARNE DE CONGRE",
     "NomLatin": "Conger conger",
     "Categorie": "Pêché en",
@@ -803,6 +876,7 @@
     "Unite": "€/kg"
   },
   "3715": {
+    "PLU": "3715",
     "Designation": "FILET DE DORADE ROYALE",
     "NomLatin": "SPARUS AURATA",
     "Categorie": "Elevé en",
@@ -814,6 +888,7 @@
     "Unite": "€/kg"
   },
   "3716": {
+    "PLU": "3716",
     "Designation": "FILET DE DORADE ROYALE",
     "NomLatin": "Sparus aurata",
     "Categorie": "Elevé en",
@@ -825,6 +900,7 @@
     "Unite": "€/kg"
   },
   "3121": {
+    "PLU": "3121",
     "Designation": "FILET GRONDIN",
     "NomLatin": "CHELIDONICHTHYS LUCERNA-EUTRIGLA GURNADUS",
     "Categorie": "Pêché en",
@@ -836,6 +912,7 @@
     "Unite": "€/kg"
   },
   "3076": {
+    "PLU": "3076",
     "Designation": "FILET DE LIEU JAUNE",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -847,6 +924,7 @@
     "Unite": "€/kg"
   },
   "3725": {
+    "PLU": "3725",
     "Designation": "FILET DE MAIGRE",
     "NomLatin": "Argyrosomus regius",
     "Categorie": "Pêché en",
@@ -858,6 +936,7 @@
     "Unite": "€/kg"
   },
   "3731": {
+    "PLU": "3731",
     "Designation": "FILET MERLAN",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -869,6 +948,7 @@
     "Unite": "€/kg"
   },
   "3730": {
+    "PLU": "3730",
     "Designation": "FILET DE MERLAN",
     "NomLatin": "MERLANGIUS MERLANGUS",
     "Categorie": "Pêché en",
@@ -880,6 +960,7 @@
     "Unite": "€/kg"
   },
   "3816": {
+    "PLU": "3816",
     "Designation": "FILET DE MERLU",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -891,6 +972,7 @@
     "Unite": "€/kg"
   },
   "3356": {
+    "PLU": "3356",
     "Designation": "DOS DE MERLU",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -902,6 +984,7 @@
     "Unite": "€/kg"
   },
   "3734": {
+    "PLU": "3734",
     "Designation": "DARNE DE MERLU",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -913,6 +996,7 @@
     "Unite": "€/kg"
   },
   "3735": {
+    "PLU": "3735",
     "Designation": "FILET DE MULET",
     "NomLatin": "LIZA RAMADA",
     "Categorie": "Pêché en",
@@ -924,6 +1008,7 @@
     "Unite": "€/kg"
   },
   "3736": {
+    "PLU": "3736",
     "Designation": "FILET D'OMBRINE",
     "NomLatin": "Umbrina cirrosa",
     "Categorie": "Pêché en",
@@ -935,6 +1020,7 @@
     "Unite": "€/kg"
   },
   "3738": {
+    "PLU": "3738",
     "Designation": "FILET DE SAINT PIERRE",
     "NomLatin": "Zeus faber",
     "Categorie": "Pêché en",
@@ -946,6 +1032,7 @@
     "Unite": "€/kg"
   },
   "3343": {
+    "PLU": "3343",
     "Designation": "FILET DE DORADE SEBASTES",
     "NomLatin": "SEBASTES NORVEGICUS/SEBASTES MARINUS",
     "Categorie": "Pêché en",
@@ -957,6 +1044,7 @@
     "Unite": "€/kg"
   },
   "3107": {
+    "PLU": "3107",
     "Designation": "FILET DE TACAUD",
     "NomLatin": "TRISOPTERUS LUSCUS",
     "Categorie": "Pêché en",
@@ -968,6 +1056,7 @@
     "Unite": "€/kg"
   },
   "3739": {
+    "PLU": "3739",
     "Designation": "SOLE PRET A CUIRE",
     "NomLatin": "pegusa lascaris",
     "Categorie": "Pêché en",
@@ -979,6 +1068,7 @@
     "Unite": "€/kg"
   },
   "3116": {
+    "PLU": "3116",
     "Designation": "DARNE DE THON GERMON",
     "NomLatin": "Thunnus alalunga",
     "Categorie": "Pêché en",
@@ -990,6 +1080,7 @@
     "Unite": "€/kg"
   },
   "3746": {
+    "PLU": "3746",
     "Designation": "DARNE BONITE",
     "NomLatin": "AUXIS ROCHEI",
     "Categorie": "Pêché en",
@@ -1001,6 +1092,7 @@
     "Unite": ""
   },
   "3748": {
+    "PLU": "3748",
     "Designation": "LONGE DE THON ROUGE",
     "NomLatin": "Thunnus thynnus",
     "Categorie": "Pêché en",
@@ -1012,6 +1104,7 @@
     "Unite": "€/kg"
   },
   "3750": {
+    "PLU": "3750",
     "Designation": "FILET DE VIEILLE",
     "NomLatin": "Labrus bergylta",
     "Categorie": "Pêché en",
@@ -1023,6 +1116,7 @@
     "Unite": "€/kg"
   },
   "3751": {
+    "PLU": "3751",
     "Designation": "FILET DE TURBOT",
     "NomLatin": "SCOPhthalmus MAXIMUS",
     "Categorie": "Pêché en",
@@ -1034,6 +1128,7 @@
     "Unite": "€/kg"
   },
   "3753": {
+    "PLU": "3753",
     "Designation": "CALMARS",
     "NomLatin": "LOLIGINIDAE",
     "Categorie": "Pêché en",
@@ -1045,6 +1140,7 @@
     "Unite": "€/kg"
   },
   "3754": {
+    "PLU": "3754",
     "Designation": "QUEUE DE LOTTE",
     "NomLatin": "Lophius PISCATORIUS",
     "Categorie": "Pêché en",
@@ -1056,6 +1152,7 @@
     "Unite": "€/kg"
   },
   "3757": {
+    "PLU": "3757",
     "Designation": "TORPILLE/DALITE PELEE",
     "NomLatin": "Torpedo MARMCRATA",
     "Categorie": "Pêché en",
@@ -1067,6 +1164,7 @@
     "Unite": "€/kg"
   },
   "3758": {
+    "PLU": "3758",
     "Designation": "ROUSSETTE PELEE",
     "NomLatin": "Scyliorhinus CANICULA",
     "Categorie": "Pêché en",
@@ -1078,6 +1176,7 @@
     "Unite": "€/kg"
   },
   "3761": {
+    "PLU": "3761",
     "Designation": "AILE DE RAIE",
     "NomLatin": "RAJA MONTAGUI",
     "Categorie": "Pêché en",
@@ -1089,6 +1188,7 @@
     "Unite": "€/kg"
   },
   "3765": {
+    "PLU": "3765",
     "Designation": "BLANC DE SEICHE",
     "NomLatin": "Sepia officinalis",
     "Categorie": "Pêché en",
@@ -1100,6 +1200,7 @@
     "Unite": "€/kg"
   },
   "3770": {
+    "PLU": "3770",
     "Designation": "HOMARD EUROPEEN VIVANT EPATTE",
     "NomLatin": "Homarus gammarus",
     "Categorie": "Pêché en",
@@ -1111,6 +1212,7 @@
     "Unite": "€/kg"
   },
   "3151": {
+    "PLU": "3151",
     "Designation": "LANGOUSTINE VIVANTE 25/35",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -1122,6 +1224,7 @@
     "Unite": "€/kg"
   },
   "3153": {
+    "PLU": "3153",
     "Designation": "HOMARD EUROPEEN VIVANT",
     "NomLatin": "Homarus gammarus",
     "Categorie": "Pêché en",
@@ -1133,6 +1236,7 @@
     "Unite": "€/kg"
   },
   "3759": {
+    "PLU": "3759",
     "Designation": "LANGOUSTINE CAISSE DE 3KG",
     "NomLatin": "Nephrops norvegicus",
     "Categorie": "Pêché en",
@@ -1144,6 +1248,7 @@
     "Unite": "piece"
   },
   "3149": {
+    "PLU": "3149",
     "Designation": "HOMARD EUROPEEN CUIT",
     "NomLatin": "Homarus gammarus",
     "Categorie": "Pêché en",
@@ -1155,6 +1260,7 @@
     "Unite": "€/kg"
   },
   "3162": {
+    "PLU": "3162",
     "Designation": "TOURTEAU VIVANT (2 PINCES)",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -1166,6 +1272,7 @@
     "Unite": "€/kg"
   },
   "3145": {
+    "PLU": "3145",
     "Designation": "LANGOUSTE ROUGE VIVANTE EPATTE",
     "NomLatin": "Palinurus elephas",
     "Categorie": "Pêché en",
@@ -1177,6 +1284,7 @@
     "Unite": "€/kg"
   },
   "3542": {
+    "PLU": "3542",
     "Designation": "LANGOUSTE ROUGE CUITE",
     "NomLatin": "Palinurus elephas",
     "Categorie": "Pêché en",
@@ -1188,6 +1296,7 @@
     "Unite": "€/kg"
   },
   "3772": {
+    "PLU": "3772",
     "Designation": "ETRILLE CUITE",
     "NomLatin": "NECORA PIPUS PUBER",
     "Categorie": "Pêché en",
@@ -1199,6 +1308,7 @@
     "Unite": "€/kg"
   },
   "3771": {
+    "PLU": "3771",
     "Designation": "LANGOUSTINE VIVANTE T20",
     "NomLatin": "Nephrops norvegicus",
     "Categorie": "Pêché en",
@@ -1210,6 +1320,7 @@
     "Unite": "€/kg"
   },
   "3166": {
+    "PLU": "3166",
     "Designation": "ETRILLE VIVANTE",
     "NomLatin": "NECORA PIPUS PUBER",
     "Categorie": "Pêché en",
@@ -1221,6 +1332,7 @@
     "Unite": "€/kg"
   },
   "3442": {
+    "PLU": "3442",
     "Designation": "TOURTEAU VIVANT (1 PINCE)",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -1232,6 +1344,7 @@
     "Unite": "€/kg"
   },
   "3773": {
+    "PLU": "3773",
     "Designation": "ARAIGNEE VIVANTE",
     "NomLatin": "Maja BRACHYDACTYLA",
     "Categorie": "Pêché en",
@@ -1243,6 +1356,7 @@
     "Unite": "€/kg"
   },
   "3164": {
+    "PLU": "3164",
     "Designation": "ARAIGNEE VIVANTE gros male",
     "NomLatin": "Maja BRACHYDACTYLA",
     "Categorie": "Pêché en",
@@ -1254,6 +1368,7 @@
     "Unite": "€/kg"
   },
   "3774": {
+    "PLU": "3774",
     "Designation": "ARAIGNEE GROS MALE CUITE",
     "NomLatin": "Maja BRACHYDACTYLA",
     "Categorie": "Pêché en",
@@ -1265,6 +1380,7 @@
     "Unite": "€/kg"
   },
   "3775": {
+    "PLU": "3775",
     "Designation": "BOUQUET GROSSE ROSE VIVANTE",
     "NomLatin": "PALAEMON SERRATUS",
     "Categorie": "Pêché en",
@@ -1276,6 +1392,7 @@
     "Unite": "€/kg"
   },
   "3165": {
+    "PLU": "3165",
     "Designation": "ARAIGNEE CUITE",
     "NomLatin": "Maja BRACHYDACTYLA",
     "Categorie": "Pêché en",
@@ -1287,6 +1404,7 @@
     "Unite": "€/kg"
   },
   "3160": {
+    "PLU": "3160",
     "Designation": "CREVETTE ROSE BOUQUET VIVANTE",
     "NomLatin": "PALAEMON SERRATUS",
     "Categorie": "Pêché en",
@@ -1298,6 +1416,7 @@
     "Unite": "€/kg"
   },
   "3776": {
+    "PLU": "3776",
     "Designation": "CREVETTE ROSE BOUQUET CUITE",
     "NomLatin": "PALAEMON SERRATUS",
     "Categorie": "Pêché en",
@@ -1309,6 +1428,7 @@
     "Unite": "€/kg"
   },
   "3158": {
+    "PLU": "3158",
     "Designation": "CREVETTE GRISE CUITE PAYS",
     "NomLatin": "CRANGON VUIGARIS",
     "Categorie": "Pêché en",
@@ -1320,6 +1440,7 @@
     "Unite": "€/kg"
   },
   "3205": {
+    "PLU": "3205",
     "Designation": "CREVETTE GRISE VIVANTE DU PAYS",
     "NomLatin": "CRANGON CRANGON",
     "Categorie": "Pêché en",
@@ -1331,6 +1452,7 @@
     "Unite": "€/kg"
   },
   "3777": {
+    "PLU": "3777",
     "Designation": "PINCE DE TOURTEAU CUITE",
     "NomLatin": "Cancer pagurus",
     "Categorie": "Pêché en",
@@ -1342,6 +1464,7 @@
     "Unite": "€/kg"
   },
   "3779": {
+    "PLU": "3779",
     "Designation": "PINCE D'ARAIGNEE CUITE 4/8",
     "NomLatin": "Maja SQUINADO",
     "Categorie": "Pêché en",
@@ -1353,6 +1476,7 @@
     "Unite": "€/kg"
   },
   "3298": {
+    "PLU": "3298",
     "Designation": "HUITRE LA GUITTIERE N°3",
     "NomLatin": "CRASDSOSTREA GIGAS",
     "Categorie": "",
@@ -1364,6 +1488,7 @@
     "Unite": "€/kg"
   },
   "3882": {
+    "PLU": "3882",
     "Designation": "ANCHOIS",
     "NomLatin": "Engraulis encrasicolus",
     "Categorie": "Pêché en",
@@ -1375,6 +1500,7 @@
     "Unite": "€/kg"
   },
   "3477": {
+    "PLU": "3477",
     "Designation": "FILET EGLEFIN",
     "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
     "Categorie": "Pêché en",
@@ -1386,6 +1512,7 @@
     "Unite": "€/kg"
   },
   "3883": {
+    "PLU": "3883",
     "Designation": "BAR MOUCHETE DE LIGNE",
     "NomLatin": "Dicentrarchus punctatus",
     "Categorie": "Pêché en",
@@ -1397,6 +1524,7 @@
     "Unite": "€/kg"
   },
   "3884": {
+    "PLU": "3884",
     "Designation": "BAR TACHETE",
     "NomLatin": "Dicentrarchus punctatus",
     "Categorie": "Pêché en",
@@ -1408,6 +1536,7 @@
     "Unite": "€/kg"
   },
   "3885": {
+    "PLU": "3885",
     "Designation": "BAR COMMUN DE LIGNE",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -1419,6 +1548,7 @@
     "Unite": "€/kg"
   },
   "3886": {
+    "PLU": "3886",
     "Designation": "BAR COMMUN BLESSE DE LIGNE",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -1430,6 +1560,7 @@
     "Unite": "€/kg"
   },
   "3887": {
+    "PLU": "3887",
     "Designation": "BAR COMMUN CHALUT",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -1441,6 +1572,7 @@
     "Unite": "€/kg"
   },
   "3888": {
+    "PLU": "3888",
     "Designation": "BAR COMMUN BLESSE CHALUT",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -1452,6 +1584,7 @@
     "Unite": "€/kg"
   },
   "3889": {
+    "PLU": "3889",
     "Designation": "BAR COMMUN IKEJIME",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -1463,6 +1596,7 @@
     "Unite": "€/kg"
   },
   "3890": {
+    "PLU": "3890",
     "Designation": "LONGE THONINE commune",
     "NomLatin": "EUTHYNNUS ALLETTERATUS",
     "Categorie": "Pêché en",
@@ -1474,6 +1608,7 @@
     "Unite": "€/kg"
   },
   "3891": {
+    "PLU": "3891",
     "Designation": "BAR COMMUN DE FILET",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -1485,6 +1620,7 @@
     "Unite": "€/kg"
   },
   "3892": {
+    "PLU": "3892",
     "Designation": "BAR COMMUN BLESSE DE FILET",
     "NomLatin": "Dicentrarchus labrax",
     "Categorie": "Pêché en",
@@ -1496,6 +1632,7 @@
     "Unite": "€/kg"
   },
   "3893": {
+    "PLU": "3893",
     "Designation": "BARBUE",
     "NomLatin": "Scophthalmus rhombus",
     "Categorie": "Pêché en",
@@ -1507,6 +1644,7 @@
     "Unite": "€/kg"
   },
   "3894": {
+    "PLU": "3894",
     "Designation": "BARBUE GROS",
     "NomLatin": "Scophthalmus rhombus",
     "Categorie": "Pêché en",
@@ -1518,6 +1656,7 @@
     "Unite": "€/kg"
   },
   "3895": {
+    "PLU": "3895",
     "Designation": "CARDINE",
     "NomLatin": "Lepidorhombus whiffiagonis",
     "Categorie": "Pêché en",
@@ -1529,6 +1668,7 @@
     "Unite": "€/kg"
   },
   "3599": {
+    "PLU": "3599",
     "Designation": "CARDINE",
     "NomLatin": "Lepidorhombus whiffiagonis",
     "Categorie": "Pêché en",
@@ -1540,6 +1680,7 @@
     "Unite": "€/kg"
   },
   "3897": {
+    "PLU": "3897",
     "Designation": "CETAUX",
     "NomLatin": "Heteromycteris proboscideus",
     "Categorie": "Pêché en",
@@ -1551,6 +1692,7 @@
     "Unite": "€/kg"
   },
   "3898": {
+    "PLU": "3898",
     "Designation": "CHINCHARD",
     "NomLatin": "Trachurus trachurus",
     "Categorie": "Pêché en",
@@ -1562,6 +1704,7 @@
     "Unite": "€/kg"
   },
   "3899": {
+    "PLU": "3899",
     "Designation": "CHINCHARD JAUNE DE LIGNE",
     "NomLatin": "Trachurus trachurus",
     "Categorie": "Pêché en",
@@ -1573,6 +1716,7 @@
     "Unite": "€/kg"
   },
   "3900": {
+    "PLU": "3900",
     "Designation": "CHINCHARD GROS DE LIGNE",
     "NomLatin": "Trachurus trachurus",
     "Categorie": "Pêché en",
@@ -1584,6 +1728,7 @@
     "Unite": "€/kg"
   },
   "3902": {
+    "PLU": "3902",
     "Designation": "CONGRE DE LIGNE",
     "NomLatin": "Conger conger",
     "Categorie": "Pêché en",
@@ -1595,6 +1740,7 @@
     "Unite": "€/kg"
   },
   "3903": {
+    "PLU": "3903",
     "Designation": "DORADE GRISE GROSSE",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -1606,6 +1752,7 @@
     "Unite": "€/kg"
   },
   "3904": {
+    "PLU": "3904",
     "Designation": "DORADE GRISE",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -1617,6 +1764,7 @@
     "Unite": "€/kg"
   },
   "3905": {
+    "PLU": "3905",
     "Designation": "DORADE GRISE BLESSEE PORTION",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -1628,6 +1776,7 @@
     "Unite": "€/kg"
   },
   "3906": {
+    "PLU": "3906",
     "Designation": "DORADE GRISE BLESSEE GROSSE",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -1639,6 +1788,7 @@
     "Unite": "€/kg"
   },
   "3907": {
+    "PLU": "3907",
     "Designation": "DORADE GRISE PORTION DE LIGNE",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -1650,6 +1800,7 @@
     "Unite": "€/kg"
   },
   "3908": {
+    "PLU": "3908",
     "Designation": "DORADE GRISE GROSSE DE LIGNE",
     "NomLatin": "Spondyliosoma cantharus",
     "Categorie": "Pêché en",
@@ -1661,6 +1812,7 @@
     "Unite": "€/kg"
   },
   "3909": {
+    "PLU": "3909",
     "Designation": "DORADE ROYALE PORTION SAUVAGE",
     "NomLatin": "Sparus aurata",
     "Categorie": "Pêché en",
@@ -1672,6 +1824,7 @@
     "Unite": "€/kg"
   },
   "3910": {
+    "PLU": "3910",
     "Designation": "DORADE ROYALE GROSSE",
     "NomLatin": "Sparus aurata",
     "Categorie": "Pêché en",
@@ -1683,6 +1836,7 @@
     "Unite": "€/kg"
   },
   "3911": {
+    "PLU": "3911",
     "Designation": "DORADE ROYALE GROSSE BLESSEE",
     "NomLatin": "Sparus aurata",
     "Categorie": "Pêché en",
@@ -1694,6 +1848,7 @@
     "Unite": "€/kg"
   },
   "3912": {
+    "PLU": "3912",
     "Designation": "EMISSOLE ENTIERE",
     "NomLatin": "Mustelus ASTERIA",
     "Categorie": "Pêché en",
@@ -1705,6 +1860,7 @@
     "Unite": "€/kg"
   },
   "3913": {
+    "PLU": "3913",
     "Designation": "EPERLAN",
     "NomLatin": "Osmerus eperlanus",
     "Categorie": "Pêché en",
@@ -1716,6 +1872,7 @@
     "Unite": "€/kg"
   },
   "3914": {
+    "PLU": "3914",
     "Designation": "ESPADON ENTIER",
     "NomLatin": "Xiphias gladius",
     "Categorie": "Pêché en",
@@ -1727,6 +1884,7 @@
     "Unite": "€/kg"
   },
   "3915": {
+    "PLU": "3915",
     "Designation": "GRONDIN",
     "NomLatin": "CHELIDONICHTHYS LUCERNA",
     "Categorie": "Pêché en",
@@ -1738,6 +1896,7 @@
     "Unite": "€/kg"
   },
   "3917": {
+    "PLU": "3917",
     "Designation": "GRONDIN CAMARD",
     "NomLatin": "Chelidonichthys lastoviza",
     "Categorie": "Pêché en",
@@ -1749,6 +1908,7 @@
     "Unite": "€/kg"
   },
   "3918": {
+    "PLU": "3918",
     "Designation": "GRONDIN GRIS",
     "NomLatin": "Eutrigla gurnardus",
     "Categorie": "Pêché en",
@@ -1760,6 +1920,7 @@
     "Unite": "€/kg"
   },
   "3919": {
+    "PLU": "3919",
     "Designation": "GRONDIN PERLON",
     "NomLatin": "chelidonichthys lucerna",
     "Categorie": "Pêché en",
@@ -1771,6 +1932,7 @@
     "Unite": "€/kg"
   },
   "3920": {
+    "PLU": "3920",
     "Designation": "GRONDIN GROS",
     "NomLatin": "chelidonichthys lucerna",
     "Categorie": "Pêché en",
@@ -1782,6 +1944,7 @@
     "Unite": "€/kg"
   },
   "3921": {
+    "PLU": "3921",
     "Designation": "GRONDIN DE LIGNE",
     "NomLatin": "Prionotus spp",
     "Categorie": "Pêché en",
@@ -1793,6 +1956,7 @@
     "Unite": "€/kg"
   },
   "3922": {
+    "PLU": "3922",
     "Designation": "HARENG COTIER",
     "NomLatin": "Clupea harengus",
     "Categorie": "Pêché en",
@@ -1804,6 +1968,7 @@
     "Unite": "€/kg"
   },
   "3923": {
+    "PLU": "3923",
     "Designation": "LIEU JAUNE ENTIER",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -1815,6 +1980,7 @@
     "Unite": "€/kg"
   },
   "3924": {
+    "PLU": "3924",
     "Designation": "LIEU JAUNE BLESSE",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -1826,6 +1992,7 @@
     "Unite": "€/kg"
   },
   "3925": {
+    "PLU": "3925",
     "Designation": "LIEU JAUNE DE LIGNE",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -1837,6 +2004,7 @@
     "Unite": "€/kg"
   },
   "3926": {
+    "PLU": "3926",
     "Designation": "LIEU JAUNE BLESSE DE LIGNE",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -1848,6 +2016,7 @@
     "Unite": "€/kg"
   },
   "3927": {
+    "PLU": "3927",
     "Designation": "LIEU JAUNE IKEJIME",
     "NomLatin": "Pollachius pollachius",
     "Categorie": "Pêché en",
@@ -1859,6 +2028,7 @@
     "Unite": "€/kg"
   },
   "3928": {
+    "PLU": "3928",
     "Designation": "LIEU NOIR ENTIER",
     "NomLatin": "Pollachius virens",
     "Categorie": "Pêché en",
@@ -1870,6 +2040,7 @@
     "Unite": "€/kg"
   },
   "3929": {
+    "PLU": "3929",
     "Designation": "LIEU NOIR DE LIGNE",
     "NomLatin": "Pollachius virens",
     "Categorie": "Pêché en",
@@ -1881,6 +2052,7 @@
     "Unite": "€/kg"
   },
   "3930": {
+    "PLU": "3930",
     "Designation": "LIMANDE SOLE",
     "NomLatin": "Microstomus kitt",
     "Categorie": "Pêché en",
@@ -1892,6 +2064,7 @@
     "Unite": "€/kg"
   },
   "3931": {
+    "PLU": "3931",
     "Designation": "LIMANDE SOLE GROSSE",
     "NomLatin": "Microstomus kitt",
     "Categorie": "Pêché en",
@@ -1903,6 +2076,7 @@
     "Unite": "€/kg"
   },
   "3932": {
+    "PLU": "3932",
     "Designation": "",
     "NomLatin": "Molva molva",
     "Categorie": "Pêché en",
@@ -1914,6 +2088,7 @@
     "Unite": "€/kg"
   },
   "3933": {
+    "PLU": "3933",
     "Designation": "JULIENNE DE LIGNE",
     "NomLatin": "Molva molva",
     "Categorie": "Pêché en",
@@ -1925,6 +2100,7 @@
     "Unite": "€/kg"
   },
   "3934": {
+    "PLU": "3934",
     "Designation": "MAIGRE COMMUN",
     "NomLatin": "Argyrosomus regius",
     "Categorie": "Pêché en",
@@ -1936,6 +2112,7 @@
     "Unite": "€/kg"
   },
   "3935": {
+    "PLU": "3935",
     "Designation": "MAIGRE DE LIGNE",
     "NomLatin": "Argyrosomus regius",
     "Categorie": "Pêché en",
@@ -1947,6 +2124,7 @@
     "Unite": "€/kg"
   },
   "3803": {
+    "PLU": "3803",
     "Designation": "MAQUEREAU PRÊT A CUIRE",
     "NomLatin": "Scomber scombrus",
     "Categorie": "Pêché en",
@@ -1958,6 +2136,7 @@
     "Unite": "€/kg"
   },
   "3936": {
+    "PLU": "3936",
     "Designation": "MAQUEREAU",
     "NomLatin": "Scomber scombrus",
     "Categorie": "Pêché en",
@@ -1969,6 +2148,7 @@
     "Unite": "€/kg"
   },
   "3937": {
+    "PLU": "3937",
     "Designation": "MAQUEREAU GROS",
     "NomLatin": "Scomber scombrus",
     "Categorie": "Pêché en",
@@ -1980,6 +2160,7 @@
     "Unite": "€/kg"
   },
   "3938": {
+    "PLU": "3938",
     "Designation": "MAQUEREAU/LISETTE",
     "NomLatin": "Scomber scombrus",
     "Categorie": "Pêché en",
@@ -1991,6 +2172,7 @@
     "Unite": "€/kg"
   },
   "3939": {
+    "PLU": "3939",
     "Designation": "MAQUEREAU DE LIGNE",
     "NomLatin": "Scomber scombrus",
     "Categorie": "Pêché en",
@@ -2002,6 +2184,7 @@
     "Unite": "€/kg"
   },
   "3940": {
+    "PLU": "3940",
     "Designation": "MAQUEREAUESPAGNOL",
     "NomLatin": "SCOMBER TAPONICUS",
     "Categorie": "Pêché en",
@@ -2013,6 +2196,7 @@
     "Unite": "€/kg"
   },
   "3941": {
+    "PLU": "3941",
     "Designation": "MAQUEREAU BLANC DE LIGNE",
     "NomLatin": "Scomber scombrus",
     "Categorie": "Pêché en",
@@ -2024,6 +2208,7 @@
     "Unite": "€/kg"
   },
   "3942": {
+    "PLU": "3942",
     "Designation": "MERLAN PORTION",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -2035,6 +2220,7 @@
     "Unite": "€/kg"
   },
   "3943": {
+    "PLU": "3943",
     "Designation": "MERLAN GROS",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -2046,6 +2232,7 @@
     "Unite": "€/kg"
   },
   "3944": {
+    "PLU": "3944",
     "Designation": "MERLAN PORTION DE LIGNE",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -2057,6 +2244,7 @@
     "Unite": "€/kg"
   },
   "3945": {
+    "PLU": "3945",
     "Designation": "MERLAN GROS DE LIGNE",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -2068,6 +2256,7 @@
     "Unite": "€/kg"
   },
   "3946": {
+    "PLU": "3946",
     "Designation": "MERLAN BLEU",
     "NomLatin": "Micromesistius poutassou",
     "Categorie": "Pêché en",
@@ -2079,6 +2268,7 @@
     "Unite": "€/kg"
   },
   "3947": {
+    "PLU": "3947",
     "Designation": "MERLU PORTION",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2090,6 +2280,7 @@
     "Unite": "€/kg"
   },
   "3949": {
+    "PLU": "3949",
     "Designation": "MERLU PORTION DE LIGNE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2101,6 +2292,7 @@
     "Unite": "€/kg"
   },
   "3950": {
+    "PLU": "3950",
     "Designation": "MERLU PORTION BLESSE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2112,6 +2304,7 @@
     "Unite": "€/kg"
   },
   "3951": {
+    "PLU": "3951",
     "Designation": "MERLU ENTIER BLESSE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2123,6 +2316,7 @@
     "Unite": "€/kg"
   },
   "3952": {
+    "PLU": "3952",
     "Designation": "MERLU ENTIER GROS",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2134,6 +2328,7 @@
     "Unite": "€/kg"
   },
   "3953": {
+    "PLU": "3953",
     "Designation": "MERLU AVEC TETE + QUEUE COUPEE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2145,6 +2340,7 @@
     "Unite": "€/kg"
   },
   "3954": {
+    "PLU": "3954",
     "Designation": "QUEUE DE MERLU ENTIERE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2156,6 +2352,7 @@
     "Unite": "€/kg"
   },
   "3955": {
+    "PLU": "3955",
     "Designation": "MERLU ENTIER DE LIGNE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2167,6 +2364,7 @@
     "Unite": "€/kg"
   },
   "3956": {
+    "PLU": "3956",
     "Designation": "MERLU GROS DE LIGNE",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -2178,6 +2376,7 @@
     "Unite": "€/kg"
   },
   "3018": {
+    "PLU": "3018",
     "Designation": "MULET",
     "NomLatin": "LIZA RAMADA",
     "Categorie": "Pêché en",
@@ -2189,6 +2388,7 @@
     "Unite": "€/kg"
   },
   "3958": {
+    "PLU": "3958",
     "Designation": "MULET GROS",
     "NomLatin": "Paramugil parmatus",
     "Categorie": "Pêché en",
@@ -2200,6 +2400,7 @@
     "Unite": "€/kg"
   },
   "3959": {
+    "PLU": "3959",
     "Designation": "MULET LIPPU",
     "NomLatin": "Chelon labrosus",
     "Categorie": "Pêché en",
@@ -2211,6 +2412,7 @@
     "Unite": "€/kg"
   },
   "3960": {
+    "PLU": "3960",
     "Designation": "MULET GROS LIPPU",
     "NomLatin": "Chelon labrosus",
     "Categorie": "Pêché en",
@@ -2222,6 +2424,7 @@
     "Unite": "€/kg"
   },
   "3961": {
+    "PLU": "3961",
     "Designation": "OMBRINE BRONZE",
     "NomLatin": "Umbrina CANARIENSIS",
     "Categorie": "Pêché en",
@@ -2233,6 +2436,7 @@
     "Unite": "€/kg"
   },
   "3962": {
+    "PLU": "3962",
     "Designation": "OMBRINE DE LIGNE",
     "NomLatin": "Umbrina cirrosa",
     "Categorie": "Pêché en",
@@ -2244,6 +2448,7 @@
     "Unite": "€/kg"
   },
   "3963": {
+    "PLU": "3963",
     "Designation": "PAGEOT COMMUN",
     "NomLatin": "Pagellus erythrinus",
     "Categorie": "Pêché en",
@@ -2255,6 +2460,7 @@
     "Unite": "€/kg"
   },
   "3964": {
+    "PLU": "3964",
     "Designation": "PAGEOT GROS",
     "NomLatin": "Pagellus erythrinus",
     "Categorie": "Pêché en",
@@ -2266,6 +2472,7 @@
     "Unite": "€/kg"
   },
   "3965": {
+    "PLU": "3965",
     "Designation": "PAGEOT ACARNE",
     "NomLatin": "Pagellus acarne",
     "Categorie": "Pêché en",
@@ -2277,6 +2484,7 @@
     "Unite": "€/kg"
   },
   "3966": {
+    "PLU": "3966",
     "Designation": "PAGEOT ACARNE DE LIGNE",
     "NomLatin": "Pagellus acarne",
     "Categorie": "Pêché en",
@@ -2288,6 +2496,7 @@
     "Unite": "€/kg"
   },
   "3967": {
+    "PLU": "3967",
     "Designation": "CARRELET/PLIE",
     "NomLatin": "Pleuronectes platessa",
     "Categorie": "Pêché en",
@@ -2299,6 +2508,7 @@
     "Unite": "€/kg"
   },
   "3968": {
+    "PLU": "3968",
     "Designation": "CARRELET/PLIE GROSSE",
     "NomLatin": "Pleuronectes platessa",
     "Categorie": "Pêché en",
@@ -2310,6 +2520,7 @@
     "Unite": "€/kg"
   },
   "3970": {
+    "PLU": "3970",
     "Designation": "RASCASSE",
     "NomLatin": "Scorpaena spp",
     "Categorie": "Pêché en",
@@ -2321,6 +2532,7 @@
     "Unite": "€/kg"
   },
   "3971": {
+    "PLU": "3971",
     "Designation": "ROUGET BARBET DE ROCHE",
     "NomLatin": "Mullus surmuletus",
     "Categorie": "Pêché en",
@@ -2332,6 +2544,7 @@
     "Unite": "€/kg"
   },
   "3972": {
+    "PLU": "3972",
     "Designation": "ROUGET BARBET (GRATTE)",
     "NomLatin": "Mullus surmuletus",
     "Categorie": "Pêché en",
@@ -2343,6 +2556,7 @@
     "Unite": "€/kg"
   },
   "3973": {
+    "PLU": "3973",
     "Designation": "ROUGET BARBET DE ROCHE",
     "NomLatin": "Mullus surmuletus",
     "Categorie": "Pêché en",
@@ -2354,6 +2568,7 @@
     "Unite": "€/kg"
   },
   "3974": {
+    "PLU": "3974",
     "Designation": "ROUGET BARBET GROS",
     "NomLatin": "Mullus surmuletus",
     "Categorie": "Pêché en",
@@ -2365,6 +2580,7 @@
     "Unite": "€/kg"
   },
   "3975": {
+    "PLU": "3975",
     "Designation": "SAINT PIERRE",
     "NomLatin": "Zeus faber",
     "Categorie": "Pêché en",
@@ -2376,6 +2592,7 @@
     "Unite": "€/kg"
   },
   "3976": {
+    "PLU": "3976",
     "Designation": "SAINT PIERRE FRITURE",
     "NomLatin": "Zeus faber",
     "Categorie": "Pêché en",
@@ -2387,6 +2604,7 @@
     "Unite": "€/kg"
   },
   "3977": {
+    "PLU": "3977",
     "Designation": "SAINT PIERRE GROS",
     "NomLatin": "Zeus faber",
     "Categorie": "Pêché en",
@@ -2398,6 +2616,7 @@
     "Unite": "€/kg"
   },
   "3198": {
+    "PLU": "3198",
     "Designation": "BOGUE",
     "NomLatin": "BOOPS BOOPS",
     "Categorie": "Pêché en",
@@ -2409,6 +2628,7 @@
     "Unite": "€/kg"
   },
   "3979": {
+    "PLU": "3979",
     "Designation": "SARDINE PETITE",
     "NomLatin": "Sardina pilchardus",
     "Categorie": "Pêché en",
@@ -2420,6 +2640,7 @@
     "Unite": "€/kg"
   },
   "3980": {
+    "PLU": "3980",
     "Designation": "SARDINE",
     "NomLatin": "SARDEINA PILCHARDUS",
     "Categorie": "Pêché en",
@@ -2431,6 +2652,7 @@
     "Unite": "€/kg"
   },
   "3981": {
+    "PLU": "3981",
     "Designation": "SARDINE SALEE",
     "NomLatin": "Sardina pilchardus",
     "Categorie": "Pêché en",
@@ -2442,6 +2664,7 @@
     "Unite": "€/kg"
   },
   "3982": {
+    "PLU": "3982",
     "Designation": "SARDINE PROMO",
     "NomLatin": "Sardina pilchardus",
     "Categorie": "Pêché en",
@@ -2453,6 +2676,7 @@
     "Unite": "€/kg"
   },
   "3983": {
+    "PLU": "3983",
     "Designation": "SAUMON ATLANTIQUE SAUVAGE",
     "NomLatin": "Salmo salar",
     "Categorie": "Pêché en",
@@ -2464,6 +2688,7 @@
     "Unite": "€/kg"
   },
   "3984": {
+    "PLU": "3984",
     "Designation": "fe.FILET DE DORADE SEBASTES",
     "NomLatin": "SEBASTES NORVEGICUS/SEBASTES MARINUS",
     "Categorie": "Pêché en",
@@ -2475,6 +2700,7 @@
     "Unite": "€/kg"
   },
   "3985": {
+    "PLU": "3985",
     "Designation": "SOLE GROSSE",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -2486,6 +2712,7 @@
     "Unite": "€/kg"
   },
   "3602": {
+    "PLU": "3602",
     "Designation": "SOLE promo",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -2497,6 +2724,7 @@
     "Unite": "piece"
   },
   "3986": {
+    "PLU": "3986",
     "Designation": "SOLE",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -2508,6 +2736,7 @@
     "Unite": "€/kg"
   },
   "3987": {
+    "PLU": "3987",
     "Designation": "SOLE PORTION",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -2519,6 +2748,7 @@
     "Unite": "€/kg"
   },
   "3988": {
+    "PLU": "3988",
     "Designation": "SOLE GROSSE BLESSEE",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -2530,6 +2760,7 @@
     "Unite": "€/kg"
   },
   "3989": {
+    "PLU": "3989",
     "Designation": "SOLE PORTION GRATTEE",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -2541,6 +2772,7 @@
     "Unite": "€/kg"
   },
   "3990": {
+    "PLU": "3990",
     "Designation": "SOLE GROSSE GRATTEE",
     "NomLatin": "Solea solea",
     "Categorie": "Pêché en",
@@ -2552,6 +2784,7 @@
     "Unite": "€/kg"
   },
   "3991": {
+    "PLU": "3991",
     "Designation": "SOLE BLONDE",
     "NomLatin": "PEGUSEA LASCARIS",
     "Categorie": "Pêché en",
@@ -2563,6 +2796,7 @@
     "Unite": "€/kg"
   },
   "3992": {
+    "PLU": "3992",
     "Designation": "SOLE BLONDE",
     "NomLatin": "PEGUSEA LASCARIS",
     "Categorie": "Pêché en",
@@ -2574,6 +2808,7 @@
     "Unite": "€/kg"
   },
   "3993": {
+    "PLU": "3993",
     "Designation": "SOLE PERDRIX",
     "NomLatin": "Microchirus VARIEGGATUS",
     "Categorie": "Pêché en",
@@ -2585,6 +2820,7 @@
     "Unite": "€/kg"
   },
   "3994": {
+    "PLU": "3994",
     "Designation": "TACAUD",
     "NomLatin": "Trisopterus luscus",
     "Categorie": "Pêché en",
@@ -2596,6 +2832,7 @@
     "Unite": "€/kg"
   },
   "3997": {
+    "PLU": "3997",
     "Designation": "TACAUD DE LIGNE",
     "NomLatin": "Trisopterus luscus",
     "Categorie": "Pêché en",
@@ -2607,6 +2844,7 @@
     "Unite": "€/kg"
   },
   "3743": {
+    "PLU": "3743",
     "Designation": "thon promo",
     "NomLatin": "Thunnus alalunga",
     "Categorie": "Pêché en",
@@ -2618,6 +2856,7 @@
     "Unite": "piece"
   },
   "3339": {
+    "PLU": "3339",
     "Designation": "THON GERMON",
     "NomLatin": "Thunnus alalunga",
     "Categorie": "Pêché en",
@@ -2629,6 +2868,7 @@
     "Unite": "€/kg"
   },
   "3292": {
+    "PLU": "3292",
     "Designation": "DARNE THON GERMON",
     "NomLatin": "Thunnus alalunga",
     "Categorie": "Pêché en",
@@ -2640,6 +2880,7 @@
     "Unite": "€/kg"
   },
   "3340": {
+    "PLU": "3340",
     "Designation": "THON GERMON DE LIGNE",
     "NomLatin": "Thunnus alalunga",
     "Categorie": "Pêché en",
@@ -2651,6 +2892,7 @@
     "Unite": "€/kg"
   },
   "3345": {
+    "PLU": "3345",
     "Designation": "THON OBESE",
     "NomLatin": "Thunnus obesus",
     "Categorie": "Pêché en",
@@ -2662,6 +2904,7 @@
     "Unite": "€/kg"
   },
   "3349": {
+    "PLU": "3349",
     "Designation": "THONINE ENTIERE BLESSEE",
     "NomLatin": "Euthynnus alletteratus",
     "Categorie": "Pêché en",
@@ -2673,6 +2916,7 @@
     "Unite": "€/kg"
   },
   "3350": {
+    "PLU": "3350",
     "Designation": "THONINE ENTIERE",
     "NomLatin": "Euthynnus alletteratus",
     "Categorie": "Pêché en",
@@ -2684,6 +2928,7 @@
     "Unite": "€/kg"
   },
   "3351": {
+    "PLU": "3351",
     "Designation": "LONGE THON ROUGE",
     "NomLatin": "Thunnus thynnus",
     "Categorie": "Pêché en",
@@ -2695,6 +2940,7 @@
     "Unite": "€/kg"
   },
   "3352": {
+    "PLU": "3352",
     "Designation": "VIEILLE commune",
     "NomLatin": "Labrus bergylta",
     "Categorie": "Pêché en",
@@ -2706,6 +2952,7 @@
     "Unite": "€/kg"
   },
   "3353": {
+    "PLU": "3353",
     "Designation": "TURBOT",
     "NomLatin": "Psetta maxima",
     "Categorie": "Pêché en",
@@ -2717,6 +2964,7 @@
     "Unite": "€/kg"
   },
   "3033": {
+    "PLU": "3033",
     "Designation": "VIEILLE",
     "NomLatin": "Labrus bergylta",
     "Categorie": "Pêché en",
@@ -2728,6 +2976,7 @@
     "Unite": "€/kg"
   },
   "3355": {
+    "PLU": "3355",
     "Designation": "ENCORNET",
     "NomLatin": "LOLIGO VULGARIS",
     "Categorie": "Pêché en",
@@ -2739,6 +2988,7 @@
     "Unite": "€/kg"
   },
   "3357": {
+    "PLU": "3357",
     "Designation": "GRANDE VIVE",
     "NomLatin": "Trachinus draco",
     "Categorie": "Pêché en",
@@ -2750,6 +3000,7 @@
     "Unite": "€/kg"
   },
   "3358": {
+    "PLU": "3358",
     "Designation": "CALAMAR",
     "NomLatin": "LOLIGINIDAE",
     "Categorie": "Pêché en",
@@ -2761,6 +3012,7 @@
     "Unite": "€/kg"
   },
   "3359": {
+    "PLU": "3359",
     "Designation": "ENCORNET BLANC PETIT",
     "NomLatin": "LOLIGINIDAE",
     "Categorie": "Pêché en",
@@ -2772,6 +3024,7 @@
     "Unite": "€/kg"
   },
   "3360": {
+    "PLU": "3360",
     "Designation": "BOGUE",
     "NomLatin": "Boops boops",
     "Categorie": "Pêché en",
@@ -2783,6 +3036,7 @@
     "Unite": "€/kg"
   },
   "3361": {
+    "PLU": "3361",
     "Designation": "ENCORNET ROUGE",
     "NomLatin": "Illex coindetii",
     "Categorie": "Pêché en",
@@ -2794,6 +3048,7 @@
     "Unite": "€/kg"
   },
   "3362": {
+    "PLU": "3362",
     "Designation": "LANCON",
     "NomLatin": "Hyperoplus lanceolatus",
     "Categorie": "Pêché en",
@@ -2805,6 +3060,7 @@
     "Unite": "€/kg"
   },
   "3363": {
+    "PLU": "3363",
     "Designation": "DRAGONNET LYRE",
     "NomLatin": "Callionymus lyra",
     "Categorie": "Pêché en",
@@ -2816,6 +3072,7 @@
     "Unite": "€/kg"
   },
   "3364": {
+    "PLU": "3364",
     "Designation": "BAUDROIE ENTIERE (lotte)",
     "NomLatin": "Lophius piscatorius",
     "Categorie": "Pêché en",
@@ -2827,6 +3084,7 @@
     "Unite": "€/kg"
   },
   "3365": {
+    "PLU": "3365",
     "Designation": "ALOSE",
     "NomLatin": "Alosa spp",
     "Categorie": "Pêché en",
@@ -2838,6 +3096,7 @@
     "Unite": "€/kg"
   },
   "3366": {
+    "PLU": "3366",
     "Designation": "LOCHE",
     "NomLatin": "Gaidropsarus vulgaris",
     "Categorie": "Pêché en",
@@ -2849,6 +3108,7 @@
     "Unite": "€/kg"
   },
   "3367": {
+    "PLU": "3367",
     "Designation": "ORPHIE",
     "NomLatin": "Belone belone",
     "Categorie": "Pêché en",
@@ -2860,6 +3120,7 @@
     "Unite": "€/kg"
   },
   "3368": {
+    "PLU": "3368",
     "Designation": "TORPILLE / DALITE ENTIERE",
     "NomLatin": "Torpedo MARMCRATA",
     "Categorie": "Pêché en",
@@ -2871,6 +3132,7 @@
     "Unite": "€/kg"
   },
   "3369": {
+    "PLU": "3369",
     "Designation": "PRETRE / ATHERINE",
     "NomLatin": "ATHERINA PRESBYTER",
     "Categorie": "Pêché en",
@@ -2882,6 +3144,7 @@
     "Unite": "€/kg"
   },
   "3371": {
+    "PLU": "3371",
     "Designation": "SERRAN CHEVRE",
     "NomLatin": "Serranus cabrilla",
     "Categorie": "Pêché en",
@@ -2893,6 +3156,7 @@
     "Unite": "€/kg"
   },
   "3375": {
+    "PLU": "3375",
     "Designation": "COQUETTE",
     "NomLatin": "LABRUS MIXTUS",
     "Categorie": "Pêché en",
@@ -2904,6 +3168,7 @@
     "Unite": "€/kg"
   },
   "3376": {
+    "PLU": "3376",
     "Designation": "SAUPE DE LIGNE",
     "NomLatin": "Sarpa salpa",
     "Categorie": "Pêché en",
@@ -2915,6 +3180,7 @@
     "Unite": "€/kg"
   },
   "3377": {
+    "PLU": "3377",
     "Designation": "RAIE ENTIERE",
     "NomLatin": "RAJA MICROOCELLATA",
     "Categorie": "Pêché en",
@@ -2926,6 +3192,7 @@
     "Unite": "€/kg"
   },
   "3378": {
+    "PLU": "3378",
     "Designation": "RAIE TERRE",
     "NomLatin": "RAJA NAEVUS",
     "Categorie": "Pêché en",
@@ -2937,6 +3204,7 @@
     "Unite": "€/kg"
   },
   "3379": {
+    "PLU": "3379",
     "Designation": "RAIE PASTEUNAGUE",
     "NomLatin": "DASYATIS PASTINACA",
     "Categorie": "Pêché en",
@@ -2948,6 +3216,7 @@
     "Unite": "€/kg"
   },
   "3380": {
+    "PLU": "3380",
     "Designation": "POULPE BLANC",
     "NomLatin": "ELEDONE CIRRHOSA",
     "Categorie": "Pêché en",
@@ -2959,6 +3228,7 @@
     "Unite": "€/kg"
   },
   "3381": {
+    "PLU": "3381",
     "Designation": "POULPE",
     "NomLatin": "Octopus VULGARIS",
     "Categorie": "Pêché en",
@@ -2970,6 +3240,7 @@
     "Unite": "€/kg"
   },
   "3382": {
+    "PLU": "3382",
     "Designation": "BONITE",
     "NomLatin": "AUXIS ROCHEI",
     "Categorie": "Pêché en",
@@ -2981,6 +3252,7 @@
     "Unite": "€/kg"
   },
   "3383": {
+    "PLU": "3383",
     "Designation": "SAR COMMUN",
     "NomLatin": "Diplodus sargus",
     "Categorie": "Pêché en",
@@ -2992,6 +3264,7 @@
     "Unite": "€/kg"
   },
   "3384": {
+    "PLU": "3384",
     "Designation": "SAR GROS DE LIGNE",
     "NomLatin": "Diplodus sargus",
     "Categorie": "Pêché en",
@@ -3003,6 +3276,7 @@
     "Unite": "€/kg"
   },
   "3385": {
+    "PLU": "3385",
     "Designation": "SAR DE LIGNE",
     "NomLatin": "Diplodus sargus",
     "Categorie": "Pêché en",
@@ -3014,6 +3288,7 @@
     "Unite": "€/kg"
   },
   "3390": {
+    "PLU": "3390",
     "Designation": "SEICHE CASSERON",
     "NomLatin": "Sepia officinalis",
     "Categorie": "Pêché en",
@@ -3025,6 +3300,7 @@
     "Unite": "€/kg"
   },
   "3391": {
+    "PLU": "3391",
     "Designation": "SEICHE COMMUNE",
     "NomLatin": "Sepia officinalis",
     "Categorie": "Pêché en",
@@ -3036,6 +3312,7 @@
     "Unite": "€/kg"
   },
   "3392": {
+    "PLU": "3392",
     "Designation": "POULPE BLANC",
     "NomLatin": "Sepia officinalis",
     "Categorie": "Pêché en",
@@ -3047,6 +3324,7 @@
     "Unite": "€/kg"
   },
   "3393": {
+    "PLU": "3393",
     "Designation": "TETE SEICHE",
     "NomLatin": "Sepia officinalis",
     "Categorie": "Pêché en",
@@ -3058,6 +3336,7 @@
     "Unite": "€/kg"
   },
   "3398": {
+    "PLU": "3398",
     "Designation": "OEUFS CABILLAUD",
     "NomLatin": "Gadus morhua",
     "Categorie": "Pêché en",
@@ -3069,6 +3348,7 @@
     "Unite": "€/kg"
   },
   "3399": {
+    "PLU": "3399",
     "Designation": "OEUFS DE MERLU",
     "NomLatin": "Merluccius merluccius",
     "Categorie": "Pêché en",
@@ -3080,6 +3360,7 @@
     "Unite": "€/kg"
   },
   "3400": {
+    "PLU": "3400",
     "Designation": "OEUFS DE MULET",
     "NomLatin": "Paramugil parmatus",
     "Categorie": "Pêché en",
@@ -3091,6 +3372,7 @@
     "Unite": "€/kg"
   },
   "3401": {
+    "PLU": "3401",
     "Designation": "OEUFS DE MERLAN",
     "NomLatin": "Merlangius merlangus",
     "Categorie": "Pêché en",
@@ -3102,6 +3384,7 @@
     "Unite": "€/kg"
   },
   "3296": {
+    "PLU": "3296",
     "Designation": "HUITRE LA GUITTIERE LONGUES",
     "NomLatin": "CRASDSOSTREA GIGAS",
     "Categorie": "",
@@ -3113,6 +3396,7 @@
     "Unite": "€/kg"
   },
   "3297": {
+    "PLU": "3297",
     "Designation": "HUITRE LA GUITTIERE N°2",
     "NomLatin": "CRASDSOSTREA GIGAS",
     "Categorie": "",
@@ -3124,6 +3408,7 @@
     "Unite": "€/kg"
   },
   "3061": {
+    "PLU": "3061",
     "Designation": "LANGOUSTINE CUITE 41/50",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -3135,6 +3420,7 @@
     "Unite": "€/kg"
   },
   "3163": {
+    "PLU": "3163",
     "Designation": "1/2 TOURTEAUX CUIT",
     "NomLatin": "CANCER PAGURUS",
     "Categorie": "Pêché en",
@@ -3146,6 +3432,7 @@
     "Unite": "€/kg"
   },
   "3045": {
+    "PLU": "3045",
     "Designation": "AILE DE RAIE",
     "NomLatin": "RAJA NAEVUS",
     "Categorie": "Pêché en",
@@ -3157,6 +3444,7 @@
     "Unite": "€/kg"
   },
   "3025": {
+    "PLU": "3025",
     "Designation": "AILE DE RAIE",
     "NomLatin": "RAJA CLAVATA-NAEVUS-MONTAGUI-CIRCUL-XXR",
     "Categorie": "Pêché en",
@@ -3168,6 +3456,7 @@
     "Unite": "€/kg"
   },
   "3316": {
+    "PLU": "3316",
     "Designation": "AMANDE",
     "NomLatin": "Glycymeris glycymeris",
     "Categorie": "Pêché en",
@@ -3179,6 +3468,7 @@
     "Unite": "€/kg"
   },
   "3169": {
+    "PLU": "3169",
     "Designation": "AMANDE",
     "NomLatin": "GIycymeris glycymeris",
     "Categorie": "Pêché en",
@@ -3190,6 +3480,7 @@
     "Unite": "€/kg"
   },
   "3461": {
+    "PLU": "3461",
     "Designation": "anneaux d'encornet geant du pacifique saumures avec eau ajoutee DECONGELEES",
     "NomLatin": "DOSIDICUS GIGAS",
     "Categorie": "Pêché en",
@@ -3201,6 +3492,7 @@
     "Unite": "€/kg"
   },
   "3370": {
+    "PLU": "3370",
     "Designation": "BAR DE LIGNE",
     "NomLatin": "DICENTRARCHUS LABRAX",
     "Categorie": "Pêché en",
@@ -3212,6 +3504,7 @@
     "Unite": "€/kg"
   },
   "3444": {
+    "PLU": "3444",
     "Designation": "BAR ENTIER",
     "NomLatin": "DICENTRARCHUS LABRAX",
     "Categorie": "Elevé en",
@@ -3223,6 +3516,7 @@
     "Unite": "€/kg"
   },
   "3438": {
+    "PLU": "3438",
     "Designation": "BAR ENTIER",
     "NomLatin": "DICENTRARCHUS LABRAX",
     "Categorie": "Elevé en",
@@ -3234,6 +3528,7 @@
     "Unite": "€/kg"
   },
   "3478": {
+    "PLU": "3478",
     "Designation": "BAR ENTIER",
     "NomLatin": "DICENTRARCHUS TABRAX",
     "Categorie": "Elevé en",
@@ -3245,6 +3540,7 @@
     "Unite": "€/kg"
   },
   "3050": {
+    "PLU": "3050",
     "Designation": "BIGORNEAU CUIT",
     "NomLatin": "LITTORINA LITTOREA",
     "Categorie": "Pêché en",
@@ -3256,6 +3552,7 @@
     "Unite": "€/kg"
   },
   "3318": {
+    "PLU": "3318",
     "Designation": "BIGORNEAU VIVANT",
     "NomLatin": "LITTORINA LITTOREA",
     "Categorie": "Pêché en",
@@ -3267,6 +3564,7 @@
     "Unite": "€/kg"
   },
   "3182": {
+    "PLU": "3182",
     "Designation": "BIGORNEAU VIVANT GROS",
     "NomLatin": "LITTORINA LITTOREA",
     "Categorie": "Pêché en",
@@ -3278,6 +3576,7 @@
     "Unite": "€/kg"
   },
   "3458": {
+    "PLU": "3458",
     "Designation": "BIGORNEAU VIVANT SUPER JUMBO",
     "NomLatin": "LITTORINA LITTOREA",
     "Categorie": "Pêché en",
@@ -3289,6 +3588,7 @@
     "Unite": "€/kg"
   },
   "3046": {
+    "PLU": "3046",
     "Designation": "BLANC DE SEICHE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3300,6 +3600,7 @@
     "Unite": "€/kg"
   },
   "3247": {
+    "PLU": "3247",
     "Designation": "BLANC DE SEICHE\"FRAIS\"",
     "NomLatin": "SEPIA OFFICINALIS",
     "Categorie": "Pêché en",
@@ -3311,6 +3612,7 @@
     "Unite": "€/kg"
   },
   "3001": {
+    "PLU": "3001",
     "Designation": "BOUFFIS",
     "NomLatin": "CLUPEA HARENGUS",
     "Categorie": "Pêché en",
@@ -3322,6 +3624,7 @@
     "Unite": "€/kg"
   },
   "3267": {
+    "PLU": "3267",
     "Designation": "BRO.CREV.CUITE MARINE AIL/PERSIL",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3333,6 +3636,7 @@
     "Unite": "PIECE"
   },
   "3268": {
+    "PLU": "3268",
     "Designation": "BRO.CREV.CUITE MARINE INDIENNE",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3344,6 +3648,7 @@
     "Unite": "PIECE"
   },
   "3240": {
+    "PLU": "3240",
     "Designation": "BRO.CREV.CUITE MARINE PROVENçALE",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3355,6 +3660,7 @@
     "Unite": "PIECE"
   },
   "3257": {
+    "PLU": "3257",
     "Designation": "BRO.CREV.CUITE MARINE TEX MEX",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3366,6 +3672,7 @@
     "Unite": "PIECE"
   },
   "3049": {
+    "PLU": "3049",
     "Designation": "BROCHET",
     "NomLatin": "ESOX LUCIUS",
     "Categorie": "Pêché en eaux douces",
@@ -3377,6 +3684,7 @@
     "Unite": "€/kg"
   },
   "3110": {
+    "PLU": "3110",
     "Designation": "BROCHETTE SAUMON/CABILLAUD",
     "NomLatin": "",
     "Categorie": "",
@@ -3388,6 +3696,7 @@
     "Unite": "€/PIECE"
   },
   "3248": {
+    "PLU": "3248",
     "Designation": "BROCHETTE SAUMON MARINEE THYM CITRON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -3399,6 +3708,7 @@
     "Unite": "€/kg"
   },
   "3337": {
+    "PLU": "3337",
     "Designation": "BROCHETTE LAMELLE ENCORNET SAUMUREE EAU AJOUTE MARINEE PROVENCAL",
     "NomLatin": "DOSIDICUS GIGAD",
     "Categorie": "Pêché en",
@@ -3410,6 +3720,7 @@
     "Unite": "€/kg"
   },
   "3134": {
+    "PLU": "3134",
     "Designation": "BROCHETTE SAUMON",
     "NomLatin": "",
     "Categorie": "Elevé en",
@@ -3421,6 +3732,7 @@
     "Unite": "€/PIECE"
   },
   "3172": {
+    "PLU": "3172",
     "Designation": "BULOT CUIT",
     "NomLatin": "BUCCINUM UNDATUM",
     "Categorie": "Pêché en",
@@ -3432,6 +3744,7 @@
     "Unite": "€/kg"
   },
   "3324": {
+    "PLU": "3324",
     "Designation": "BULOT CUIT",
     "NomLatin": "BUCCINUM UNDATUM",
     "Categorie": "Pêché en",
@@ -3443,6 +3756,7 @@
     "Unite": "€/kg"
   },
   "3133": {
+    "PLU": "3133",
     "Designation": "fe.BULOT CUIT",
     "NomLatin": "BUCCINUM UNDATUM",
     "Categorie": "Pêché en",
@@ -3454,6 +3768,7 @@
     "Unite": "€/kg"
   },
   "3320": {
+    "PLU": "3320",
     "Designation": "BULOT CUIT AROMATISé PROVENCALE",
     "NomLatin": "BUCCINUM UNDATUM",
     "Categorie": "Pêché en",
@@ -3465,6 +3780,7 @@
     "Unite": "€/kg"
   },
   "3321": {
+    "PLU": "3321",
     "Designation": "BULOT CUIT PIMENTé",
     "NomLatin": "BUCCINUM UNDATUM",
     "Categorie": "Pêché en",
@@ -3476,6 +3792,7 @@
     "Unite": "€/kg"
   },
   "3181": {
+    "PLU": "3181",
     "Designation": "BULOT VIVANT",
     "NomLatin": "BUCCINUM UNDATUM",
     "Categorie": "Pêché en",
@@ -3487,6 +3804,7 @@
     "Unite": "€/kg"
   },
   "3055": {
+    "PLU": "3055",
     "Designation": "CABILLAUD A LA COUPE",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Elevé en",
@@ -3498,6 +3816,7 @@
     "Unite": "€/kg"
   },
   "3672": {
+    "PLU": "3672",
     "Designation": "CHIRURGIEN DE LIGNE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3509,6 +3828,7 @@
     "Unite": "€/kg"
   },
   "3492": {
+    "PLU": "3492",
     "Designation": "COQUILLE ST JACQUES CORAILLEE",
     "NomLatin": "Pecten maximus",
     "Categorie": "Pêché en",
@@ -3520,6 +3840,7 @@
     "Unite": "€/kg"
   },
   "3180": {
+    "PLU": "3180",
     "Designation": "COQUES GROSSES",
     "NomLatin": "CERASTODERMA EDULE",
     "Categorie": "Pêché en",
@@ -3531,6 +3852,7 @@
     "Unite": "€/kg"
   },
   "3598": {
+    "PLU": "3598",
     "Designation": "COQUILLE ST JACQUES BLANCHE",
     "NomLatin": "Pecten maximus",
     "Categorie": "Pêché en",
@@ -3542,6 +3864,7 @@
     "Unite": "€/kg"
   },
   "3452": {
+    "PLU": "3452",
     "Designation": "COQUILLE ST JACQUES BLANCHE",
     "NomLatin": "Pecten maximus",
     "Categorie": "Pêché en",
@@ -3553,6 +3876,7 @@
     "Unite": "€/kg"
   },
   "3327": {
+    "PLU": "3327",
     "Designation": "COQUILLE ST JACQUES BLANCHE",
     "NomLatin": "Pecten maximus",
     "Categorie": "Pêché en",
@@ -3564,6 +3888,7 @@
     "Unite": "€/kg"
   },
   "3177": {
+    "PLU": "3177",
     "Designation": "COUTEAU",
     "NomLatin": "ENSIS DIRECTUS",
     "Categorie": "Pêché en",
@@ -3575,6 +3900,7 @@
     "Unite": "€/kg"
   },
   "3335": {
+    "PLU": "3335",
     "Designation": "CREV.NIGERIA BLACK TIGER 10/15",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3586,6 +3912,7 @@
     "Unite": "€/kg"
   },
   "3334": {
+    "PLU": "3334",
     "Designation": "CREV.SAUVAGE \"MADAGASCAR\"10/20",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3597,6 +3924,7 @@
     "Unite": "€/kg"
   },
   "3472": {
+    "PLU": "3472",
     "Designation": "CREV.SAUVAGE \"MADAGASCAR\"100/120",
     "NomLatin": "PENAEUS SEMISUICATUS",
     "Categorie": "Pêché en",
@@ -3608,6 +3936,7 @@
     "Unite": "€/kg"
   },
   "3333": {
+    "PLU": "3333",
     "Designation": "CREV.SAUVAGE \"MADAGASCAR\"20/30",
     "NomLatin": "PENAEUS SEMISUICATUS",
     "Categorie": "Pêché en",
@@ -3619,6 +3948,7 @@
     "Unite": "€/kg"
   },
   "3332": {
+    "PLU": "3332",
     "Designation": "CREV.SAUVAGE \"MADAGASCAR\"40/60",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3630,6 +3960,7 @@
     "Unite": "€/kg"
   },
   "3330": {
+    "PLU": "3330",
     "Designation": "CREV.SAUVAGE \"MADAGASCAR\"60/80",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3641,6 +3972,7 @@
     "Unite": "€/kg"
   },
   "3474": {
+    "PLU": "3474",
     "Designation": "CREVETTE CRUE 30/40",
     "NomLatin": "LITOPENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3652,6 +3984,7 @@
     "Unite": "€/kg"
   },
   "3473": {
+    "PLU": "3473",
     "Designation": "CREVETTE CUITE \"LABEL ROUGE\" 20/30",
     "NomLatin": "",
     "Categorie": "Elevé en",
@@ -3663,6 +3996,7 @@
     "Unite": "€/kg"
   },
   "3455": {
+    "PLU": "3455",
     "Designation": "CREVETTE CUITE 10/20",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3674,6 +4008,7 @@
     "Unite": "€/kg"
   },
   "3280": {
+    "PLU": "3280",
     "Designation": "CREVETTE CUITE 20/30",
     "NomLatin": "PANAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3685,6 +4020,7 @@
     "Unite": "€/kg"
   },
   "3249": {
+    "PLU": "3249",
     "Designation": "CREVETTE CUITE 25 /25",
     "NomLatin": "PANAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3696,6 +4032,7 @@
     "Unite": "€/kg"
   },
   "3409": {
+    "PLU": "3409",
     "Designation": "CREVETTE CUITE 25/35",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3707,6 +4044,7 @@
     "Unite": "€/kg"
   },
   "3188": {
+    "PLU": "3188",
     "Designation": "CREVETTE CUITE 30/40",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3718,6 +4056,7 @@
     "Unite": "€/kg"
   },
   "3553": {
+    "PLU": "3553",
     "Designation": "CREVETTE CUITE 30/50",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3729,6 +4068,7 @@
     "Unite": "€/kg"
   },
   "3413": {
+    "PLU": "3413",
     "Designation": "SEICHE ENTIERE",
     "NomLatin": "SEPIA PHARAONIS",
     "Categorie": "Pêché en",
@@ -3740,6 +4080,7 @@
     "Unite": "€/kg"
   },
   "3422": {
+    "PLU": "3422",
     "Designation": "CREVETTE CUITE SAUVAGE 40/60",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3751,6 +4092,7 @@
     "Unite": "€/kg"
   },
   "3186": {
+    "PLU": "3186",
     "Designation": "CREVETTE CUITE 50/70",
     "NomLatin": "PENAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3762,6 +4104,7 @@
     "Unite": "€/kg"
   },
   "3115": {
+    "PLU": "3115",
     "Designation": "CREVETTE CUITE 80/120",
     "NomLatin": "PANAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3773,6 +4116,7 @@
     "Unite": "€/kg"
   },
   "3118": {
+    "PLU": "3118",
     "Designation": "CREVETTE CUITE 60/80 SAUVAGE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3784,6 +4128,7 @@
     "Unite": "€/kg"
   },
   "3005": {
+    "PLU": "3005",
     "Designation": "CREVETTE CUITE 80/100",
     "NomLatin": "PANAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3795,6 +4140,7 @@
     "Unite": "€/kg"
   },
   "3451": {
+    "PLU": "3451",
     "Designation": "CREVETTE CUITE 80/100",
     "NomLatin": "PANAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3806,6 +4152,7 @@
     "Unite": "€/kg"
   },
   "3277": {
+    "PLU": "3277",
     "Designation": "CREVETTE CUITE 80/100",
     "NomLatin": "PANAEUS VANNAMEI",
     "Categorie": "Elevé en",
@@ -3817,6 +4164,7 @@
     "Unite": "€/kg"
   },
   "3467": {
+    "PLU": "3467",
     "Designation": "CREVETTE CUITE 80/100 MADAGASCAR",
     "NomLatin": "PENAEUS MONODON",
     "Categorie": "Elevé en",
@@ -3828,6 +4176,7 @@
     "Unite": "€/kg"
   },
   "3329": {
+    "PLU": "3329",
     "Designation": "CREVETTE CUITE GRISE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3839,6 +4188,7 @@
     "Unite": "€/kg"
   },
   "3244": {
+    "PLU": "3244",
     "Designation": "CREVETTE CUITE U10 \"SAUVAGE\"",
     "NomLatin": "PENAEUS MONODON",
     "Categorie": "Pêché en",
@@ -3850,6 +4200,7 @@
     "Unite": "€/kg"
   },
   "3373": {
+    "PLU": "3373",
     "Designation": "CREVETTE GRISE CUITE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3861,6 +4212,7 @@
     "Unite": "€/kg"
   },
   "3412": {
+    "PLU": "3412",
     "Designation": "CREVETTES CUITES 30/50",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Elevé en",
@@ -3872,6 +4224,7 @@
     "Unite": "€/kg"
   },
   "3554": {
+    "PLU": "3554",
     "Designation": "DARNE DE SAUMON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -3883,6 +4236,7 @@
     "Unite": "€/kg"
   },
   "3012": {
+    "PLU": "3012",
     "Designation": "DARNE DE SAUMON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -3894,6 +4248,7 @@
     "Unite": "€/kg"
   },
   "3021": {
+    "PLU": "3021",
     "Designation": "DORADE GRISE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -3905,6 +4260,7 @@
     "Unite": "€/kg"
   },
   "3605": {
+    "PLU": "3605",
     "Designation": "DORADE ROYALE promo",
     "NomLatin": "SPARUS AURATA",
     "Categorie": "Elevé en",
@@ -3916,6 +4272,7 @@
     "Unite": "piece"
   },
   "3112": {
+    "PLU": "3112",
     "Designation": "DORADE ROYALE",
     "NomLatin": "SPARUS AURATA",
     "Categorie": "Elevé en",
@@ -3927,6 +4284,7 @@
     "Unite": "€/kg"
   },
   "3217": {
+    "PLU": "3217",
     "Designation": "DORADE SEBASTE",
     "NomLatin": "HELICOLENUS DACTYLOPTERUS",
     "Categorie": "Pêché en",
@@ -3938,6 +4296,7 @@
     "Unite": "€/kg"
   },
   "3231": {
+    "PLU": "3231",
     "Designation": "DORADE SEBASTE",
     "NomLatin": "HELICOLENUS DACTYLOPTERUS",
     "Categorie": "Pêché en",
@@ -3949,6 +4308,7 @@
     "Unite": "€/kg"
   },
   "3063": {
+    "PLU": "3063",
     "Designation": "DOS DE CABILLAUD",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -3960,6 +4320,7 @@
     "Unite": "€/kg"
   },
   "3073": {
+    "PLU": "3073",
     "Designation": "FILET DE CABILLAUD",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Elevé en",
@@ -3971,6 +4332,7 @@
     "Unite": "€/kg"
   },
   "3572": {
+    "PLU": "3572",
     "Designation": "DOS DE JULIENNE",
     "NomLatin": "MOLVA MOLVA",
     "Categorie": "Pêché en",
@@ -3982,6 +4344,7 @@
     "Unite": "€/kg"
   },
   "3218": {
+    "PLU": "3218",
     "Designation": "DOS DE LIEU NOIR",
     "NomLatin": "POLLACCHIUS VIRENS",
     "Categorie": "Pêché en",
@@ -3993,6 +4356,7 @@
     "Unite": "€/kg"
   },
   "3227": {
+    "PLU": "3227",
     "Designation": "DOS DE LINGUE BLEUE",
     "NomLatin": "MOLVA DYPTERYGIA",
     "Categorie": "Pêché en",
@@ -4004,6 +4368,7 @@
     "Unite": "€/kg"
   },
   "3710": {
+    "PLU": "3710",
     "Designation": "FILET DE BROSME",
     "NomLatin": "BROSME BROSME",
     "Categorie": "Pêché en",
@@ -4015,6 +4380,7 @@
     "Unite": "€/kg"
   },
   "3496": {
+    "PLU": "3496",
     "Designation": "DOS DE MERLU",
     "NomLatin": "MERLUCCIUS MERLUCCIUS",
     "Categorie": "Pêché en",
@@ -4026,6 +4392,7 @@
     "Unite": "€/kg"
   },
   "3386": {
+    "PLU": "3386",
     "Designation": "DOS DE SAUMON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -4037,6 +4404,7 @@
     "Unite": "€/kg"
   },
   "3195": {
+    "PLU": "3195",
     "Designation": "DOS D'EGLEFIN",
     "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
     "Categorie": "Pêché en",
@@ -4048,6 +4416,7 @@
     "Unite": "€/kg"
   },
   "3543": {
+    "PLU": "3543",
     "Designation": "ECREVISSE VIVANTE",
     "NomLatin": "ASTACUS LEPTODACTYLUS",
     "Categorie": "Pêché en",
@@ -4059,6 +4428,7 @@
     "Unite": "€/kg"
   },
   "3044": {
+    "PLU": "3044",
     "Designation": "ENCORNET BLANC",
     "NomLatin": "LOLIGO VULGARIS",
     "Categorie": "Pêché en",
@@ -4070,6 +4440,7 @@
     "Unite": "€/kg"
   },
   "3035": {
+    "PLU": "3035",
     "Designation": "PRETRE",
     "NomLatin": "ATHERINA PRESBYTER",
     "Categorie": "Pêché en",
@@ -4081,6 +4452,7 @@
     "Unite": "€/kg"
   },
   "3067": {
+    "PLU": "3067",
     "Designation": "ESTURGEON SIBERIEN",
     "NomLatin": "ACIPENSER BAERII",
     "Categorie": "Pêché en eaux douces",
@@ -4092,6 +4464,7 @@
     "Unite": "€/kg"
   },
   "3439": {
+    "PLU": "3439",
     "Designation": "FARCI SAUMON/ST JACQUES",
     "NomLatin": "",
     "Categorie": "",
@@ -4103,6 +4476,7 @@
     "Unite": "PIECE"
   },
   "3709": {
+    "PLU": "3709",
     "Designation": "FILET DE BAR",
     "NomLatin": "DICENTRARCHUS LABRAX",
     "Categorie": "Elevé en",
@@ -4114,6 +4488,7 @@
     "Unite": "€/kg"
   },
   "3081": {
+    "PLU": "3081",
     "Designation": "FILET DE CARRELET/PLIE",
     "NomLatin": "PLEURONECTES PLATESSA",
     "Categorie": "Pêché en",
@@ -4125,6 +4500,7 @@
     "Unite": "€/kg"
   },
   "3289": {
+    "PLU": "3289",
     "Designation": "FILET DE CHIMèRE",
     "NomLatin": "CHIMAERA MONSTROSA",
     "Categorie": "Pêché en",
@@ -4136,6 +4512,7 @@
     "Unite": "€/kg"
   },
   "3075": {
+    "PLU": "3075",
     "Designation": "FILET DE FLETAN",
     "NomLatin": "REINHARDITUS HIPPOGLOSSOIDES",
     "Categorie": "Pêché en",
@@ -4147,6 +4524,7 @@
     "Unite": "€/kg"
   },
   "3140": {
+    "PLU": "3140",
     "Designation": "FILET DE HARENG",
     "NomLatin": "CLUPEA HARENGUS",
     "Categorie": "Pêché en",
@@ -4158,6 +4536,7 @@
     "Unite": "€/kg"
   },
   "3072": {
+    "PLU": "3072",
     "Designation": "FILET DE JULIENNE",
     "NomLatin": "MOLVA MOLVA",
     "Categorie": "Pêché en",
@@ -4169,6 +4548,7 @@
     "Unite": "€/kg"
   },
   "3071": {
+    "PLU": "3071",
     "Designation": "FILET DE LIEU NOIR",
     "NomLatin": "POLLACCHIUS VIRENS",
     "Categorie": "Pêché en",
@@ -4180,6 +4560,7 @@
     "Unite": "€/kg"
   },
   "3372": {
+    "PLU": "3372",
     "Designation": "FILET DE QUEUE DE LINGUE BLEUE",
     "NomLatin": "MOLVA DYPTERYGIA",
     "Categorie": "Pêché en",
@@ -4191,6 +4572,7 @@
     "Unite": "€/kg"
   },
   "3225": {
+    "PLU": "3225",
     "Designation": "FILET DE LOUP DE MER",
     "NomLatin": "ANARHICHAS LUPUS",
     "Categorie": "Pêché en",
@@ -4202,6 +4584,7 @@
     "Unite": "€/kg"
   },
   "3509": {
+    "PLU": "3509",
     "Designation": "FILET DE MAQUEAREAU",
     "NomLatin": "SCOMBER SCOMBRUS",
     "Categorie": "Pêché en",
@@ -4213,6 +4596,7 @@
     "Unite": "€/kg"
   },
   "3074": {
+    "PLU": "3074",
     "Designation": "FILET DE MERLAN PAPILLON",
     "NomLatin": "MERLANGIUS MERLANGUS",
     "Categorie": "Pêché en",
@@ -4224,6 +4608,7 @@
     "Unite": "€/kg"
   },
   "3512": {
+    "PLU": "3512",
     "Designation": "FILET DE MERLU",
     "NomLatin": "MERLUCCIUS MERLUCCIUS",
     "Categorie": "Pêché en",
@@ -4235,6 +4620,7 @@
     "Unite": "€/kg"
   },
   "3185": {
+    "PLU": "3185",
     "Designation": "FILET DE QUEUE DE CABILLAUD",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -4246,6 +4632,7 @@
     "Unite": "€/kg"
   },
   "3252": {
+    "PLU": "3252",
     "Designation": "FILET DE QUEUE DE LIEU NOIR",
     "NomLatin": "POLLACCHIUS VIRENS",
     "Categorie": "Pêché en",
@@ -4257,6 +4644,7 @@
     "Unite": "€/kg"
   },
   "3348": {
+    "PLU": "3348",
     "Designation": "FILET DE QUEUE DE SAUMON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -4268,6 +4656,7 @@
     "Unite": "€/kg"
   },
   "3103": {
+    "PLU": "3103",
     "Designation": "FILET DE ROUGET",
     "NomLatin": "PSEUDUPENEUS PRAYENSIS",
     "Categorie": "Pêché en",
@@ -4279,6 +4668,7 @@
     "Unite": "€/kg"
   },
   "3069": {
+    "PLU": "3069",
     "Designation": "FILET DE SABRE",
     "NomLatin": "APHANOPUS CARBO",
     "Categorie": "Pêché en",
@@ -4290,6 +4680,7 @@
     "Unite": "€/kg"
   },
   "3191": {
+    "PLU": "3191",
     "Designation": "FILET DE SANDRE SAUVAGE",
     "NomLatin": "SANDER LUCIOPERCA",
     "Categorie": "Pêché en",
@@ -4301,6 +4692,7 @@
     "Unite": "€/kg"
   },
   "3083": {
+    "PLU": "3083",
     "Designation": "SARDINE PRÊT A CUIRE",
     "NomLatin": "SARDINA PILCHARDUS",
     "Categorie": "Pêché en",
@@ -4312,6 +4704,7 @@
     "Unite": "€/kg"
   },
   "3065": {
+    "PLU": "3065",
     "Designation": "PAVES DE SAUMON GROS",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -4323,6 +4716,7 @@
     "Unite": "€/kg"
   },
   "3078": {
+    "PLU": "3078",
     "Designation": "FILET DE SAUMON ENTIER",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -4334,6 +4728,7 @@
     "Unite": "€/kg"
   },
   "3494": {
+    "PLU": "3494",
     "Designation": "FILET DE SOLE TROPICALE",
     "NomLatin": "CYNOGLOSSUS SENEGALENSIS",
     "Categorie": "Pêché en",
@@ -4345,6 +4740,7 @@
     "Unite": "€/kg"
   },
   "3077": {
+    "PLU": "3077",
     "Designation": "PAVE DE TRUITE",
     "NomLatin": "ONCORHYNCHUS MYKISS",
     "Categorie": "Elevé en",
@@ -4356,6 +4752,7 @@
     "Unite": "€/kg"
   },
   "3546": {
+    "PLU": "3546",
     "Designation": "FILET DE TRUITE \"FUMAISON\"",
     "NomLatin": "ONCORHYNCHUS MYKISS",
     "Categorie": "Pêché en eaux douces",
@@ -4367,6 +4764,7 @@
     "Unite": "€/kg"
   },
   "3128": {
+    "PLU": "3128",
     "Designation": "FILET DE TURBO",
     "NomLatin": "Rombo Chiodato",
     "Categorie": "Elevé en",
@@ -4378,6 +4776,7 @@
     "Unite": "€/kg"
   },
   "3447": {
+    "PLU": "3447",
     "Designation": "FILET D'HADDOCK",
     "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
     "Categorie": "Pêché en",
@@ -4389,6 +4788,7 @@
     "Unite": "€/kg"
   },
   "3216": {
+    "PLU": "3216",
     "Designation": "FILET D EGLEFIN",
     "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
     "Categorie": "",
@@ -4400,6 +4800,7 @@
     "Unite": "€/kg"
   },
   "3457": {
+    "PLU": "3457",
     "Designation": "FILET HARENG",
     "NomLatin": "CLUPEA HARENGUS",
     "Categorie": "Pêché en",
@@ -4411,6 +4812,7 @@
     "Unite": "€/kg"
   },
   "3310": {
+    "PLU": "3310",
     "Designation": "FILET MAQUEREAU FUMé AU POIVRE",
     "NomLatin": "SCOMBER SCOMBRUS",
     "Categorie": "Pêché en",
@@ -4422,6 +4824,7 @@
     "Unite": "€/kg"
   },
   "3308": {
+    "PLU": "3308",
     "Designation": "FILET MAQUEREAU FUMé OIGNON",
     "NomLatin": "SCOMBER SCOMBRUS",
     "Categorie": "Pêché en",
@@ -4433,6 +4836,7 @@
     "Unite": "€/kg"
   },
   "3311": {
+    "PLU": "3311",
     "Designation": "FILET MAQUEREAU FUMé PROVENCALE",
     "NomLatin": "SCOMBER SCOMBRUS",
     "Categorie": "Pêché en",
@@ -4444,6 +4848,7 @@
     "Unite": "€/kg"
   },
   "3059": {
+    "PLU": "3059",
     "Designation": "FILET MORUE SALEE",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -4455,6 +4860,7 @@
     "Unite": "€/kg"
   },
   "3426": {
+    "PLU": "3426",
     "Designation": "FILET MORUE SALéE \"AVEC PEAU\"",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -4466,6 +4872,7 @@
     "Unite": "€/kg"
   },
   "3830": {
+    "PLU": "3830",
     "Designation": "NUGGETS DE POISSON AU DOS LIEU NOIR",
     "NomLatin": "POLLACCHIUS VIRENS",
     "Categorie": "Elevé en",
@@ -4477,6 +4884,7 @@
     "Unite": "€/kg"
   },
   "3199": {
+    "PLU": "3199",
     "Designation": "FLET",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -4488,6 +4896,7 @@
     "Unite": "€/kg"
   },
   "3471": {
+    "PLU": "3471",
     "Designation": "FOIE DE LOTTE",
     "NomLatin": "LOPHIUS PISCATORIUS",
     "Categorie": "Pêché en",
@@ -4499,6 +4908,7 @@
     "Unite": "€/kg"
   },
   "3060": {
+    "PLU": "3060",
     "Designation": "HADDOCK",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -4510,6 +4920,7 @@
     "Unite": "€/kg"
   },
   "3042": {
+    "PLU": "3042",
     "Designation": "HARENG",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -4521,6 +4932,7 @@
     "Unite": "€/kg"
   },
   "3223": {
+    "PLU": "3223",
     "Designation": "HARENG BUCKLING",
     "NomLatin": "CLUPEA HARENGUS",
     "Categorie": "Pêché en",
@@ -4532,6 +4944,7 @@
     "Unite": "€/kg"
   },
   "3424": {
+    "PLU": "3424",
     "Designation": "HARENG BUCKLING",
     "NomLatin": "CLUPEA HARENGUS",
     "Categorie": "Pêché en",
@@ -4543,6 +4956,7 @@
     "Unite": "€/kg"
   },
   "3002": {
+    "PLU": "3002",
     "Designation": "HARENG SAUR",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -4554,6 +4968,7 @@
     "Unite": "€/kg"
   },
   "3154": {
+    "PLU": "3154",
     "Designation": "HOMARD AMERICAIN VIVANT (2PINCES)",
     "NomLatin": "HOMARUS AMERICANUS",
     "Categorie": "Pêché en",
@@ -4565,6 +4980,7 @@
     "Unite": "€/kg"
   },
   "3089": {
+    "PLU": "3089",
     "Designation": "HOMARD CUIT AMERICAIN",
     "NomLatin": "HOMARUS AMERICANUS",
     "Categorie": "Pêché en",
@@ -4576,6 +4992,7 @@
     "Unite": "€/kg"
   },
   "3208": {
+    "PLU": "3208",
     "Designation": "HUITRE BEAUVOIR N°1",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4587,6 +5004,7 @@
     "Unite": "€/kg"
   },
   "3122": {
+    "PLU": "3122",
     "Designation": "HUITRE BEAUVOIR N°2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4598,6 +5016,7 @@
     "Unite": "€/kg"
   },
   "3087": {
+    "PLU": "3087",
     "Designation": "HUITRE BEAUVOIR N°3",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4609,6 +5028,7 @@
     "Unite": "€/kg"
   },
   "3137": {
+    "PLU": "3137",
     "Designation": "HUITRE BEAUVOIR N°4",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4620,6 +5040,7 @@
     "Unite": "€/kg"
   },
   "3503": {
+    "PLU": "3503",
     "Designation": "HUITRE CHARENTE MARITIME N°2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4631,6 +5052,7 @@
     "Unite": "€/kg"
   },
   "3459": {
+    "PLU": "3459",
     "Designation": "HUITRE ISIGNY N°2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4642,6 +5064,7 @@
     "Unite": "€/kg"
   },
   "3293": {
+    "PLU": "3293",
     "Designation": "HUITRE LONGUE NOIRMOUTIER",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4653,6 +5076,7 @@
     "Unite": "€/kg"
   },
   "3043": {
+    "PLU": "3043",
     "Designation": "HUITRE MARENNE OLERON N\"3",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4664,6 +5088,7 @@
     "Unite": "€/kg"
   },
   "3469": {
+    "PLU": "3469",
     "Designation": "HUITRE MARENNE OLERON N\"4",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4675,6 +5100,7 @@
     "Unite": "€/kg"
   },
   "3278": {
+    "PLU": "3278",
     "Designation": "HUITRE MARENNE OLERON N°1",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4686,6 +5112,7 @@
     "Unite": "€/kg"
   },
   "3323": {
+    "PLU": "3323",
     "Designation": "HUITRE MARENNE OLERON N°2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4697,6 +5124,7 @@
     "Unite": "€/kg"
   },
   "3524": {
+    "PLU": "3524",
     "Designation": "HUITRE NOIRMOUTIER N°1",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4708,6 +5136,7 @@
     "Unite": "€/kg"
   },
   "3506": {
+    "PLU": "3506",
     "Designation": "HUITRE NOIRMOUTIER N°2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4719,6 +5148,7 @@
     "Unite": "€/kg"
   },
   "3167": {
+    "PLU": "3167",
     "Designation": "HUITRE NOIRMOUTIER N°3",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4730,6 +5160,7 @@
     "Unite": "€/kg"
   },
   "3295": {
+    "PLU": "3295",
     "Designation": "HUITRE NOIRMOUTIER N°4",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4741,6 +5172,7 @@
     "Unite": "€/kg"
   },
   "3535": {
+    "PLU": "3535",
     "Designation": "HUITRE NORMANDIE ST VAAST N°3",
     "NomLatin": "MAGALLANA GIGAS",
     "Categorie": "Elevé en",
@@ -4752,6 +5184,7 @@
     "Unite": "€/kg"
   },
   "3533": {
+    "PLU": "3533",
     "Designation": "HUITRE NORMANDIE ST VAAST N°2",
     "NomLatin": "MAGALLANA GIGAS",
     "Categorie": "Elevé en",
@@ -4763,6 +5196,7 @@
     "Unite": "€/kg"
   },
   "3534": {
+    "PLU": "3534",
     "Designation": "HUITRE NORMANDIE UTAH BEACH N°2",
     "NomLatin": "MAGALLANA GIGAS",
     "Categorie": "Elevé en",
@@ -4774,6 +5208,7 @@
     "Unite": "€/kg"
   },
   "3536": {
+    "PLU": "3536",
     "Designation": "HUITRE PRAT ARCOUM N°2",
     "NomLatin": "MAGALLANA GIGAS",
     "Categorie": "Elevé en",
@@ -4785,6 +5220,7 @@
     "Unite": "€/kg"
   },
   "3527": {
+    "PLU": "3527",
     "Designation": "HUITRE PRAT ARCOUM N°3",
     "NomLatin": "MAGALLANA GIGAS",
     "Categorie": "Elevé en",
@@ -4796,6 +5232,7 @@
     "Unite": "€/kg"
   },
   "3431": {
+    "PLU": "3431",
     "Designation": "HUITRE SPECIALE MARENNE OLERON N2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4807,6 +5244,7 @@
     "Unite": "€/kg"
   },
   "3526": {
+    "PLU": "3526",
     "Designation": "HUITRES CANCALE N°2",
     "NomLatin": "MAGALLANA GIGAS",
     "Categorie": "Elevé en",
@@ -4818,6 +5256,7 @@
     "Unite": "€/kg"
   },
   "3466": {
+    "PLU": "3466",
     "Designation": "HUITRES CANCALE N°3",
     "NomLatin": "MAGALLANA GIGAS",
     "Categorie": "Elevé en",
@@ -4829,6 +5268,7 @@
     "Unite": "€/kg"
   },
   "3276": {
+    "PLU": "3276",
     "Designation": "HUITRES DE L'ILE DE RE N°1",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4840,6 +5280,7 @@
     "Unite": "€/kg"
   },
   "3493": {
+    "PLU": "3493",
     "Designation": "HUITRES DE L'ILE DE RE N°2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4851,6 +5292,7 @@
     "Unite": "€/kg"
   },
   "3462": {
+    "PLU": "3462",
     "Designation": "HUITRES DE L'ILE DE RE N°3",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4862,6 +5304,7 @@
     "Unite": "€/kg"
   },
   "3453": {
+    "PLU": "3453",
     "Designation": "HUITRES MARENNE OLERON N°2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -4873,6 +5316,7 @@
     "Unite": "€/kg"
   },
   "3435": {
+    "PLU": "3435",
     "Designation": "JOUE DE CABILLAUD",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -4884,6 +5328,7 @@
     "Unite": "€/kg"
   },
   "3445": {
+    "PLU": "3445",
     "Designation": "JOUE DE LOTTE",
     "NomLatin": "LOPHIUS PISCATORIUS-BUDEGASSA/MONK CHEEK",
     "Categorie": "Pêché en",
@@ -4895,6 +5340,7 @@
     "Unite": "€/kg"
   },
   "3210": {
+    "PLU": "3210",
     "Designation": "JOUE DE RAIE",
     "NomLatin": "RAJA CLAVATA",
     "Categorie": "Pêché en",
@@ -4906,6 +5352,7 @@
     "Unite": "€/kg"
   },
   "3314": {
+    "PLU": "3314",
     "Designation": "KIPPERS",
     "NomLatin": "CLUPEA HARENGUS",
     "Categorie": "Pêché en",
@@ -4917,6 +5364,7 @@
     "Unite": "€/kg"
   },
   "3395": {
+    "PLU": "3395",
     "Designation": "LAMELLES D'ENCORNET geant du pacifique saumures avec eau ajoutee DECONGELEES",
     "NomLatin": "DOSIDICUS GIGAS",
     "Categorie": "Pêché en",
@@ -4928,6 +5376,7 @@
     "Unite": "€/kg"
   },
   "3126": {
+    "PLU": "3126",
     "Designation": "LANCON",
     "NomLatin": "AMMODYTES TOBIANUS",
     "Categorie": "Pêché en",
@@ -4939,6 +5388,7 @@
     "Unite": "€/kg"
   },
   "3102": {
+    "PLU": "3102",
     "Designation": "LANGOUSTE CUITS REFRIGEREES",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -4950,6 +5400,7 @@
     "Unite": "€/kg"
   },
   "3418": {
+    "PLU": "3418",
     "Designation": "LANGOUSTINE CUITE",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -4961,6 +5412,7 @@
     "Unite": "€/kg"
   },
   "3419": {
+    "PLU": "3419",
     "Designation": "LANGOUSTINE vivante CUITE",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -4972,6 +5424,7 @@
     "Unite": "€/kg"
   },
   "3408": {
+    "PLU": "3408",
     "Designation": "LANGOUSTINE CUITE",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -4983,6 +5436,7 @@
     "Unite": "€/kg"
   },
   "3406": {
+    "PLU": "3406",
     "Designation": "LANGOUSTINE CUITE 21/30",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -4994,6 +5448,7 @@
     "Unite": "€/kg"
   },
   "3403": {
+    "PLU": "3403",
     "Designation": "LANGOUSTINE CUITE 30/40",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5005,6 +5460,7 @@
     "Unite": "€/kg"
   },
   "3156": {
+    "PLU": "3156",
     "Designation": "LANGOUSTINE glacee 10/15",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5016,6 +5472,7 @@
     "Unite": "€/kg"
   },
   "3417": {
+    "PLU": "3417",
     "Designation": "LANGOUSTINE glacee 10/15",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5027,6 +5484,7 @@
     "Unite": "€/kg"
   },
   "3155": {
+    "PLU": "3155",
     "Designation": "LANGOUSTINE GLACEE 16/20",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5038,6 +5496,7 @@
     "Unite": "€/kg"
   },
   "3135": {
+    "PLU": "3135",
     "Designation": "LANGOUSTINE GLACEE 21/30",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5049,6 +5508,7 @@
     "Unite": "€/kg"
   },
   "3219": {
+    "PLU": "3219",
     "Designation": "LANGOUSTINE GLACEE 31/40",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5060,6 +5520,7 @@
     "Unite": "€/kg"
   },
   "3294": {
+    "PLU": "3294",
     "Designation": "LANGOUSTINE GLACEE 40/50",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5071,6 +5532,7 @@
     "Unite": "€/kg"
   },
   "3541": {
+    "PLU": "3541",
     "Designation": "LANGOUSTINE GLACEE 6/9",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5082,6 +5544,7 @@
     "Unite": "€/kg"
   },
   "3197": {
+    "PLU": "3197",
     "Designation": "LANGOUSTINE VIVANTE 10/15",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5093,6 +5556,7 @@
     "Unite": ""
   },
   "3255": {
+    "PLU": "3255",
     "Designation": "LANGOUSTINE VIVANTE 16/25",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5104,6 +5568,7 @@
     "Unite": ""
   },
   "3273": {
+    "PLU": "3273",
     "Designation": "LANGOUSTINE VIVANTE 6/10",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -5115,6 +5580,7 @@
     "Unite": "€/kg"
   },
   "3319": {
+    "PLU": "3319",
     "Designation": "LAVIGNON",
     "NomLatin": "SCROBICULIRIA PLANA",
     "Categorie": "Pêché en",
@@ -5126,6 +5592,7 @@
     "Unite": "€/kg"
   },
   "3196": {
+    "PLU": "3196",
     "Designation": "LIMANDE SOLE",
     "NomLatin": "MICROSTOMUS KITT",
     "Categorie": "Pêché en",
@@ -5137,6 +5604,7 @@
     "Unite": "€/kg"
   },
   "3389": {
+    "PLU": "3389",
     "Designation": "LONGE DE THON ALBACORE",
     "NomLatin": "THUNNUS ALBACARES",
     "Categorie": "Pêché en",
@@ -5148,6 +5616,7 @@
     "Unite": "€/kg"
   },
   "3299": {
+    "PLU": "3299",
     "Designation": "LONGE DE THON GERMON",
     "NomLatin": "THUNNUS ALALUNGA",
     "Categorie": "Pêché en",
@@ -5159,6 +5628,7 @@
     "Unite": "€/kg"
   },
   "3028": {
+    "PLU": "3028",
     "Designation": "LONGE D'ESPADON PROVENCAL",
     "NomLatin": "XIPHIAS GLADIUS",
     "Categorie": "Pêché en",
@@ -5170,6 +5640,7 @@
     "Unite": "€/kg"
   },
   "3017": {
+    "PLU": "3017",
     "Designation": "MAQUEREAU",
     "NomLatin": "SCOMBER SCOMBRUS",
     "Categorie": "Pêché en",
@@ -5181,6 +5652,7 @@
     "Unite": "€/kg"
   },
   "3425": {
+    "PLU": "3425",
     "Designation": "MAQUEREAU BUCKILING",
     "NomLatin": "SCOMBER SCOMBRUS",
     "Categorie": "Pêché en",
@@ -5192,6 +5664,7 @@
     "Unite": "€/kg"
   },
   "3312": {
+    "PLU": "3312",
     "Designation": "MAQUEREAU BUCKLING",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -5203,6 +5676,7 @@
     "Unite": "€/kg"
   },
   "3190": {
+    "PLU": "3190",
     "Designation": "Melva Lampareau",
     "NomLatin": "AUXIS ROCHEI blt",
     "Categorie": "Pêché en",
@@ -5214,6 +5688,7 @@
     "Unite": "€/kg"
   },
   "3015": {
+    "PLU": "3015",
     "Designation": "MERLAN",
     "NomLatin": "MERLANGIUS MERLANGUS",
     "Categorie": "Pêché en",
@@ -5225,6 +5700,7 @@
     "Unite": "€/kg"
   },
   "3484": {
+    "PLU": "3484",
     "Designation": "MIETTES DE MORUE SALEE",
     "NomLatin": "GADUS MACROCEPHALUS",
     "Categorie": "Pêché en",
@@ -5236,6 +5712,7 @@
     "Unite": "€/kg"
   },
   "3326": {
+    "PLU": "3326",
     "Designation": "MINI ROTI SAUMON ST JACQUES",
     "NomLatin": "",
     "Categorie": "",
@@ -5247,6 +5724,7 @@
     "Unite": "PIECE"
   },
   "3053": {
+    "PLU": "3053",
     "Designation": "MORCEAU LIEU NOIR",
     "NomLatin": "POLLACCHIUS VIRENS",
     "Categorie": "Pêché en",
@@ -5258,6 +5736,7 @@
     "Unite": "€/kg"
   },
   "3123": {
+    "PLU": "3123",
     "Designation": "MORUE SECHEE ENTIERE",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -5269,6 +5748,7 @@
     "Unite": "€/kg"
   },
   "3531": {
+    "PLU": "3531",
     "Designation": "MOULE DE BOUCHOT",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5280,6 +5760,7 @@
     "Unite": "€/kg"
   },
   "3022": {
+    "PLU": "3022",
     "Designation": "MOULE DE BOUCHOT",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5291,6 +5772,7 @@
     "Unite": "€/kg"
   },
   "3480": {
+    "PLU": "3480",
     "Designation": "MOULE DE BOUCHOT",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5302,6 +5784,7 @@
     "Unite": "€/kg"
   },
   "3574": {
+    "PLU": "3574",
     "Designation": "MOULE DE BOUCHOT \"LA PLAINAISE\"",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5313,6 +5796,7 @@
     "Unite": "€/kg"
   },
   "3192": {
+    "PLU": "3192",
     "Designation": "MOULE DE BOUCHOT \"LA PLAINAISE\" LES CHALLANDISES",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5324,6 +5808,7 @@
     "Unite": "€/kg"
   },
   "3508": {
+    "PLU": "3508",
     "Designation": "MOULE DE BOUCHOT \"AIGUILLON\"",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5335,6 +5820,7 @@
     "Unite": "€/kg"
   },
   "3233": {
+    "PLU": "3233",
     "Designation": "MOULE DE BOUCHOT \"LES MOULES OCEANES\"",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5346,6 +5832,7 @@
     "Unite": "€/kg"
   },
   "3183": {
+    "PLU": "3183",
     "Designation": "MOULE DE BOUCHOT \"LES MOULES OCEANES\"",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5357,6 +5844,7 @@
     "Unite": "€/kg"
   },
   "3114": {
+    "PLU": "3114",
     "Designation": "MOULE DE BOUCHOT \"ST MICHEL\"",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5368,6 +5856,7 @@
     "Unite": "€/kg"
   },
   "3440": {
+    "PLU": "3440",
     "Designation": "MOULE DE CORDE GROSSE",
     "NomLatin": "MYTILUS GALLOPROVINCIALIS",
     "Categorie": "Elevé en",
@@ -5379,6 +5868,7 @@
     "Unite": "€/kg"
   },
   "3420": {
+    "PLU": "3420",
     "Designation": "MOULES DE CORDE",
     "NomLatin": "MYTILUS GALLOPROVINCIALIS",
     "Categorie": "Elevé en",
@@ -5390,6 +5880,7 @@
     "Unite": "€/kg"
   },
   "3421": {
+    "PLU": "3421",
     "Designation": "MOULES DE CORDE TRES GROSSE",
     "NomLatin": "MYTILUS GALLOPROVINCIALIS",
     "Categorie": "Elevé en",
@@ -5401,6 +5892,7 @@
     "Unite": "€/kg"
   },
   "3228": {
+    "PLU": "3228",
     "Designation": "MOULES HOLLANDE",
     "NomLatin": "MYTILUS EDULIS",
     "Categorie": "Elevé en",
@@ -5412,6 +5904,7 @@
     "Unite": "€/kg"
   },
   "3127": {
+    "PLU": "3127",
     "Designation": "NOIX DE PETONCLE",
     "NomLatin": "CHLAMYS OPERCULARIS",
     "Categorie": "Pêché en",
@@ -5423,6 +5916,7 @@
     "Unite": "€/kg"
   },
   "3563243012829": {
+    "PLU": "3563243012829",
     "Designation": "noix st jacque blanche 0,400G",
     "NomLatin": "",
     "Categorie": "",
@@ -5434,6 +5928,7 @@
     "Unite": ""
   },
   "3131": {
+    "PLU": "3131",
     "Designation": "NOIX DE ST JACQUES AVEC CORAIL",
     "NomLatin": "PECTEN MAXIMUS",
     "Categorie": "Pêché en",
@@ -5445,6 +5940,7 @@
     "Unite": "€/kg"
   },
   "3304": {
+    "PLU": "3304",
     "Designation": "OEUFS CABILLAUD FUMES",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -5456,6 +5952,7 @@
     "Unite": "€/kg"
   },
   "3499": {
+    "PLU": "3499",
     "Designation": "OURSIN VIVANT",
     "NomLatin": "ECHINUIDEA",
     "Categorie": "Pêché en",
@@ -5467,6 +5964,7 @@
     "Unite": "€/kg"
   },
   "3213": {
+    "PLU": "3213",
     "Designation": "OURSIN VIVANT",
     "NomLatin": "SPHAERECHINUS GRANULARIS",
     "Categorie": "Pêché en",
@@ -5478,6 +5976,7 @@
     "Unite": "€/kg"
   },
   "3410": {
+    "PLU": "3410",
     "Designation": "OURSIN VIVANT(DROEBACHIENSIS)",
     "NomLatin": "STRONGYLOCENTROTUS",
     "Categorie": "Pêché en",
@@ -5489,6 +5988,7 @@
     "Unite": "€/kg"
   },
   "3201": {
+    "PLU": "3201",
     "Designation": "PAGEOT ACARNE",
     "NomLatin": "PAGELLUS ACARNE",
     "Categorie": "Pêché en",
@@ -5500,6 +6000,7 @@
     "Unite": "€/kg"
   },
   "3179": {
+    "PLU": "3179",
     "Designation": "PALOURDE MOYENNE",
     "NomLatin": "RUDITAPES PHILIPPINARUM",
     "Categorie": "Pêché en",
@@ -5511,6 +6012,7 @@
     "Unite": "€/kg"
   },
   "3529": {
+    "PLU": "3529",
     "Designation": "PAVE DE SAUMON MARINEE THYM CITRON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -5522,6 +6024,7 @@
     "Unite": "€/kg"
   },
   "3202": {
+    "PLU": "3202",
     "Designation": "RASCASSE ROUGE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -5533,6 +6036,7 @@
     "Unite": "€/kg"
   },
   "3414": {
+    "PLU": "3414",
     "Designation": "PAVéS DE MORUE SALéE \"SANS PEAU\"",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -5544,6 +6048,7 @@
     "Unite": "€/kg"
   },
   "3168": {
+    "PLU": "3168",
     "Designation": "PAVES DE QUEUE DE CABILLAUD",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Elevé en",
@@ -5555,6 +6060,7 @@
     "Unite": "€/kg"
   },
   "3211": {
+    "PLU": "3211",
     "Designation": "PAVES DE SAUMON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -5566,6 +6072,7 @@
     "Unite": "PIECE"
   },
   "3306": {
+    "PLU": "3306",
     "Designation": "PAVES DE SAUMON \"CHEMINEE\"",
     "NomLatin": "",
     "Categorie": "Elevé en",
@@ -5577,6 +6084,7 @@
     "Unite": "€/kg"
   },
   "3305": {
+    "PLU": "3305",
     "Designation": "PAVES DE SAUMON \"FICELLE\"",
     "NomLatin": "",
     "Categorie": "Elevé en",
@@ -5588,6 +6096,7 @@
     "Unite": "€/kg"
   },
   "3092": {
+    "PLU": "3092",
     "Designation": "PAVES DE SAUMON DESARETE",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -5599,6 +6108,7 @@
     "Unite": "PIECE"
   },
   "3282": {
+    "PLU": "3282",
     "Designation": "PAVES DE SAUMON FUME CHMINEE",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -5610,6 +6120,7 @@
     "Unite": "€/kg"
   },
   "3510": {
+    "PLU": "3510",
     "Designation": "PAVES DE SAUMON SANS PEAU/SANS ARETE",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -5621,6 +6132,7 @@
     "Unite": "€/kg"
   },
   "3551": {
+    "PLU": "3551",
     "Designation": "PAVES DE TRUITE",
     "NomLatin": "ONCORHYNCHUS MYKISS",
     "Categorie": "Elevé en",
@@ -5632,6 +6144,7 @@
     "Unite": "€/PIECE"
   },
   "3171": {
+    "PLU": "3171",
     "Designation": "PETONCLE VANNEAU",
     "NomLatin": "CHLAMYS OPERCULARIS",
     "Categorie": "Pêché en",
@@ -5643,6 +6156,7 @@
     "Unite": "€/kg"
   },
   "3054": {
+    "PLU": "3054",
     "Designation": "PINCE CRABE ROYAL CUIT",
     "NomLatin": "Paralithodes camtschaticus",
     "Categorie": "Pêché en",
@@ -5654,6 +6168,7 @@
     "Unite": "€/kg"
   },
   "3004": {
+    "PLU": "3004",
     "Designation": "PINCES DE TOURTEAUX CUITES 4/8",
     "NomLatin": "CANCER PAGURUS",
     "Categorie": "Pêché en",
@@ -5665,6 +6180,7 @@
     "Unite": "€/kg"
   },
   "3322": {
+    "PLU": "3322",
     "Designation": "PINCES DE TOURTEAUX CUITES 8/12",
     "NomLatin": "CANCER PAGURUS",
     "Categorie": "Pêché en",
@@ -5676,6 +6192,7 @@
     "Unite": "€/kg"
   },
   "3146": {
+    "PLU": "3146",
     "Designation": "PINCES TOURTEAUX CUITES 12/20",
     "NomLatin": "CANCER PAGURUS",
     "Categorie": "Pêché en",
@@ -5687,6 +6204,7 @@
     "Unite": "€/kg"
   },
   "3226": {
+    "PLU": "3226",
     "Designation": "POELEE DE LA MER MARINEE THYM CITRON",
     "NomLatin": "",
     "Categorie": "",
@@ -5698,6 +6216,7 @@
     "Unite": "€/kg"
   },
   "3835": {
+    "PLU": "3835",
     "Designation": "PLIE PRET A CUIRE",
     "NomLatin": "GLYPTOCEPHALUS CYNOGLOSSUS",
     "Categorie": "Pêché en",
@@ -5709,6 +6228,7 @@
     "Unite": "€/kg"
   },
   "3545": {
+    "PLU": "3545",
     "Designation": "POUCE PIEDS",
     "NomLatin": "POLLIOPES POLLIOPES",
     "Categorie": "Pêché en",
@@ -5720,6 +6240,7 @@
     "Unite": "€/kg"
   },
   "3300": {
+    "PLU": "3300",
     "Designation": "POULPES ROCA",
     "NomLatin": "OCTOPUS VULGARI",
     "Categorie": "Pêché en",
@@ -5731,6 +6252,7 @@
     "Unite": "€/kg"
   },
   "3495": {
+    "PLU": "3495",
     "Designation": "PRAIRE",
     "NomLatin": "VENUS VERRUCOSA",
     "Categorie": "Pêché en",
@@ -5742,6 +6264,7 @@
     "Unite": "€/kg"
   },
   "3436": {
+    "PLU": "3436",
     "Designation": "QUEUE DE LOTTE 1/2",
     "NomLatin": "LOPHIUS PISCATORIUS/BUDEGASSA",
     "Categorie": "Pêché en",
@@ -5753,6 +6276,7 @@
     "Unite": "€/kg"
   },
   "3215": {
+    "PLU": "3215",
     "Designation": "QUEUE DE LOTTE 5/1000",
     "NomLatin": "LOPHIUS PISCATORIUS ET BUDEGASSA",
     "Categorie": "Pêché en",
@@ -5764,6 +6288,7 @@
     "Unite": "€/kg"
   },
   "3013": {
+    "PLU": "3013",
     "Designation": "QUEUE DE LOTTE",
     "NomLatin": "LOPHIUS PISCATTORIUS/BUDEGASSA",
     "Categorie": "Pêché en",
@@ -5775,6 +6300,7 @@
     "Unite": "€/kg"
   },
   "3450": {
+    "PLU": "3450",
     "Designation": "QUEUE DE LOTTE 2/500",
     "NomLatin": "LOPHIUS PISCATORIUS/BUDEGASSA",
     "Categorie": "Pêché en",
@@ -5786,6 +6312,7 @@
     "Unite": "€/kg"
   },
   "3047": {
+    "PLU": "3047",
     "Designation": "ROUSSETTE PELEE",
     "NomLatin": "SCYLIORHINUS CANICULA",
     "Categorie": "Pêché en",
@@ -5797,6 +6324,7 @@
     "Unite": "€/kg"
   },
   "3234": {
+    "PLU": "3234",
     "Designation": "SALADE DE POULPE",
     "NomLatin": "DOSIDICUS GIGAS",
     "Categorie": "Pêché en",
@@ -5808,6 +6336,7 @@
     "Unite": "€/kg"
   },
   "3331": {
+    "PLU": "3331",
     "Designation": "SALICORNE",
     "NomLatin": "SALICORNIA EUROPAEA",
     "Categorie": "Pêché en",
@@ -5819,6 +6348,7 @@
     "Unite": "€/kg"
   },
   "3003": {
+    "PLU": "3003",
     "Designation": "SARDINE SALéE PRESSéE",
     "NomLatin": "SARDINA PILCHARDUS",
     "Categorie": "Pêché en",
@@ -5830,6 +6360,7 @@
     "Unite": "€/kg"
   },
   "3011": {
+    "PLU": "3011",
     "Designation": "SAUMON ENTIER",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -5841,6 +6372,7 @@
     "Unite": "€/kg"
   },
   "3430": {
+    "PLU": "3430",
     "Designation": "SAUMON VIDé ENTIER",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -5852,6 +6384,7 @@
     "Unite": "€/kg"
   },
   "3246": {
+    "PLU": "3246",
     "Designation": "SAUMONETTE/GRANDE ROUSSETTE PELLEE",
     "NomLatin": "SCYLIORHINUS STELLARIS",
     "Categorie": "Pêché en",
@@ -5863,6 +6396,7 @@
     "Unite": "€/kg"
   },
   "3245": {
+    "PLU": "3245",
     "Designation": "SEICHE ENTIERE",
     "NomLatin": "SEPIA PHARAONIS",
     "Categorie": "Pêché en",
@@ -5874,6 +6408,7 @@
     "Unite": "€/kg"
   },
   "3504": {
+    "PLU": "3504",
     "Designation": "SOLE PRET A CUIRE",
     "NomLatin": "PEGUSEA LASCARIS",
     "Categorie": "Pêché en",
@@ -5885,6 +6420,7 @@
     "Unite": "€/kg"
   },
   "3020": {
+    "PLU": "3020",
     "Designation": "SOLE BLONDE",
     "NomLatin": "PEGUSA LASCARIS",
     "Categorie": "Pêché en",
@@ -5896,6 +6432,7 @@
     "Unite": "€/kg"
   },
   "3291": {
+    "PLU": "3291",
     "Designation": "SOLE RUARDON",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -5907,6 +6444,7 @@
     "Unite": "€/kg"
   },
   "3209": {
+    "PLU": "3209",
     "Designation": "SPRAT",
     "NomLatin": "SPRATTUS SPRATTUS",
     "Categorie": "Pêché en",
@@ -5918,6 +6456,7 @@
     "Unite": "€/kg"
   },
   "3189": {
+    "PLU": "3189",
     "Designation": "TELLINE VIVANTE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -5929,6 +6468,7 @@
     "Unite": "€/kg"
   },
   "3456": {
+    "PLU": "3456",
     "Designation": "TENTACULE D'ENCORNET GEANT SAUMURE AVEC EAU AJOUTéE DECONGELé",
     "NomLatin": "DOSIDICUS GIGAS",
     "Categorie": "Pêché en",
@@ -5940,6 +6480,7 @@
     "Unite": "€/kg"
   },
   "3030": {
+    "PLU": "3030",
     "Designation": "THON ALBACORE",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -5951,6 +6492,7 @@
     "Unite": "€/kg"
   },
   "3432": {
+    "PLU": "3432",
     "Designation": "TOURTEAU VIVANT (2 PINCES)",
     "NomLatin": "CANCER PAGURUS",
     "Categorie": "Pêché en",
@@ -5962,6 +6504,7 @@
     "Unite": "€/kg"
   },
   "3328": {
+    "PLU": "3328",
     "Designation": "TOURTEAUX CUITS PASTEURISES",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -5973,6 +6516,7 @@
     "Unite": "€/kg"
   },
   "3220": {
+    "PLU": "3220",
     "Designation": "TRUITE ARC EN CIEL VIDéE",
     "NomLatin": "ONCORHYNCHUS MYKISS",
     "Categorie": "Elevé en",
@@ -5984,6 +6528,7 @@
     "Unite": "€/kg"
   },
   "3230": {
+    "PLU": "3230",
     "Designation": "TRUITE ARC EN CIEL VIDéE",
     "NomLatin": "ONCORHYNCHUS MYKISS",
     "Categorie": "Elevé en",
@@ -5995,6 +6540,7 @@
     "Unite": "€/PIECE"
   },
   "3051": {
+    "PLU": "3051",
     "Designation": "TRUITE PORTION BLANCHE VIDEE",
     "NomLatin": "ONCORHYNCHUS MYKISS",
     "Categorie": "Elevé en",
@@ -6006,6 +6552,7 @@
     "Unite": "€/kg"
   },
   "3238": {
+    "PLU": "3238",
     "Designation": "TURBOT",
     "NomLatin": "",
     "Categorie": "Elevé en",
@@ -6017,6 +6564,7 @@
     "Unite": "€/kg"
   },
   "3502": {
+    "PLU": "3502",
     "Designation": "VENUS",
     "NomLatin": "SPISULA solida",
     "Categorie": "Pêché en",
@@ -6028,6 +6576,7 @@
     "Unite": "€/kg"
   },
   "3454": {
+    "PLU": "3454",
     "Designation": "VERNIS",
     "NomLatin": "CALLITA CHIONE",
     "Categorie": "Pêché en",
@@ -6039,6 +6588,7 @@
     "Unite": "€/kg"
   },
   "3544": {
+    "PLU": "3544",
     "Designation": "ENCORNETS ROUGE",
     "NomLatin": "IIIEX COINDETII",
     "Categorie": "",
@@ -6050,6 +6600,7 @@
     "Unite": "€/kg"
   },
   "2001": {
+    "PLU": "2001",
     "Designation": "huitre 2dz n3",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -6061,6 +6612,7 @@
     "Unite": "€/kg"
   },
   "2002": {
+    "PLU": "2002",
     "Designation": "huitre 2dz n2",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -6072,6 +6624,7 @@
     "Unite": "€/kg"
   },
   "2003": {
+    "PLU": "2003",
     "Designation": "huitre 2dz n4",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -6083,6 +6636,7 @@
     "Unite": "€/kg"
   },
   "2005": {
+    "PLU": "2005",
     "Designation": "htr normandie N3",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -6094,6 +6648,7 @@
     "Unite": "€/kg"
   },
   "2006": {
+    "PLU": "2006",
     "Designation": "htr mar/ole N3",
     "NomLatin": "CRASSOSTREA GIGAS",
     "Categorie": "Elevé en",
@@ -6105,6 +6660,7 @@
     "Unite": "€/kg"
   },
   "3388": {
+    "PLU": "3388",
     "Designation": "BRANDADE DE MORUE ET A L'EGLEFIN",
     "NomLatin": "",
     "Categorie": "",
@@ -6116,6 +6672,7 @@
     "Unite": ""
   },
   "3764": {
+    "PLU": "3764",
     "Designation": "FILET DE MOSTELLE",
     "NomLatin": "",
     "Categorie": "",
@@ -6127,6 +6684,7 @@
     "Unite": ""
   },
   "3586": {
+    "PLU": "3586",
     "Designation": "fe.1/2 TOURTEAUX CUIT",
     "NomLatin": "CANCER PAGURUS",
     "Categorie": "Pêché en",
@@ -6138,6 +6696,7 @@
     "Unite": "€/kg"
   },
   "3489": {
+    "PLU": "3489",
     "Designation": "fe.AILE DE RAIE",
     "NomLatin": "RAJA NAEVUS",
     "Categorie": "Pêché en",
@@ -6149,6 +6708,7 @@
     "Unite": "€/kg"
   },
   "3491": {
+    "PLU": "3491",
     "Designation": "fe.AILE DE RAIE AV PEAU",
     "NomLatin": "RAJA CLAVATA-NAEVUS-MONTAGUI-CIRCUL-XXR",
     "Categorie": "Pêché en",
@@ -6160,6 +6720,7 @@
     "Unite": "€/kg"
   },
   "3865": {
+    "PLU": "3865",
     "Designation": "fe.alose",
     "NomLatin": "",
     "Categorie": "",
@@ -6171,6 +6732,7 @@
     "Unite": "€/kg"
   },
   "3780": {
+    "PLU": "3780",
     "Designation": "fe.ANCHOIS",
     "NomLatin": "",
     "Categorie": "Pêché en",
@@ -6182,6 +6744,7 @@
     "Unite": "€/kg"
   },
   "3861": {
+    "PLU": "3861",
     "Designation": "fe.BOGUE",
     "NomLatin": "BOOPS BOOPS",
     "Categorie": "Pêché en",
@@ -6193,6 +6756,7 @@
     "Unite": "€/kg"
   },
   "3132": {
+    "PLU": "3132",
     "Designation": "fe.CREVETTE GRISE CUITE PAYS",
     "NomLatin": "CRANGON VUIGARIS",
     "Categorie": "Pêché en",
@@ -6204,6 +6768,7 @@
     "Unite": "€/kg"
   },
   "3242": {
+    "PLU": "3242",
     "Designation": "fe.DOS DE CABILLAUD",
     "NomLatin": "GADUS MORHUA",
     "Categorie": "Pêché en",
@@ -6215,6 +6780,7 @@
     "Unite": "€/kg"
   },
   "3344": {
+    "PLU": "3344",
     "Designation": "fe.DOS DE LIEU NOIR",
     "NomLatin": "POLLACCHIUS VIRENS",
     "Categorie": "Pêché en",
@@ -6226,6 +6792,7 @@
     "Unite": "€/kg"
   },
   "3387": {
+    "PLU": "3387",
     "Designation": "fe.DOS D'EGLEFIN",
     "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
     "Categorie": "Pêché en",
@@ -6237,6 +6804,7 @@
     "Unite": "€/kg"
   },
   "3097": {
+    "PLU": "3097",
     "Designation": "fe.FILET DE JULIENNE",
     "NomLatin": "MOLVA MOLVA",
     "Categorie": "Pêché en",
@@ -6248,6 +6816,7 @@
     "Unite": "€/kg"
   },
   "3099": {
+    "PLU": "3099",
     "Designation": "fe.FILET DE LIEU NOIR",
     "NomLatin": "POLLACCHIUS VIRENS",
     "Categorie": "Pêché en",
@@ -6259,6 +6828,7 @@
     "Unite": "€/kg"
   },
   "3070": {
+    "PLU": "3070",
     "Designation": "fe.FILET DE QUEUE DE LINGUE BLEUE",
     "NomLatin": "MOLVA DYPTERYGIA",
     "Categorie": "Pêché en",
@@ -6270,6 +6840,7 @@
     "Unite": "€/kg"
   },
   "3194": {
+    "PLU": "3194",
     "Designation": "fe.FILET EGLEFIN AEGLEFINUS",
     "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
     "Categorie": "Pêché en",
@@ -6281,6 +6852,7 @@
     "Unite": "€/kg"
   },
   "3129": {
+    "PLU": "3129",
     "Designation": "fe.LANGOUSTINE CUITE 21/30",
     "NomLatin": "NEPHROPS NORVEGICUS",
     "Categorie": "Pêché en",
@@ -6292,6 +6864,7 @@
     "Unite": "€/kg"
   },
   "3549": {
+    "PLU": "3549",
     "Designation": "fe.SAUMON FUME SUR PLACE",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -6303,6 +6876,7 @@
     "Unite": "€/kg"
   },
   "3243": {
+    "PLU": "3243",
     "Designation": "fe.PAVES DE SAUMON",
     "NomLatin": "SALMO SALAR",
     "Categorie": "Elevé en",
@@ -6314,6 +6888,7 @@
     "Unite": "€/kg"
   },
   "3080": {
+    "PLU": "3080",
     "Designation": "fe.PAVES DE TRUITE",
     "NomLatin": "ONCORHYNCHUS MYKISS",
     "Categorie": "Elevé en",
@@ -6325,6 +6900,7 @@
     "Unite": "€/PIECE"
   },
   "3796": {
+    "PLU": "3796",
     "Designation": "fe.EMISSOLE PELEE",
     "NomLatin": "SCYLIORHINUS STELLARIS",
     "Categorie": "Pêché en",
@@ -6336,6 +6912,7 @@
     "Unite": "€/kg"
   },
   "3848": {
+    "PLU": "3848",
     "Designation": "fe.SOLE PRET A CUIRE",
     "NomLatin": "PEGUSEA LASCARIS",
     "Categorie": "Pêché en",
