@@ -1,42 +1,108 @@
-# Gestion Poissonnerie — Starter (Web App)
+**🐟 Récapitulatif Fonctionnel - Outil de Gestion Poissonnerie (version GitHub)**
 
-- Frontend: Netlify (principal) ou Firebase Hosting (test)
-- Auth: Firebase (email / mot de passe)
-- Code: GitHub
+---
 
-## Configuration Firebase
-1. Crée un projet Firebase, active l'auth Email/Password.
-2. Récupère la config Web (apiKey, authDomain, projectId, appId).
-3. Ouvre `js/firebase-init.js`, remplace la config puis déploie.
+### 🏢 Structure Générale de l'application
 
-> Sur Firebase Hosting, tu peux utiliser `__/firebase/init.js` pour injecter la config automatiquement.
+* Application web (ou Google Sheets / Apps Script en V1) avec authentification par identifiant / mot de passe.
+* Une base Firebase distincte par utilisateur / magasin (ex: "Leclerc Challans", "Leclerc Atlantis", etc).
+* Interface claire (web ou Sheets) permettant d'accéder aux modules suivants :
 
-## Sécurité / Routage
-- Toutes les pages dans `pages/` sont protégées par `requireAuth()` (redirection vers login si non connecté).
-- `login.html` redirige vers `home.html` si déjà connecté.
+  * **Articles**
+  * **Fournisseurs**
+  * **Achats** (manuels + import BL + criée)
+  * **Stock** (prix moyen pondéré / PV / marges)
+  * **Inventaire** (par poids ou CA)
+  * **Traçabilité** (lots, FIFO, zones FAO, engins, etc.)
+  * **Transformations**
+  * **Tableau de bord** (marge brute, CA, etc.)
+  * **Étiquettes** (Evolis ou export XLSX)
 
-## Déploiement Netlify
-- Connecte le dépôt GitHub à Netlify.
-- Le site démarre sur `/pages/login.html` via `_redirects` et `netlify.toml`.
+---
 
-## Déploiement Firebase Hosting (optionnel)
-```
-firebase init hosting
-firebase deploy
-```
-Le `index.html` root redirige automatiquement vers `/pages/login.html`.
+### 📄 ARTICLES / FOURNISSEURS
 
-## Pousser sur GitHub (exemple)
-```
-git init
-git branch -M master
-git remote add origin https://github.com/ALRICPAON/gestion-poissonnerie-gas.git
-git add .
-git commit -m "feat: starter UI + auth guard + menu"
-git push -u origin master
-```
+* Table de référence Articles (PLU, désignation, latin, zone, engin, etc.).
+* Fournisseurs et mappage Fournisseur <-> Article via une table intermédiaire (AF_MAP).
 
-## À intégrer ensuite (modules)
-- Brancher les pages avec Google Apps Script / API (Achats, Stock, Inventaire…).
-- Ajouter Firestore / RTDB si besoin (multi‑magasin : `storeId` dans profils).
-- UI: remplacer les panneaux "TODO" par les vraies vues.
+---
+
+### 💼 ACHATS
+
+* Saisie manuelle ou import BL (Excel, PDF à venir).
+* Import criée : mapping sans en-têtes, règle spéciale (+10% + 0,30 €/kg).
+* QR code par ligne possible (pour réception et étiquette).
+* Stock mis à jour uniquement à la réception effective (photo étiquette / scan QR).
+* Gestion des BL scannés / fichiers PDF / étiquettes sanitaires.
+
+---
+
+### 📊 STOCK (FIFO / CUMP)
+
+* Calcul du **prix moyen d'achat** par article.
+* Calcul automatique du **prix de vente TTC** conseillé, **valeur totale du stock**, **marge**.
+* FIFO assuré par la base de mouvements (entrées / sorties).
+* Export Excel possible à tout moment.
+
+---
+
+### 👛 TRANSFORMATIONS
+
+* Saisie d’une transformation = consommation d'un ou plusieurs articles sources, création d'un produit fini.
+* Recalcul automatique du prix de revient en tenant compte du rendement.
+* MAJ du stock : - source(s), + produit fini.
+* Traçabilité conservée (lots, zones, engins, etc.).
+
+---
+
+### 📊 INVENTAIRE (poids ou CA)
+
+* Saisie du **poids restant** OU du **CA TTC**.
+* Calcul du poids vendu et du CA HT.
+* MAJ du **Stock réel** et push dans le stock théorique sur validation.
+* Journal auto-généré par jour (CA théorique / réel / COGS / marge).
+
+---
+
+### 📊 TRAÇABILITÉ (lots / FIFO / zones)
+
+* Logique FIFO = les plus vieux lots sont consommés en premier.
+* Journal de mouvements (achats, ventes, transformations).
+* Nettoyage auto des doublons FAO / engins (ex : FAO27VIII -> FAO27 VIII).
+* Canonisation des zones et engins à l'import.
+
+---
+
+### 🌐 WEB APP (objectifs futur)
+
+* Interface connectée à Firebase Auth + Firestore.
+* Upload possible d'un BL PDF ou image.
+* Scan QR = accès instantané au lot, à la fiche traçabilité, à l’étiquette.
+* Gestion multi-magasin / multi-rayon.
+
+---
+
+### 📆 EXPORT ÉTIQUETTES
+
+* Préparation d'étiquettes conformes (type Evolis).
+* Normalisation automatique (zone, engin, élevé/décongelé, allergènes).
+* Export en Excel + impression possible.
+
+---
+
+### 🔐 AUTHENTIFICATION / MULTI-MAGASINS
+
+* Chaque utilisateur (magasin) a ses propres données Firebase.
+* Login / mot de passe = accès isolé à ses fiches, stocks, etc.
+
+---
+
+### 💡 Objectif final : outil duplicable, fluide, multi-rayon, avec base traçable FIFO, exportable, propre, rapide à utiliser sur le terrain.
+
+---
+
+✅ **Historique GitHub ou Google Sheets = base unique de vérité**
+
+---
+
+*Document généré le 2025-11-08 à partir des échanges de l’utilisateur Alric.*
