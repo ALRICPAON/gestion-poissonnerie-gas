@@ -1,0 +1,5960 @@
+[
+  {
+    "PLU": 3649.0,
+    "Designation": "JOUE DE RAIE",
+    "NomLatin": "RAJA MICROOCELLATA",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3144.0,
+    "Designation": "ANCHOIS",
+    "NomLatin": "Engraulis encrasicolus",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "SENNES COULISSANTE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3587.0,
+    "Designation": "BAR TACHETE DE LIGNE",
+    "NomLatin": "Dicentrarchus punctatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3580.0,
+    "Designation": "BAR TACHETE DE LIGNE",
+    "NomLatin": "Dicentrarchus punctatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3589.0,
+    "Designation": "BAR COMMUN DE LIGNE",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3590.0,
+    "Designation": "BAR COMMUN BLESSE DE LIGNE",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3591.0,
+    "Designation": "BAR COMMUN CHALUT",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Chalut",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3592.0,
+    "Designation": "BAR COMMUN BLESSE CHALUT",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3593.0,
+    "Designation": "BAR COMMUN IKEJIME",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3595.0,
+    "Designation": "BAR COMMUN DE FILET",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3048.0,
+    "Designation": "CONGRE ENTIER",
+    "NomLatin": "Conger conger",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3603.0,
+    "Designation": "CONGRE DE LIGNE",
+    "NomLatin": "Conger conger",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3404.0,
+    "Designation": "DORADE GRISE IKEJEME",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3604.0,
+    "Designation": "DORADE GRISE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VII D",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3607.0,
+    "Designation": "DORADE GRISE PORTION DE LIGNE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3719.0,
+    "Designation": "LONGE ESPADON",
+    "NomLatin": "Xiphias gladius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3612.0,
+    "Designation": "GRONDIN ROUGE",
+    "NomLatin": "Aspitrigla cuculus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3614.0,
+    "Designation": "GRONDIN GRIS",
+    "NomLatin": "Eutrigla gurnardus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3052.0,
+    "Designation": "LIEU JAUNE ENTIER",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filets maillants",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3621.0,
+    "Designation": "LIEU JAUNE DE LIGNE",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3347.0,
+    "Designation": "MAIGRE COMMUN",
+    "NomLatin": "Argyrosomus regius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3628.0,
+    "Designation": "MAIGRE DE LIGNE",
+    "NomLatin": "Argyrosomus regius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3629.0,
+    "Designation": "MAQUEREAU",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3807.0,
+    "Designation": "MAQUEREAU ESPANOL",
+    "NomLatin": "SCOMBER JAPONICUS",
+    "Zone": "FAO 27 - 37,1",
+    "SousZone": NaN,
+    "Engin": "FILETS TOURNANTS ET SOULEVES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3633.0,
+    "Designation": "MAQUEREAU BLANC DE LIGNE",
+    "NomLatin": "SCOMBER JAPONICUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3810.0,
+    "Designation": "MERLAN PORTION",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VI",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3636.0,
+    "Designation": "MERLAN DE LIGNE",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3016.0,
+    "Designation": "MERLU PORTION",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILET MAILLANT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3056.0,
+    "Designation": "MERLU ENTIER",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3640.0,
+    "Designation": "MERLU PORTION DE LIGNE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3641.0,
+    "Designation": "MERLU ENTIER GROS",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3643.0,
+    "Designation": "QUEUE DE MERLU ENTIERE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3644.0,
+    "Designation": "MERLU ENTIER DE LIGNE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3646.0,
+    "Designation": "MULET",
+    "NomLatin": "LIZA RAMADA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3648.0,
+    "Designation": "MULET LIPPU",
+    "NomLatin": "Chelon labrosus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3224.0,
+    "Designation": "OMBRINE",
+    "NomLatin": "Umbrina CANARIENSIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3650.0,
+    "Designation": "OMBRINE DE LIGNE",
+    "NomLatin": "Umbrina cirrosa",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3828.0,
+    "Designation": "PAGEOT COMMUN",
+    "NomLatin": "Pagellus erythrinus",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3834.0,
+    "Designation": "CARRELET/PLIE",
+    "NomLatin": "Pleuronectes platessa",
+    "Zone": "FAO 27 - VIId",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3657.0,
+    "Designation": "FLET",
+    "NomLatin": "Platichthys flesus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3969.0,
+    "Designation": "FILET DE FLET",
+    "NomLatin": "Platichthys flesus",
+    "Zone": "FAO 27 - IVa-Ivb",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3029.0,
+    "Designation": "ROUGET BARBET",
+    "NomLatin": "Mullus surmuletus",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3027.0,
+    "Designation": "SAINT PIERRE",
+    "NomLatin": "Zeus faber",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3036.0,
+    "Designation": "SARDINE X VIE",
+    "NomLatin": "Sardina pilchardus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3668.0,
+    "Designation": "SEBASTE CHEVRE",
+    "NomLatin": "HELICOLENUS DACTYLOPTERUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3669.0,
+    "Designation": "SOLE GROSSE",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3040.0,
+    "Designation": "SOLE",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3858.0,
+    "Designation": "dos de sebaste",
+    "NomLatin": "sebastes marinus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3023.0,
+    "Designation": "SOLE BLONDE PORTION",
+    "NomLatin": "pegusa lascaris",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILET MAILLANTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3019.0,
+    "Designation": "TACAUD",
+    "NomLatin": "Trisopterus luscus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3677.0,
+    "Designation": "TACAUD DE LIGNE",
+    "NomLatin": "Trisopterus luscus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3679.0,
+    "Designation": "THON BLANC ENTIER GERMON",
+    "NomLatin": "Thunnus alalunga",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/PELAGIQUE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3008.0,
+    "Designation": "THON GERMON",
+    "NomLatin": "Thunnus alalunga",
+    "Zone": "FAO 37.1 MEDITERARANEE ET MER NOIR",
+    "SousZone": NaN,
+    "Engin": "FILET MAILLANTS/FILET SIMILAIRE LIGNE ET HAMECON",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3680.0,
+    "Designation": "LONGE THON OBESE",
+    "NomLatin": "Thunnus obesus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3009.0,
+    "Designation": "THONINE ENTIERE",
+    "NomLatin": "Euthynnus alletteratus",
+    "Zone": "FAO 37 -I",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3854.0,
+    "Designation": "VIEILLE COMMUNE",
+    "NomLatin": "Labrus bergylta",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3024.0,
+    "Designation": "TURBOT SAUVAGE",
+    "NomLatin": "Psetta maxima",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3683.0,
+    "Designation": "VIEILLE DE LIGNE",
+    "NomLatin": "Labrus bergylta",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3032.0,
+    "Designation": "VIVE",
+    "NomLatin": "Trachinus draco",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3686.0,
+    "Designation": "BOGUE",
+    "NomLatin": "Boops boops",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chalut",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3689.0,
+    "Designation": "BAUDROIE ENTIERE",
+    "NomLatin": "Lophius piscatorius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3692.0,
+    "Designation": "ORPHIE",
+    "NomLatin": "Belone belone",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3483.0,
+    "Designation": "ROUSSETTE ENTIERE",
+    "NomLatin": "Scyliorhinus CANICULA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3394.0,
+    "Designation": "POULPE",
+    "NomLatin": "Octopus vulgaris",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3702.0,
+    "Designation": "BONITE A DOS RAYE",
+    "NomLatin": "SARDA SARDA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3703.0,
+    "Designation": "SAR COMMUN",
+    "NomLatin": "Diplodus sargus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3397.0,
+    "Designation": "SEICHE ENTIERE",
+    "NomLatin": "Sepia officinalis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3007.0,
+    "Designation": "TETE SEICHE",
+    "NomLatin": "Sepia officinalis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3708.0,
+    "Designation": "FILET DE BAR MOUCHETE TACHETE",
+    "NomLatin": "Dicentrarchus punctatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3784.0,
+    "Designation": "FILET DE BAR SAUVAGE",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3236.0,
+    "Designation": "FILET DE CONGRE",
+    "NomLatin": "Conger conger",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3792.0,
+    "Designation": "DARNE DE CONGRE",
+    "NomLatin": "Conger conger",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3715.0,
+    "Designation": "FILET DE DORADE GRISE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3716.0,
+    "Designation": "FILET DE DORADE ROYALE",
+    "NomLatin": "Sparus aurata",
+    "Zone": "GRECE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3121.0,
+    "Designation": "FILET GRONDIN",
+    "NomLatin": "CHELIDONICHTHYS LUCERNA-EUTRIGLA GURNADUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3076.0,
+    "Designation": "FILET DE LIEU JAUNE",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "ligne",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3725.0,
+    "Designation": "FILET DE MAIGRE",
+    "NomLatin": "Argyrosomus regius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "ligne",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3731.0,
+    "Designation": "FILET MAQUEREAU",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS(SDN)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3731.0,
+    "Designation": "FILET MERLAN",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3730.0,
+    "Designation": "FILET DE MERLAN GROS",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - V",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3816.0,
+    "Designation": "FILET DE MERLU",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3356.0,
+    "Designation": "DOS DE MERLU",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3734.0,
+    "Designation": "DARNE DE MERLU",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3735.0,
+    "Designation": "FILET DE MULET",
+    "NomLatin": "LIZA RAMADA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chalut",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3736.0,
+    "Designation": "FILET D'OMBRINE",
+    "NomLatin": "Umbrina cirrosa",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3738.0,
+    "Designation": "FILET DE SAINT PIERRE",
+    "NomLatin": "Zeus faber",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3343.0,
+    "Designation": "FILET SEBASTE/DORADE",
+    "NomLatin": NaN,
+    "Zone": "IV",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3107.0,
+    "Designation": "FILET DE TACAUD",
+    "NomLatin": "Trisopterus luscus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "ligne",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3739.0,
+    "Designation": "SOLE PRET A CUIRE",
+    "NomLatin": "pegusa lascaris",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3116.0,
+    "Designation": "DARNE DE THON GERMON",
+    "NomLatin": "Thunnus alalunga",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3746.0,
+    "Designation": "DARNE DE THONINE",
+    "NomLatin": "Euthynnus alletteratus",
+    "Zone": "FAO 37,1 mediterannee et mer noire",
+    "SousZone": NaN,
+    "Engin": "ligne",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3748.0,
+    "Designation": "LONGE DE THON ROUGE",
+    "NomLatin": "Thunnus thynnus",
+    "Zone": "FAO37,1,2",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3750.0,
+    "Designation": "FILET DE VIEILLE",
+    "NomLatin": "Labrus bergylta",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3751.0,
+    "Designation": "FILET DE TURBOT",
+    "NomLatin": "SCOPhthalmus MAXIMUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3753.0,
+    "Designation": "FILET DE BOGUE",
+    "NomLatin": "Boops boops",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3754.0,
+    "Designation": "QUEUE DE LOTTE",
+    "NomLatin": "Lophius PISCATORIUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3757.0,
+    "Designation": "TORPILLE/DALITE PELEE",
+    "NomLatin": "Torpedo MARMCRATA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3758.0,
+    "Designation": "ROUSSETTE PELEE",
+    "NomLatin": "Scyliorhinus CANICULA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3758.0,
+    "Designation": "ROUSSETTE PELEE",
+    "NomLatin": "Scyliorhinus CANICULA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3761.0,
+    "Designation": "AILE DE RAIE",
+    "NomLatin": "RAJA MONTAGUI",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires/chaluts/ligne et hamecons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3765.0,
+    "Designation": "BLANC DE SEICHE",
+    "NomLatin": "Sepia officinalis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3770.0,
+    "Designation": "HOMARD EUROPEEN VIVANT EPATTE",
+    "NomLatin": "Homarus gammarus",
+    "Zone": "FAO 27 - VIII-",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3151.0,
+    "Designation": "LANGOUSTINE VIVANTE 25/35",
+    "NomLatin": "Nephrops norvegicus",
+    "Zone": "FAO 27 - VI",
+    "SousZone": NaN,
+    "Engin": "nasse casier",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3153.0,
+    "Designation": "HOMARD EUROPEEN VIVANT",
+    "NomLatin": "Homarus gammarus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3759.0,
+    "Designation": "LANGOUSTINE CAISSE DE 3KG",
+    "NomLatin": "Nephrops norvegicus",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3149.0,
+    "Designation": "HOMARD EUROPEEN CUIT",
+    "NomLatin": "Homarus gammarus",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3162.0,
+    "Designation": "TOURTEAU VIVANT (2PINCES)",
+    "NomLatin": "Cancer pagurus",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "CASIER/filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3145.0,
+    "Designation": "LANGOUSTE ROUGE VIVANTE EPATTE",
+    "NomLatin": "Palinurus elephas",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3542.0,
+    "Designation": "LANGOUSTE ROUGE CUITE",
+    "NomLatin": "Palinurus elephas",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3772.0,
+    "Designation": "ETRILLE CUITE",
+    "NomLatin": "Necora puber",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "casiers",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3771.0,
+    "Designation": "LANGOUSTINE VIVANTE T20",
+    "NomLatin": "Nephrops norvegicus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES"
+  },
+  {
+    "PLU": 3166.0,
+    "Designation": "ETRILLE VIVANTE",
+    "NomLatin": "Necora puber",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "casiers",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3442.0,
+    "Designation": "GROS TOURTEAU",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3773.0,
+    "Designation": "ARAIGNEE VIVANTE",
+    "NomLatin": "Maja BRACHYDACTYLA",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3164.0,
+    "Designation": "ARAIGNEE VIVANTE gros male",
+    "NomLatin": "Maja BRACHYDACTYLA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILET MAILLANT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3774.0,
+    "Designation": "ARAIGNEE GROS MALE CUITE",
+    "NomLatin": "Maja BRACHYDACTYLA",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3775.0,
+    "Designation": "BOUQUET GROSSE ROSE VIVANTE",
+    "NomLatin": "PALAEMON SERRATUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "casiers",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3165.0,
+    "Designation": "ARAIGNEE CUITE",
+    "NomLatin": "Maja BRACHYDACTYLA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3160.0,
+    "Designation": "CREVETTE ROSE BOUQUET VIVANTE",
+    "NomLatin": "PALAEMON SERRATUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "casiers et pieges",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3776.0,
+    "Designation": "CREVETTE ROSE BOUQUET CUITE",
+    "NomLatin": "PALAEMON SERRATUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3162.0,
+    "Designation": "TOURTEAU",
+    "NomLatin": "Cancer Pagurus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "casiers et pieges",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3158.0,
+    "Designation": "CREVETTE GRISE CUITE DU PAYS",
+    "NomLatin": "CRANGON VUIGARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Chalut",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3205.0,
+    "Designation": "CREVETTE GRISE VIVANTE DU PAYS",
+    "NomLatin": "CRANGON CRANGON",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3777.0,
+    "Designation": "PINCE DE TOURTEAU CUITE",
+    "NomLatin": "Cancer pagurus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3779.0,
+    "Designation": "PINCE D'ARAIGNEE CUITE 4/8",
+    "NomLatin": "Maja SQUINADO",
+    "Zone": "ANE-MANCHE ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "casiers et pieges",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3298.0,
+    "Designation": "HUITRE LA GUITTIERE N°3",
+    "NomLatin": "CRASDSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3882.0,
+    "Designation": "ANCHOIS",
+    "NomLatin": "Engraulis encrasicolus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3477.0,
+    "Designation": "FILET EGLEFIN",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3883.0,
+    "Designation": "BAR MOUCHETE DE LIGNE",
+    "NomLatin": "Dicentrarchus punctatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3884.0,
+    "Designation": "BAR TACHETE",
+    "NomLatin": "Dicentrarchus punctatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3885.0,
+    "Designation": "BAR COMMUN DE LIGNE",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3886.0,
+    "Designation": "BAR COMMUN BLESSE DE LIGNE",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3887.0,
+    "Designation": "BAR COMMUN CHALUT",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3888.0,
+    "Designation": "BAR COMMUN BLESSE CHALUT",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3889.0,
+    "Designation": "BAR COMMUN IKEJIME",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3890.0,
+    "Designation": "BAR TACHETE IKEJIME",
+    "NomLatin": "Dicentrarchus punctatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3891.0,
+    "Designation": "BAR COMMUN DE FILET",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3892.0,
+    "Designation": "BAR COMMUN BLESSE DE FILET",
+    "NomLatin": "Dicentrarchus labrax",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3893.0,
+    "Designation": "BARBUE",
+    "NomLatin": "Scophthalmus rhombus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "fileyeurs(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3894.0,
+    "Designation": "BARBUE GROS",
+    "NomLatin": "Scophthalmus rhombus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3895.0,
+    "Designation": "CARDINE",
+    "NomLatin": "Lepidorhombus whiffiagonis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3599.0,
+    "Designation": "CARDINE",
+    "NomLatin": "Lepidorhombus whiffiagonis",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "chalut",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3897.0,
+    "Designation": "CETAUX",
+    "NomLatin": "Heteromycteris proboscideus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3898.0,
+    "Designation": "CHINCHARD",
+    "NomLatin": "Trachurus trachurus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3899.0,
+    "Designation": "CHINCHARD JAUNE DE LIGNE",
+    "NomLatin": "Trachurus trachurus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3900.0,
+    "Designation": "CHINCHARD GROS DE LIGNE",
+    "NomLatin": "Trachurus trachurus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3048.0,
+    "Designation": "CONGRE ENTIER",
+    "NomLatin": "Conger conger",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3902.0,
+    "Designation": "CONGRE DE LIGNE",
+    "NomLatin": "Conger conger",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chalut(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3903.0,
+    "Designation": "DORADE GRISE GROSSE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3904.0,
+    "Designation": "DORADE GRISE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 – VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3905.0,
+    "Designation": "DORADE GRISE BLESSEE PORTION",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3906.0,
+    "Designation": "DORADE GRISE BLESSEE GROSSE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3907.0,
+    "Designation": "DORADE GRISE PORTION DE LIGNE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3908.0,
+    "Designation": "DORADE GRISE GROSSE DE LIGNE",
+    "NomLatin": "Spondyliosoma cantharus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3909.0,
+    "Designation": "DORADE ROYALE PORTION SAUVAGE",
+    "NomLatin": "Sparus aurata",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3910.0,
+    "Designation": "DORADE ROYALE GROSSE",
+    "NomLatin": "Sparus aurata",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3911.0,
+    "Designation": "DORADE ROYALE GROSSE BLESSEE",
+    "NomLatin": "Sparus aurata",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "PALANGRIERS(LLD)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3912.0,
+    "Designation": "EMISSOLE ENTIERE",
+    "NomLatin": "Mustelus ASTERIA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3913.0,
+    "Designation": "EPERLAN",
+    "NomLatin": "Osmerus eperlanus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3914.0,
+    "Designation": "ESPADON ENTIER",
+    "NomLatin": "Xiphias gladius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3915.0,
+    "Designation": "GRONDIN",
+    "NomLatin": "CHELIDONICHTHYS LUCERNA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3612.0,
+    "Designation": "GRONDIN ROUGE",
+    "NomLatin": "Aspitrigla cuculus",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3917.0,
+    "Designation": "GRONDIN CAMARD",
+    "NomLatin": "Chelidonichthys lastoviza",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3918.0,
+    "Designation": "GRONDIN GRIS",
+    "NomLatin": "Eutrigla gurnardus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3919.0,
+    "Designation": "GRONDIN PERLON",
+    "NomLatin": "chelidonichthys lucerna",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3920.0,
+    "Designation": "GRONDIN GROS",
+    "NomLatin": "chelidonichthys lucerna",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3921.0,
+    "Designation": "GRONDIN DE LIGNE",
+    "NomLatin": "Prionotus spp",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3922.0,
+    "Designation": "HARENG COTIER",
+    "NomLatin": "Clupea harengus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3923.0,
+    "Designation": "LIEU JAUNE ENTIER",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3924.0,
+    "Designation": "LIEU JAUNE BLESSE",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3925.0,
+    "Designation": "LIEU JAUNE DE LIGNE",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3926.0,
+    "Designation": "LIEU JAUNE BLESSE DE LIGNE",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3927.0,
+    "Designation": "LIEU JAUNE IKEJIME",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3928.0,
+    "Designation": "LIEU NOIR ENTIER",
+    "NomLatin": "Pollachius virens",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3929.0,
+    "Designation": "LIEU NOIR DE LIGNE",
+    "NomLatin": "Pollachius virens",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3930.0,
+    "Designation": "LIMANDE SOLE",
+    "NomLatin": "Microstomus kitt",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS(SDN)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3931.0,
+    "Designation": "LIMANDE SOLE GROSSE",
+    "NomLatin": "Microstomus kitt",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS(SDN)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3933.0,
+    "Designation": "JULIENNE DE LIGNE",
+    "NomLatin": "Molva molva",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3934.0,
+    "Designation": "MAIGRE COMMUN",
+    "NomLatin": "Argyrosomus regius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chalut(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3935.0,
+    "Designation": "MAIGRE DE LIGNE",
+    "NomLatin": "Argyrosomus regius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3803.0,
+    "Designation": "MAQUEREAU PRÊT A CUIRE",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3936.0,
+    "Designation": "MAQUEREAU",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3937.0,
+    "Designation": "MAQUEREAU GROS",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3938.0,
+    "Designation": "MAQUEREAU/LISETTE",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB),SENNEURS(SDN),FILETS(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3939.0,
+    "Designation": "MAQUEREAU DE LIGNE",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3940.0,
+    "Designation": "MAQUEREAUESPAGNOL",
+    "NomLatin": "SCOMBER TAPONICUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3941.0,
+    "Designation": "MAQUEREAU BLANC DE LIGNE",
+    "NomLatin": "Scomber scombrus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3942.0,
+    "Designation": "MERLAN PORTION",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3942.0,
+    "Designation": "MERLAN PORTION",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaireS/chalut",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3943.0,
+    "Designation": "MERLAN GROS",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3944.0,
+    "Designation": "MERLAN PORTION DE LIGNE",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3945.0,
+    "Designation": "MERLAN GROS DE LIGNE",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3946.0,
+    "Designation": "MERLAN BLEU",
+    "NomLatin": "Micromesistius poutassou",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3947.0,
+    "Designation": "MERLU PORTION",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3016.0,
+    "Designation": "MERLU",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3949.0,
+    "Designation": "MERLU PORTION DE LIGNE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "lignes et hamecons (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3950.0,
+    "Designation": "MERLU PORTION BLESSE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3951.0,
+    "Designation": "MERLU ENTIER BLESSE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3952.0,
+    "Designation": "MERLU ENTIER GROS",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3953.0,
+    "Designation": "MERLU AVEC TETE + QUEUE COUPEE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3954.0,
+    "Designation": "QUEUE DE MERLU ENTIERE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3955.0,
+    "Designation": "MERLU ENTIER DE LIGNE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3956.0,
+    "Designation": "MERLU GROS DE LIGNE",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3018.0,
+    "Designation": "MULET",
+    "NomLatin": "LIZA RAMADA",
+    "Zone": "FAO 27 – VIII",
+    "SousZone": NaN,
+    "Engin": "filet maillant",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3958.0,
+    "Designation": "MULET GROS",
+    "NomLatin": "Paramugil parmatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3959.0,
+    "Designation": "MULET LIPPU",
+    "NomLatin": "Chelon labrosus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3960.0,
+    "Designation": "MULET GROS LIPPU",
+    "NomLatin": "Chelon labrosus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3961.0,
+    "Designation": "OMBRINE BRONZE",
+    "NomLatin": "Umbrina CANARIENSIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3962.0,
+    "Designation": "OMBRINE DE LIGNE",
+    "NomLatin": "Umbrina cirrosa",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3963.0,
+    "Designation": "PAGEOT COMMUN",
+    "NomLatin": "Pagellus erythrinus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3964.0,
+    "Designation": "PAGEOT GROS",
+    "NomLatin": "Pagellus erythrinus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3965.0,
+    "Designation": "PAGEOT ACARNE",
+    "NomLatin": "Pagellus acarne",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(PTM)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3966.0,
+    "Designation": "PAGEOT ACARNE DE LIGNE",
+    "NomLatin": "Pagellus acarne",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3967.0,
+    "Designation": "CARRELET/PLIE",
+    "NomLatin": "Pleuronectes platessa",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3968.0,
+    "Designation": "CARRELET/PLIE GROSSE",
+    "NomLatin": "Pleuronectes platessa",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNES(SDN)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3969.0,
+    "Designation": "FLET",
+    "NomLatin": "Platichthys flesus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3970.0,
+    "Designation": "RASCASSE",
+    "NomLatin": "Scorpaena spp",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3971.0,
+    "Designation": "ROUGET BARBET DE ROCHE",
+    "NomLatin": "Mullus surmuletus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3972.0,
+    "Designation": "ROUGET BARBET (GRATTE)",
+    "NomLatin": "Mullus surmuletus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS(SDN)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3973.0,
+    "Designation": "ROUGET BARBET DE ROCHE",
+    "NomLatin": "Mullus surmuletus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3974.0,
+    "Designation": "ROUGET BARBET GROS",
+    "NomLatin": "Mullus surmuletus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3975.0,
+    "Designation": "SAINT PIERRE",
+    "NomLatin": "Zeus faber",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3976.0,
+    "Designation": "SAINT PIERRE FRITURE",
+    "NomLatin": "Zeus faber",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3977.0,
+    "Designation": "SAINT PIERRE GROS",
+    "NomLatin": "Zeus faber",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3198.0,
+    "Designation": "FLET",
+    "NomLatin": "Zeus faber",
+    "Zone": "FAO 27 - 7D",
+    "SousZone": NaN,
+    "Engin": "CHALUT OTB",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3979.0,
+    "Designation": "SARDINE PETITE",
+    "NomLatin": "Sardina pilchardus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3980.0,
+    "Designation": "SARDINE",
+    "NomLatin": "Sardina pilchardus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3981.0,
+    "Designation": "SARDINE SALEE",
+    "NomLatin": "Sardina pilchardus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3982.0,
+    "Designation": "SARDINE PROMO",
+    "NomLatin": "Sardina pilchardus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3983.0,
+    "Designation": "SAUMON ATLANTIQUE SAUVAGE",
+    "NomLatin": "Salmo salar",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3984.0,
+    "Designation": "SEBASTE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3985.0,
+    "Designation": "SOLE GROSSE",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3602.0,
+    "Designation": "SOLE promo",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3986.0,
+    "Designation": "SOLE",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3987.0,
+    "Designation": "SOLE PORTION",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3988.0,
+    "Designation": "SOLE GROSSE BLESSEE",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3989.0,
+    "Designation": "SOLE PORTION GRATTEE",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3990.0,
+    "Designation": "SOLE GROSSE GRATTEE",
+    "NomLatin": "Solea solea",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3991.0,
+    "Designation": "SOLE BLONDE",
+    "NomLatin": "PEGUSEA LASCARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires/CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3992.0,
+    "Designation": "SOLE BLONDE",
+    "NomLatin": "PEGUSEA LASCARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILEYEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3993.0,
+    "Designation": "SOLE PERDRIX",
+    "NomLatin": "Microchirus VARIEGGATUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3994.0,
+    "Designation": "TACAUD",
+    "NomLatin": "Trisopterus luscus",
+    "Zone": "FAO 27 - VIId",
+    "SousZone": NaN,
+    "Engin": "CHALUT5OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3997.0,
+    "Designation": "TACAUD DE LIGNE",
+    "NomLatin": "Trisopterus luscus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS (LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3743.0,
+    "Designation": "thon promo",
+    "NomLatin": "Thunnus alalunga",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3339.0,
+    "Designation": "THON GERMON",
+    "NomLatin": "Thunnus alalunga",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3292.0,
+    "Designation": "DARNE THON GERMON",
+    "NomLatin": "Thunnus alalunga",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3340.0,
+    "Designation": "THON GERMON DE LIGNE",
+    "NomLatin": "Thunnus alalunga",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3345.0,
+    "Designation": "THON OBESE",
+    "NomLatin": "Thunnus obesus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3349.0,
+    "Designation": "THONINE ENTIERE BLESSEE",
+    "NomLatin": "Euthynnus alletteratus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3350.0,
+    "Designation": "THONINE ENTIERE",
+    "NomLatin": "Euthynnus alletteratus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3351.0,
+    "Designation": "LONGE THON ROUGE",
+    "NomLatin": "Thunnus thynnus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "chaluts",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3352.0,
+    "Designation": "VIEILLE commune",
+    "NomLatin": "Labrus bergylta",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3353.0,
+    "Designation": "TURBOT",
+    "NomLatin": "Psetta maxima",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3033.0,
+    "Designation": "VIEILLE",
+    "NomLatin": "Labrus bergylta",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3355.0,
+    "Designation": "ENCORNET",
+    "NomLatin": "LOLIGO VULGARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3357.0,
+    "Designation": "GRANDE VIVE",
+    "NomLatin": "Trachinus draco",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3358.0,
+    "Designation": "CALAMAR",
+    "NomLatin": "LOLIGINIDAE",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3359.0,
+    "Designation": "ENCORNET BLANC PETIT",
+    "NomLatin": "LOLIGINIDAE",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3360.0,
+    "Designation": "BOGUE",
+    "NomLatin": "Boops boops",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3361.0,
+    "Designation": "ENCORNET ROUGE",
+    "NomLatin": "Illex coindetii",
+    "Zone": "FAO 27 VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3362.0,
+    "Designation": "LANCON",
+    "NomLatin": "Hyperoplus lanceolatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3363.0,
+    "Designation": "DRAGONNET LYRE",
+    "NomLatin": "Callionymus lyra",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3364.0,
+    "Designation": "BAUDROIE ENTIERE (lotte)",
+    "NomLatin": "Lophius piscatorius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEUR",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3365.0,
+    "Designation": "ALOSE",
+    "NomLatin": "Alosa spp",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3366.0,
+    "Designation": "LOCHE",
+    "NomLatin": "Gaidropsarus vulgaris",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT5OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3367.0,
+    "Designation": "ORPHIE",
+    "NomLatin": "Belone belone",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3368.0,
+    "Designation": "TORPILLE / DALITE ENTIERE",
+    "NomLatin": "Torpedo MARMCRATA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3369.0,
+    "Designation": "PRETRE / ATHERINE",
+    "NomLatin": "ATHERINA PRESBYTER",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3371.0,
+    "Designation": "SERRAN CHEVRE",
+    "NomLatin": "Serranus cabrilla",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "PALANGRIERS(LLD)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3483.0,
+    "Designation": "ROUSSETTE ENTIERE",
+    "NomLatin": "Scyliorhinus spp",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)-LIGNES(LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3375.0,
+    "Designation": "COQUETTE",
+    "NomLatin": "LABRUS MIXTUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3376.0,
+    "Designation": "SAUPE DE LIGNE",
+    "NomLatin": "Sarpa salpa",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons(LLS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3377.0,
+    "Designation": "RAIE ENTIERE",
+    "NomLatin": "RAJA MICROOCELLATA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3378.0,
+    "Designation": "RAIE TERRE",
+    "NomLatin": "RAJA NAEVUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3379.0,
+    "Designation": "RAIE PASTEUNAGUE",
+    "NomLatin": "DASYATIS PASTINACA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3380.0,
+    "Designation": "POULPE BLANC",
+    "NomLatin": "ELEDONE CIRRHOSA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3381.0,
+    "Designation": "POULPE",
+    "NomLatin": "Octopus VULGARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons/FILets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3382.0,
+    "Designation": "FILET DE BONITE A DOS RAYE",
+    "NomLatin": "KATSUWONUS PELAMIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3383.0,
+    "Designation": "SAR COMMUN",
+    "NomLatin": "Diplodus sargus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/FILets maillants et similaires",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3384.0,
+    "Designation": "SAR GROS DE LIGNE",
+    "NomLatin": "Diplodus sargus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3385.0,
+    "Designation": "SAR DE LIGNE",
+    "NomLatin": "Diplodus sargus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Lignes et Hameçons",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3390.0,
+    "Designation": "SEICHE CASSERON",
+    "NomLatin": "Sepia officinalis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3391.0,
+    "Designation": "SEICHE COMMUNE",
+    "NomLatin": "Sepia officinalis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3392.0,
+    "Designation": "POULPE BLANC",
+    "NomLatin": "Sepia officinalis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "SENNEURS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3393.0,
+    "Designation": "TETE SEICHE",
+    "NomLatin": "Sepia officinalis",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Filets maillants et similaires(GNS)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3394.0,
+    "Designation": "POULPE",
+    "NomLatin": "Pollachius pollachius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3398.0,
+    "Designation": "OEUFS CABILLAUD",
+    "NomLatin": "Gadus morhua",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3399.0,
+    "Designation": "OEUFS DE MERLU",
+    "NomLatin": "Merluccius merluccius",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3400.0,
+    "Designation": "OEUFS DE MULET",
+    "NomLatin": "Paramugil parmatus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3401.0,
+    "Designation": "OEUFS DE MERLAN",
+    "NomLatin": "Merlangius merlangus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3296.0,
+    "Designation": "HUITRE LA GUITTIERE LONGUES",
+    "NomLatin": "CRASDSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3297.0,
+    "Designation": "HUITRE LA GUITTIERE N°2",
+    "NomLatin": "CRASDSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3298.0,
+    "Designation": "HUITRE LA GUITTIERE N°3",
+    "NomLatin": "CRASDSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3753.0,
+    "Designation": "CALMARS",
+    "NomLatin": "LOLIGINIDAE",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3061.0,
+    "Designation": "LANGOUSTINE CUITE 41/50",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IV-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:SULFITE-CRUSTACES"
+  },
+  {
+    "PLU": 3163.0,
+    "Designation": "1/2 TOURTEAUX CUIT",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES/SEL"
+  },
+  {
+    "PLU": 3045.0,
+    "Designation": "AILE DE RAIE",
+    "NomLatin": "RAJA NAEVUS",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3025.0,
+    "Designation": "AILE DE RAIE",
+    "NomLatin": "RAJA CLAVATA-NAEVUS-MONTAGUI-CIRCUL-XXR",
+    "Zone": "FAO 27 - VII MANCHES ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3316.0,
+    "Designation": "AMANDE",
+    "NomLatin": "Glycymeris glycymeris",
+    "Zone": "FAO 27 - VII-MANCHE ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3169.0,
+    "Designation": "AMANDE",
+    "NomLatin": "GIycymeris glycymeris",
+    "Zone": "FAO 27 - VII-MANCHE ET MERS CELTIQUES ET ANE",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3144.0,
+    "Designation": "ANCHOIS",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 VII VIII",
+    "SousZone": NaN,
+    "Engin": "SENNE COULISSENTE(BOLINCHE)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3461.0,
+    "Designation": "anneaux d'encornet geant du pacifique saumures avec eau ajoutee DECONGELEES",
+    "NomLatin": "DOSIDICUS GIGAS",
+    "Zone": "FAO 87 - OCEAN PACIFIQUE SUD EST PEROU",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS(LHP)",
+    "Allergenes": "Contient : MOLLUSQUES"
+  },
+  {
+    "PLU": 3370.0,
+    "Designation": "BAR DE LIGNE",
+    "NomLatin": "DICENTRARCHUS LABRAX",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3592.0,
+    "Designation": "bar promo",
+    "NomLatin": "DICENTRARCHUS LABRAX",
+    "Zone": "TURQUIE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3444.0,
+    "Designation": "BAR ENTIER",
+    "NomLatin": "DICENTRARCHUS LABRAX",
+    "Zone": "Gréce",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3444.0,
+    "Designation": "BAR ENTIER",
+    "NomLatin": "DICENTRARCHUS LABRAX",
+    "Zone": "Elevé en",
+    "SousZone": NaN,
+    "Engin": "TURQUIE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3438.0,
+    "Designation": "BAR ENTIER",
+    "NomLatin": "DICENTRARCHUS LABRAX",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3478.0,
+    "Designation": "BAR ENTIER",
+    "NomLatin": "DICENTRARCHUS TABRAX",
+    "Zone": "TURQUIE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3050.0,
+    "Designation": "BIGORNEAU CUIT",
+    "NomLatin": "LITTORINA LITTOREA",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": "CONTIENT:BIGORNEAU(MOLLUSQUES)"
+  },
+  {
+    "PLU": 3318.0,
+    "Designation": "BIGORNEAU VIVANT",
+    "NomLatin": "LITTORINA LITTOREA",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3182.0,
+    "Designation": "BIGORNEAU VIVANT GROS",
+    "NomLatin": "LITTORINA LITTOREA",
+    "Zone": "FAO 27 - VII VI",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3458.0,
+    "Designation": "BIGORNEAU VIVANT SUPER JUMBO",
+    "NomLatin": "LITTORINA LITTOREA",
+    "Zone": "FAO 27 - VIIe",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3046.0,
+    "Designation": "BLANC DE SEICHE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3247.0,
+    "Designation": "BLANC DE SEICHE frais",
+    "NomLatin": "SEPIA OFFICINALIS",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "CASIER/CHALIUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3247.0,
+    "Designation": "BLANC DE SEICHE\"FRAIS\"",
+    "NomLatin": "SEPIA OFFICINALIS",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3198.0,
+    "Designation": "BOGUE",
+    "NomLatin": "BOOPS BOOPS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3382.0,
+    "Designation": "BONITE",
+    "NomLatin": "AUXIS ROCHEI",
+    "Zone": "FAO 37-MEDITERRANEE EST",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3001.0,
+    "Designation": "BOUFFIS",
+    "NomLatin": "CLUPEA HARENGUS",
+    "Zone": "FAO 27, II IV",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:HARENG"
+  },
+  {
+    "PLU": 3267.0,
+    "Designation": "BRO.CREV.CUITE MARINE AIL/PERSIL",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTES,DISUFILTE"
+  },
+  {
+    "PLU": 3268.0,
+    "Designation": "BRO.CREV.CUITE MARINE INDIENNE",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTES,DISUFILTE"
+  },
+  {
+    "PLU": 3240.0,
+    "Designation": "BRO.CREV.CUITE MARINE PROVENçALE",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": ".",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTES,DISUFILTE"
+  },
+  {
+    "PLU": 3257.0,
+    "Designation": "BRO.CREV.CUITE MARINE TEX MEX",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTES,DISUFILTE"
+  },
+  {
+    "PLU": 3049.0,
+    "Designation": "BROCHET",
+    "NomLatin": "ESOX LUCIUS",
+    "Zone": "FAO 5",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS /FILETS MAILLANTS CALES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3110.0,
+    "Designation": "BROCHETTE COLIN (LIEU)",
+    "NomLatin": NaN,
+    "Zone": "MARINADE THYM/CITRON",
+    "SousZone": NaN,
+    "Engin": "(MINIMUM 100GR/PIECE)",
+    "Allergenes": "SOIT 25,00€/kg"
+  },
+  {
+    "PLU": 3248.0,
+    "Designation": "BROCHETTE DOS DE CABILLAUD MARINEE PROVENCAL",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3337.0,
+    "Designation": "BROCHETTE LAMELLE ENCORNET SAUMUREE EAU AJOUTE MARINEE AIL DES OURS",
+    "NomLatin": "DOSIDICUS GIGAD",
+    "Zone": "FAO 87 - OCEAN PACIFIQUE SUD EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": "Contient : MOLLUSQUES"
+  },
+  {
+    "PLU": 3337.0,
+    "Designation": "BROCHETTE LAMELLE ENCORNET SAUMUREE EAU AJOUTE MARINEE PROVENCAL",
+    "NomLatin": "DOSIDICUS GIGAD",
+    "Zone": "FAO 87 - OCEAN PACIFIQUE SUD EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": "Contient : MOLLUSQUES"
+  },
+  {
+    "PLU": 3134.0,
+    "Designation": "BROCHETTE SAUMON",
+    "NomLatin": NaN,
+    "Zone": "MARINADE AIL DES OURS",
+    "SousZone": NaN,
+    "Engin": "(MINIMUM 100GR/PIECE)",
+    "Allergenes": "SOIT 39,50€/kg"
+  },
+  {
+    "PLU": 3110.0,
+    "Designation": "BROCHETTE SAUMON",
+    "NomLatin": NaN,
+    "Zone": "MARINADE PROVENCALE",
+    "SousZone": NaN,
+    "Engin": "(MINIMUM 100GR/PIECE)",
+    "Allergenes": "SOIT 39,50€/kg"
+  },
+  {
+    "PLU": 3248.0,
+    "Designation": "BROCHETTE SAUMON MARINEE AIL DES OURS",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "ECOSSE/NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3248.0,
+    "Designation": "BROCHETTE SAUMON MARINEE THYM CITRON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3110.0,
+    "Designation": "BROCHETTE SAUMON/CABILLAUD",
+    "NomLatin": NaN,
+    "Zone": "MARINADE PROVENCALE",
+    "SousZone": NaN,
+    "Engin": "(MINIMUM 100GR/PIECE)",
+    "Allergenes": "SOIT 39,50€/kg"
+  },
+  {
+    "PLU": 3172.0,
+    "Designation": "BULOT CUIT",
+    "NomLatin": "BUCCINUM UNDATUM",
+    "Zone": 2,
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:BULOT"
+  },
+  {
+    "PLU": 3324.0,
+    "Designation": "BULOT CUIT",
+    "NomLatin": "BUCCINUM UNDATUM",
+    "Zone": "FAO 27 III",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": "CONTIENT:COQUILLAGES,SEL"
+  },
+  {
+    "PLU": 3133.0,
+    "Designation": "BULOT CUIT \"PETIT\"",
+    "NomLatin": "BUCCINUM UNDATUM",
+    "Zone": "FAO 27 -VII-MANCHE ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:COQUILLAGES"
+  },
+  {
+    "PLU": 3320.0,
+    "Designation": "BULOT CUIT AROMATISé PROVENCALE",
+    "NomLatin": "BUCCINUM UNDATUM",
+    "Zone": "FAO 27 - IV-VII-",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": "CONTIENT:EPICES-BULOT"
+  },
+  {
+    "PLU": 3321.0,
+    "Designation": "BULOT CUIT PIMENTé",
+    "NomLatin": "BUCCINUM UNDATUM",
+    "Zone": "FAO 27 -VII-IV-",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": "CONTIENT:EPICES-BULOT"
+  },
+  {
+    "PLU": 3181.0,
+    "Designation": "BULOT VIVANT",
+    "NomLatin": "BUCCINUM UNDATUM",
+    "Zone": "FAO 27 VII",
+    "SousZone": NaN,
+    "Engin": "CASIERS et PIEGES",
+    "Allergenes": "CONTIENT:COQUILLAGES"
+  },
+  {
+    "PLU": 3055.0,
+    "Designation": "CABILLAUD A LA COUPE",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3672.0,
+    "Designation": "CHIRURGIEN DE LIGNE",
+    "NomLatin": NaN,
+    "Zone": "FAO 34 ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3492.0,
+    "Designation": "COQ. ST JACQUES CORAILLEE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VII-e",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3180.0,
+    "Designation": "COQUE MOYENNES",
+    "NomLatin": "CERASTODERMA EDULE",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:COQUILLAGES"
+  },
+  {
+    "PLU": 3180.0,
+    "Designation": "COQUES GROSSES",
+    "NomLatin": "CERASTODERMA EDULE",
+    "Zone": "FAO 27 VII MER DU NORD",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3598.0,
+    "Designation": "COQUILLE ST JACQUES BLANCHE",
+    "NomLatin": "Pecten maximus",
+    "Zone": "FAO 27 - VII d- MANCHE /MER CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3452.0,
+    "Designation": "COQUILLE ST JACQUES BLANCHE",
+    "NomLatin": "Pecten maximus",
+    "Zone": "FAO 27 - VII d- MANCHE /MER CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3327.0,
+    "Designation": "COQUILLE ST JACQUES BLANCHE",
+    "NomLatin": "Pecten maximus",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3492.0,
+    "Designation": "COQUILLE ST JACQUES CORAILLEE",
+    "NomLatin": "Pecten maximus",
+    "Zone": "FAO 27 - IV-VI-a-VII-a-d-VII-f-g-h",
+    "SousZone": NaN,
+    "Engin": "DRAGUE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3177.0,
+    "Designation": "COUTEAU",
+    "NomLatin": "ENSIS DIRECTUS",
+    "Zone": "FAO 27 -IV -C",
+    "SousZone": NaN,
+    "Engin": "DRAGUE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3335.0,
+    "Designation": "CREV.NIGERIA BLACK TIGER 10/15",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - III",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3334.0,
+    "Designation": "CREV.SAUVAGE \"MADAGASCAR\"10/20",
+    "NomLatin": NaN,
+    "Zone": "FAO 51-OCEAN INDIEN",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3472.0,
+    "Designation": "CREV.SAUVAGE \"MADAGASCAR\"100/120",
+    "NomLatin": "PENAEUS SEMISUICATUS",
+    "Zone": "FAO 51-OCEAN INDIEN",
+    "SousZone": NaN,
+    "Engin": "CHALUT (OTB)",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3333.0,
+    "Designation": "CREV.SAUVAGE \"MADAGASCAR\"20/30",
+    "NomLatin": "PENAEUS SEMISUICATUS",
+    "Zone": "FAO 51-OCEAN INDIEN",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3332.0,
+    "Designation": "CREV.SAUVAGE \"MADAGASCAR\"40/60",
+    "NomLatin": NaN,
+    "Zone": "FAO 51-OCEAN INDIEN",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3330.0,
+    "Designation": "CREV.SAUVAGE \"MADAGASCAR\"60/80",
+    "NomLatin": NaN,
+    "Zone": "FAO 51-OCEAN INDIEN",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3474.0,
+    "Designation": "CREVETTE CRUE 30/40",
+    "NomLatin": "LITOPENAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:SULFITE-CRUSTACES"
+  },
+  {
+    "PLU": 3473.0,
+    "Designation": "CREVETTE CUITE \"LABEL ROUGE\" 20/30",
+    "NomLatin": NaN,
+    "Zone": "MADASGASCAR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "DISULFITE"
+  },
+  {
+    "PLU": 3455.0,
+    "Designation": "CREVETTE CUITE 10/20",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE-DISUFILTE"
+  },
+  {
+    "PLU": 3280.0,
+    "Designation": "CREVETTE CUITE 20/30",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CRUSTACES,SULFITE"
+  },
+  {
+    "PLU": 3249.0,
+    "Designation": "CREVETTE CUITE 25 /25",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CREVETTE:SULFITE"
+  },
+  {
+    "PLU": 3409.0,
+    "Designation": "CREVETTE CUITE 25/35",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE,SULFITE"
+  },
+  {
+    "PLU": 3188.0,
+    "Designation": "CREVETTE CUITE 30/40",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:SULFITE-CREVETTE"
+  },
+  {
+    "PLU": 3553.0,
+    "Designation": "CREVETTE CUITE 30/50",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE-SULFITES"
+  },
+  {
+    "PLU": 3413.0,
+    "Designation": "CREVETTE CUITE 30/50",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE-SULFITES"
+  },
+  {
+    "PLU": 3422.0,
+    "Designation": "CREVETTE CUITE 40/60",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "VENEZUELA",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CREVETTE:SULFITE"
+  },
+  {
+    "PLU": 3186.0,
+    "Designation": "CREVETTE CUITE 50/70",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": "equate ET AUTRES PAYS",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:SULFITE-CREVETTE"
+  },
+  {
+    "PLU": 3115.0,
+    "Designation": "CREVETTE CUITE 60/80",
+    "NomLatin": "PENAEUS VANNAMEI",
+    "Zone": "VENEZUELA",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE,SULFITE"
+  },
+  {
+    "PLU": 3118.0,
+    "Designation": "CREVETTE CUITE 60/80 SAUVAGE",
+    "NomLatin": NaN,
+    "Zone": "FAO 51-OCEAN INDIEN",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3005.0,
+    "Designation": "CREVETTE CUITE 80/100",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "VENEZUELA ET AUTRES PAYS",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE,SULFITE"
+  },
+  {
+    "PLU": 3451.0,
+    "Designation": "CREVETTE CUITE 80/100",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE,DISULFITE"
+  },
+  {
+    "PLU": 3277.0,
+    "Designation": "CREVETTE CUITE 80/100",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "VENEZUELA ET AUTRES PAYS",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE,SULFITES"
+  },
+  {
+    "PLU": 3277.0,
+    "Designation": "CREVETTE CUITE 80/100",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "CUBA ET AUTRES PAYS",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE,SULFITES"
+  },
+  {
+    "PLU": 3467.0,
+    "Designation": "CREVETTE CUITE 80/100 MADAGASCAR",
+    "NomLatin": "PENAEUS MONODON",
+    "Zone": "MADASGASCAR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:DISULFITE-CREVETTE"
+  },
+  {
+    "PLU": 3115.0,
+    "Designation": "CREVETTE CUITE 80/120",
+    "NomLatin": "PANAEUS VANNAMEI",
+    "Zone": "CUBA",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE,SULFITE"
+  },
+  {
+    "PLU": 3329.0,
+    "Designation": "CREVETTE CUITE GRISE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - IV- MER DU NORD",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CREVETTE SULFITE"
+  },
+  {
+    "PLU": 3422.0,
+    "Designation": "CREVETTE CUITE SAUVAGE 40/60",
+    "NomLatin": NaN,
+    "Zone": "ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CREVETTE-SULFITES"
+  },
+  {
+    "PLU": 3244.0,
+    "Designation": "CREVETTE CUITE U10 \"SAUVAGE\"",
+    "NomLatin": "PENAEUS MONODON",
+    "Zone": "ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CREVETTE,SULFITES"
+  },
+  {
+    "PLU": 3373.0,
+    "Designation": "CREVETTE GRISE CUITE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - IV",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:SULFITE, SEL"
+  },
+  {
+    "PLU": 3158.0,
+    "Designation": "CREVETTE GRISE CUITE PAYS",
+    "NomLatin": "CRANGON VUIGARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CREVETTE SULFITE"
+  },
+  {
+    "PLU": 3412.0,
+    "Designation": "CREVETTES CUITES 30/50",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "EQUATEUR",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:CREVETTE-SULFITES"
+  },
+  {
+    "PLU": 3746.0,
+    "Designation": "DARNE BONITE",
+    "NomLatin": "AUXIS ROCHEI",
+    "Zone": "FAO 37-1-MEDITERRANEE",
+    "SousZone": NaN,
+    "Engin": "FILETS TOURNANTS ET SOULEVES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3554.0,
+    "Designation": "DARNE DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3012.0,
+    "Designation": "DARNE DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3021.0,
+    "Designation": "DORADE GRISE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3605.0,
+    "Designation": "DORADE ROYALE promo",
+    "NomLatin": "SPARUS AURATA",
+    "Zone": "Turquie",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3112.0,
+    "Designation": "DORADE ROYALE",
+    "NomLatin": "SPARUS AURATA",
+    "Zone": "Turquie",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3217.0,
+    "Designation": "DORADE SEBASTE",
+    "NomLatin": "HELICOLENUS DACTYLOPTERUS",
+    "Zone": "FAO 27 - VI",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3231.0,
+    "Designation": "DORADE SEBASTE",
+    "NomLatin": "HELICOLENUS DACTYLOPTERUS",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3063.0,
+    "Designation": "DOS DE CABILLAUD",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO 27 V",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3073.0,
+    "Designation": "DOS DE CABILLAUD AVEC PEAU",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO-Va",
+    "SousZone": NaN,
+    "Engin": "LIGNE ET HAMECONS/",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3572.0,
+    "Designation": "DOS DE JULIENNE",
+    "NomLatin": "MOLVA MOLVA",
+    "Zone": "FAO 27-IV",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3218.0,
+    "Designation": "DOS DE LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 I",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3227.0,
+    "Designation": "DOS DE LINGUE BLEUE",
+    "NomLatin": "MOLVA DYPTERYGIA",
+    "Zone": "FAO 27 -IV",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3710.0,
+    "Designation": "DOS DE LOUP DE MER",
+    "NomLatin": "ANARHICHAS LUPUS",
+    "Zone": "FAO 27 -V-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3496.0,
+    "Designation": "DOS DE MERLU",
+    "NomLatin": "MERLUCCIUS MERLUCCIUS",
+    "Zone": "FAO 27 -IV-III",
+    "SousZone": NaN,
+    "Engin": "CHALUT FILETS MAILLANTS/SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3386.0,
+    "Designation": "DOS DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3195.0,
+    "Designation": "DOS D'EGLEFIN",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO 27 V",
+    "SousZone": NaN,
+    "Engin": "LIGNE/SENNES FILET MAILLANTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3543.0,
+    "Designation": "ECREVISSE VIVANTE",
+    "NomLatin": "ASTACUS LEPTODACTYLUS",
+    "Zone": "FAO ROUMANIE",
+    "SousZone": NaN,
+    "Engin": "CASIERS ET PIEGES(FPO)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3044.0,
+    "Designation": "ENCORNET BLANC",
+    "NomLatin": "LOLIGO VULGARIS",
+    "Zone": "FAO 27 -IV-V-VI-VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": "CONTIENT:MOLLUSQUES"
+  },
+  {
+    "PLU": 3035.0,
+    "Designation": "EPERLAN/PRETRE",
+    "NomLatin": "ATHERINA PRESBYTER",
+    "Zone": "fao 27 - VIIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3067.0,
+    "Designation": "ESTURGEON SIBERIEN",
+    "NomLatin": "ACIPENSER BAERII",
+    "Zone": "EN FRANCE-SOLOGNE-",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3772.0,
+    "Designation": "ETRILLE CUITE",
+    "NomLatin": "NECORA PIPUS PUBER",
+    "Zone": "FAO 27 -VIII",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3166.0,
+    "Designation": "ETRILLE VIVANTE",
+    "NomLatin": "NECORA PIPUS PUBER",
+    "Zone": "FAO 27 -VII-MANCHE ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3439.0,
+    "Designation": "FARCI SAUMON/ST JACQUES",
+    "NomLatin": NaN,
+    "Zone": "transforme en france",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3709.0,
+    "Designation": "FILET DE BAR",
+    "NomLatin": "DICENTRARCHUS LABRAX",
+    "Zone": "Turquie",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3710.0,
+    "Designation": "FILET DE BROSME",
+    "NomLatin": "BROSME BROSME",
+    "Zone": "FAO 27 - VI-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3073.0,
+    "Designation": "FILET DE CABILLAUD",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3081.0,
+    "Designation": "FILET DE CARRELET/PLIE",
+    "NomLatin": "PLEURONECTES PLATESSA",
+    "Zone": "FAO 27 - IVA-B",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3289.0,
+    "Designation": "FILET DE CHIMèRE",
+    "NomLatin": "CHIMAERA MONSTROSA",
+    "Zone": "FAO 27 - VI-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3715.0,
+    "Designation": "FILET DE DORADE ROYALE",
+    "NomLatin": "SPARUS AURATA",
+    "Zone": "Turquie",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3343.0,
+    "Designation": "FILET DE DORADE SEBASTES",
+    "NomLatin": "SEBASTES NORVEGICUS/SEBASTES MARINUS",
+    "Zone": "FAO 27-Va-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3075.0,
+    "Designation": "FILET DE FLETAN",
+    "NomLatin": "REINHARDITUS HIPPOGLOSSOIDES",
+    "Zone": "FAO 27 -V",
+    "SousZone": NaN,
+    "Engin": "FILET MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3140.0,
+    "Designation": "FILET DE HARENG",
+    "NomLatin": "CLUPEA HARENGUS",
+    "Zone": "FAO 27-VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT/SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3072.0,
+    "Designation": "FILET DE JULIENNE",
+    "NomLatin": "MOLVA MOLVA",
+    "Zone": "FAO 27 III",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS/LIGNES ET HAMECONS",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3071.0,
+    "Designation": "FILET DE LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 IV",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": "CONTIENT:LIEU NOIR(POISSON)"
+  },
+  {
+    "PLU": 3071.0,
+    "Designation": "FILET DE LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 -IVab",
+    "SousZone": NaN,
+    "Engin": "CHALUT OTB",
+    "Allergenes": "CONTIENT:LIEU NOIR(POISSON)"
+  },
+  {
+    "PLU": 3372.0,
+    "Designation": "FILET DE LINGUE BLEUE",
+    "NomLatin": "MOLVA DYPTERYGIA",
+    "Zone": "FAO 27 a 3 ISLANDE ET FEROE",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3225.0,
+    "Designation": "FILET DE LOUP DE MER",
+    "NomLatin": "ANARHICHAS LUPUS",
+    "Zone": "FAO 27 -V-a",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3509.0,
+    "Designation": "FILET DE MAQUEAREAU",
+    "NomLatin": "SCOMBER SCOMBRUS",
+    "Zone": "FAO 27- VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3730.0,
+    "Designation": "FILET DE MERLAN",
+    "NomLatin": "MERLANGIUS MERLANGUS",
+    "Zone": "FAO 27 IV-V-VI-VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3074.0,
+    "Designation": "FILET DE MERLAN PAPILLON",
+    "NomLatin": "MERLANGIUS MERLANGUS",
+    "Zone": "FAO 27 IV-a",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3512.0,
+    "Designation": "FILET DE MERLU",
+    "NomLatin": "MERLUCCIUS MERLUCCIUS",
+    "Zone": "FAO 27 -VIII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3372.0,
+    "Designation": "FILET DE QUEUE DE LINGUE BLEUE",
+    "NomLatin": "MOLVA DYPTERYGIA",
+    "Zone": "FAO 27-Via",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3185.0,
+    "Designation": "FILET DE QUEUE DE CABILLAUD",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO I-II-",
+    "SousZone": NaN,
+    "Engin": "SENNES/LIGNES ET HAMECONS/FILETS MAILLANTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3252.0,
+    "Designation": "FILET DE QUEUE DE LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 - IV-IIIA-",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3348.0,
+    "Designation": "FILET DE QUEUE DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "ECOSSE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3103.0,
+    "Designation": "FILET DE ROUGET",
+    "NomLatin": "PSEUDUPENEUS PRAYENSIS",
+    "Zone": "FAO 34 - ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3069.0,
+    "Designation": "FILET DE SABRE",
+    "NomLatin": "APHANOPUS CARBO",
+    "Zone": "FAO 27-VI-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3191.0,
+    "Designation": "FILET DE SANDRE SAUVAGE",
+    "NomLatin": "SANDER LUCIOPERCA",
+    "Zone": "FAO 05",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3083.0,
+    "Designation": "FILET DE SARDINE",
+    "NomLatin": "SARDINA PILCHARDUS",
+    "Zone": "FAO 27 -VII-D",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3065.0,
+    "Designation": "FILET DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3078.0,
+    "Designation": "FILET DE SAUMON ENTIER",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3494.0,
+    "Designation": "FILET DE SOLE TROPICALE",
+    "NomLatin": "CYNOGLOSSUS SENEGALENSIS",
+    "Zone": "FAO 34 - ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "FILETS SOULEVES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3107.0,
+    "Designation": "FILET DE TACAUD",
+    "NomLatin": "TRISOPTERUS LUSCUS",
+    "Zone": "FAO-VII-ETAUTRES SOUS ZONES",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3077.0,
+    "Designation": "FILET DE TRUITE",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3546.0,
+    "Designation": "FILET DE TRUITE \"FUMAISON\"",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3128.0,
+    "Designation": "FILET DE TURBO",
+    "NomLatin": "Rombo Chiodato",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "Espagne",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3447.0,
+    "Designation": "FILET D'HADDOCK",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO 27 - IV-VI -",
+    "SousZone": NaN,
+    "Engin": "CHALUT-SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3216.0,
+    "Designation": "FILET EGLEFIN AEGLEFINUS",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO 27 V-VI",
+    "SousZone": NaN,
+    "Engin": "CHALUT OTB",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3457.0,
+    "Designation": "FILET HARENG",
+    "NomLatin": "CLUPEA HARENGUS",
+    "Zone": "FAO 27 - II-MER DE NORVEGE",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3310.0,
+    "Designation": "FILET MAQUEREAU FUMé AU POIVRE",
+    "NomLatin": "SCOMBER SCOMBRUS",
+    "Zone": "FAO 27 - IV-MER DU NORD",
+    "SousZone": NaN,
+    "Engin": "SENNES",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3308.0,
+    "Designation": "FILET MAQUEREAU FUMé OIGNON",
+    "NomLatin": "SCOMBER SCOMBRUS",
+    "Zone": "FAO 27 - VII-MANCHE ET MER CELTIQUE,MER D'IRLANDE",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3311.0,
+    "Designation": "FILET MAQUEREAU FUMé PROVENCALE",
+    "NomLatin": "SCOMBER SCOMBRUS",
+    "Zone": "FAO 27 - IV-MER DU NORD",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3059.0,
+    "Designation": "FILET MORUE SALEE",
+    "NomLatin": "GADUS MACROCEPHALUS",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "Contient : CABILLAUD"
+  },
+  {
+    "PLU": 3059.0,
+    "Designation": "FILET MORUE SALEE",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO 21 ATLANTIQUE NORD OUEST",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "Contient : CABILLAUD"
+  },
+  {
+    "PLU": 3426.0,
+    "Designation": "FILET MORUE SALéE \"AVEC PEAU\"",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO 67 PACIFIQUE NORD",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3216.0,
+    "Designation": "FILET QUEUE EGLEFIN",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO 27 -III",
+    "SousZone": NaN,
+    "Engin": "CHALUT/FILET MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3830.0,
+    "Designation": "FISH AND CHIPS LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 -IV-IIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "Contient : POISSONS, BLE"
+  },
+  {
+    "PLU": 3830.0,
+    "Designation": "FISH AND CHIPS LIEU NOIR AU PESTO",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 -IV-IIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "Contient : POISSONS, EXTRAIT DE MALT D'ORGE"
+  },
+  {
+    "PLU": 3199.0,
+    "Designation": "FLET",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VII-d",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3471.0,
+    "Designation": "FOIE DE LOTTE",
+    "NomLatin": "LOPHIUS PISCATORIUS",
+    "Zone": "FAO 27 -VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3060.0,
+    "Designation": "HADDOCK",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 -V-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:EGLEFIN"
+  },
+  {
+    "PLU": 3042.0,
+    "Designation": "HARENG",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3223.0,
+    "Designation": "HARENG BUCKLING",
+    "NomLatin": "CLUPEA HARENGUS",
+    "Zone": "ATLANTIQUE NORD EST IV MER DU NORD",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:HARENG"
+  },
+  {
+    "PLU": 3424.0,
+    "Designation": "HARENG BUCKLING",
+    "NomLatin": "CLUPEA HARENGUS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3002.0,
+    "Designation": "HARENG SAUR",
+    "NomLatin": NaN,
+    "Zone": "ATLANTIQUE NORD EST",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:HARENG"
+  },
+  {
+    "PLU": 3154.0,
+    "Designation": "HOMARD AMERICAIN VIVANT (2PINCES)",
+    "NomLatin": "HOMARUS AMERICANUS",
+    "Zone": "FAO 21-ATLANTIQUE NORD OUEST",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT CRUSTACES"
+  },
+  {
+    "PLU": 3089.0,
+    "Designation": "HOMARD CUIT AMERICAIN",
+    "NomLatin": "HOMARUS AMERICANUS",
+    "Zone": "FAO 21",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": "CONTIENT:CRUSTACES"
+  },
+  {
+    "PLU": 3208.0,
+    "Designation": "HUITRE BEAUVOIR N°1",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3122.0,
+    "Designation": "HUITRE BEAUVOIR N°2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3087.0,
+    "Designation": "HUITRE BEAUVOIR N°3",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3137.0,
+    "Designation": "HUITRE BEAUVOIR N°4",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3503.0,
+    "Designation": "HUITRE CHARENTE MARITIME N°2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3459.0,
+    "Designation": "HUITRE ISIGNY N°2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3293.0,
+    "Designation": "HUITRE LONGUE NOIRMOUTIER",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3043.0,
+    "Designation": "HUITRE MARENNE OLERON N\"3",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3469.0,
+    "Designation": "HUITRE MARENNE OLERON N\"4",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3278.0,
+    "Designation": "HUITRE MARENNE OLERON N°1",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3323.0,
+    "Designation": "HUITRE MARENNE OLERON N°2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3524.0,
+    "Designation": "HUITRE NOIRMOUTIER N°1",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3506.0,
+    "Designation": "HUITRE NOIRMOUTIER N°2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3167.0,
+    "Designation": "HUITRE NOIRMOUTIER N°3",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3295.0,
+    "Designation": "HUITRE NOIRMOUTIER N°4",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3535.0,
+    "Designation": "HUITRE NORMANDIE N °3",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3533.0,
+    "Designation": "HUITRE NORMANDIE ST VAAST N°2",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3535.0,
+    "Designation": "HUITRE NORMANDIE ST VAAST N°3",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3534.0,
+    "Designation": "HUITRE NORMANDIE UTAH BEACH N°2",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3536.0,
+    "Designation": "HUITRE PRAT ARCOUM N°2",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3527.0,
+    "Designation": "HUITRE PRAT ARCOUM N°3",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3431.0,
+    "Designation": "HUITRE SPECIALE MARENNE OLERON N2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3526.0,
+    "Designation": "HUITRES CANCALE N°2",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3466.0,
+    "Designation": "HUITRES CANCALE N°3",
+    "NomLatin": "MAGALLANA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3276.0,
+    "Designation": "HUITRES DE L'ILE DE RE N°1",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3493.0,
+    "Designation": "HUITRES DE L'ILE DE RE N°2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3462.0,
+    "Designation": "HUITRES DE L'ILE DE RE N°3",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "France",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3453.0,
+    "Designation": "HUITRES MARENNE OLERON N°2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3435.0,
+    "Designation": "JOUE DE CABILLAUD",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO 27 - IV -",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3445.0,
+    "Designation": "JOUE DE LOTTE",
+    "NomLatin": "LOPHIUS PISCATORIUS-BUDEGASSA/MONK CHEEK",
+    "Zone": "FAO 27-VIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "POISSON"
+  },
+  {
+    "PLU": 3210.0,
+    "Designation": "JOUE DE RAIE",
+    "NomLatin": "RAJA CLAVATA",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3314.0,
+    "Designation": "KIPPERS",
+    "NomLatin": "CLUPEA HARENGUS",
+    "Zone": "ATLANTIQUE NORD EST II MER DE NORVEGE",
+    "SousZone": NaN,
+    "Engin": "FILET TOURNANTS",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3395.0,
+    "Designation": "LAMELLES D'ENCORNET geant du pacifique saumures avec eau ajoutee DECONGELEES",
+    "NomLatin": "DOSIDICUS GIGAS",
+    "Zone": "FAO 87 - OCEAN PACIFIQUE SUD EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": "Contient : MOLLUSQUES"
+  },
+  {
+    "PLU": 3126.0,
+    "Designation": "LANCON",
+    "NomLatin": "AMMODYTES TOBIANUS",
+    "Zone": "fao 27 -VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3102.0,
+    "Designation": "LANGOUSTE CUITS REFRIGEREES",
+    "NomLatin": NaN,
+    "Zone": "FAO 031",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:SULFITE-CRUSTACES"
+  },
+  {
+    "PLU": 3418.0,
+    "Designation": "LANGOUSTINE CUITE",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -III",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3419.0,
+    "Designation": "LANGOUSTINE vivante CUITE",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IV-aVI-a",
+    "SousZone": NaN,
+    "Engin": "CASIER/NASSE",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3408.0,
+    "Designation": "LANGOUSTINE CUITE",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IIVa-Via",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3406.0,
+    "Designation": "LANGOUSTINE CUITE 21/30",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3406.0,
+    "Designation": "LANGOUSTINE CUITE 21/30",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IV-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3403.0,
+    "Designation": "LANGOUSTINE CUITE 30/40",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IVb Iva Via VIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3156.0,
+    "Designation": "LANGOUSTINE glacee 10/15",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 - Iva b VIa VIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3417.0,
+    "Designation": "LANGOUSTINE glacee 10/15",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 - Iva",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3155.0,
+    "Designation": "LANGOUSTINE GLACEE 16/20",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 IIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3135.0,
+    "Designation": "LANGOUSTINE GLACEE 21/30",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3219.0,
+    "Designation": "LANGOUSTINE GLACEE 31/40",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 - IIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3294.0,
+    "Designation": "LANGOUSTINE GLACEE 40/50",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 - IV-",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTB)",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3541.0,
+    "Designation": "LANGOUSTINE GLACEE 6/9",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 - III-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3151.0,
+    "Designation": "LANGOUSTINE VIVANTE 25/35",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IV-aVI-a",
+    "SousZone": NaN,
+    "Engin": "CASIER/NASSE",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3197.0,
+    "Designation": "LANGOUSTINE VIVANTE 10/15",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IVa-VIa",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES"
+  },
+  {
+    "PLU": 3255.0,
+    "Designation": "LANGOUSTINE VIVANTE 16/25",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -Ivb",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": "CONTIENT:SULFITE"
+  },
+  {
+    "PLU": 3151.0,
+    "Designation": "LANGOUSTINE VIVANTE 25/35",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IV-aVI-a",
+    "SousZone": NaN,
+    "Engin": "CASIERS/NASSE",
+    "Allergenes": "CONTIENT:CRUSTACES"
+  },
+  {
+    "PLU": 3273.0,
+    "Designation": "LANGOUSTINE VIVANTE 6/10",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -IVa-VIa",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES"
+  },
+  {
+    "PLU": 3319.0,
+    "Designation": "LAVIGNON",
+    "NomLatin": "SCROBICULIRIA PLANA",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": "CONTIENT CRUSTACES"
+  },
+  {
+    "PLU": 3196.0,
+    "Designation": "LIMANDE SOLE",
+    "NomLatin": "MICROSTOMUS KITT",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3389.0,
+    "Designation": "LONGE DE THON ALBACORE",
+    "NomLatin": "THUNNUS ALBACARES",
+    "Zone": "FAO 71 77 OECEAN PACIFIQUE",
+    "SousZone": NaN,
+    "Engin": "FILET TOURNANTS ET FILET SOULEVES",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3299.0,
+    "Designation": "LONGE DE THON GERMON",
+    "NomLatin": "THUNNUS ALALUNGA",
+    "Zone": "FAO 71",
+    "SousZone": NaN,
+    "Engin": "LIGNE ET HAMECONS",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3028.0,
+    "Designation": "LONGE D'ESPADON",
+    "NomLatin": "XIPHIAS GLADIUS",
+    "Zone": "FAO 57",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3719.0,
+    "Designation": "LONGE D'ESPADON AIL OURS",
+    "NomLatin": "XIPHIAS GLADIUS",
+    "Zone": "FAO 87-PACIFIQUE SUD EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3028.0,
+    "Designation": "LONGE D'ESPADON AIL DES OURS",
+    "NomLatin": "XIPHIAS GLADIUS",
+    "Zone": "FAO 57",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3719.0,
+    "Designation": "LONGE D'ESPADON PROVENCAL",
+    "NomLatin": "XIPHIAS GLADIUS",
+    "Zone": "FAO 87-PACIFIQUE SUD EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3028.0,
+    "Designation": "LONGE D'ESPADON PROVENCAL",
+    "NomLatin": "XIPHIAS GLADIUS",
+    "Zone": "FAO 57",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3719.0,
+    "Designation": "LONGE ESPADON",
+    "NomLatin": "XIPHIAS GLADIUS",
+    "Zone": "FAO 87",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3890.0,
+    "Designation": "LONGE THONINE commune",
+    "NomLatin": "EUTHYNNUS ALLETTERATUS",
+    "Zone": "FAO 34-MER ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3017.0,
+    "Designation": "MAQUEREAU",
+    "NomLatin": "SCOMBER SCOMBRUS",
+    "Zone": "FAO 27 -VII",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3017.0,
+    "Designation": "MAQUEREAU",
+    "NomLatin": "SCOMBER SCOMBRUS",
+    "Zone": "FAO 27 - IV",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3425.0,
+    "Designation": "MAQUEREAU BUCKILING",
+    "NomLatin": "SCOMBER SCOMBRUS",
+    "Zone": "FAO 27 – IV MER DU NORD",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3312.0,
+    "Designation": "MAQUEREAU BUCKLING",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - MER DU NORD",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:MAQUEREAU"
+  },
+  {
+    "PLU": 3190.0,
+    "Designation": "Melva Lampareau",
+    "NomLatin": "AUXIS ROCHEI blt",
+    "Zone": "FAO 37-1-",
+    "SousZone": NaN,
+    "Engin": "FILETS TOURNANTS ET FILET SOULEVES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3015.0,
+    "Designation": "MERLAN",
+    "NomLatin": "MERLANGIUS MERLANGUS",
+    "Zone": "IV MER DU NORD VII MANCHES ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "CHALUT/SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3016.0,
+    "Designation": "MERLU PORTION",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - III a",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3484.0,
+    "Designation": "MIETTES DE MORUE SALEE",
+    "NomLatin": "GADUS MACROCEPHALUS",
+    "Zone": "FAO67: PACIFIQUE NORD EST",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": "CONTIENT:POISSON CRUSTACE MOLLUSQUES"
+  },
+  {
+    "PLU": 3326.0,
+    "Designation": "MINI ROTI SAUMON ST JACQUES",
+    "NomLatin": NaN,
+    "Zone": "transforme en france",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3053.0,
+    "Designation": "MORCEAU LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 - I",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3123.0,
+    "Designation": "MORUE SECHEE ENTIERE",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO 27-II-MER DE NORVEGE",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS ET SIMILAIRES",
+    "Allergenes": "CONTIENT:MORUE(POISSON)"
+  },
+  {
+    "PLU": 3531.0,
+    "Designation": "MOULE DE BOUCHOT",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "France-STG-",
+    "SousZone": NaN,
+    "Engin": "COTE D'EMERAUDE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3022.0,
+    "Designation": "MOULE DE BOUCHOT",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3480.0,
+    "Designation": "MOULE DE BOUCHOT",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": "NON NETTOYEE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3574.0,
+    "Designation": "MOULE DE BOUCHOT \"LA PLAINAISE\"",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": "NETTOYEE",
+    "Allergenes": "PRËT A CUIRE"
+  },
+  {
+    "PLU": 3192.0,
+    "Designation": "MOULE DE BOUCHOT \"LA PLAINAISE\" LES CHALLANDISES",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": "NETTOYEE",
+    "Allergenes": "CONTIENT:MOUTARDE,LAIT,ŒUF"
+  },
+  {
+    "PLU": 3508.0,
+    "Designation": "MOULE DE BOUCHOT \"AIGUILLON\"",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": "NETTOYEE",
+    "Allergenes": "PRËT A CUIRE"
+  },
+  {
+    "PLU": 3233.0,
+    "Designation": "MOULE DE BOUCHOT \"LES MOULES OCEANES\"",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": "NETTOYEE",
+    "Allergenes": "PRËT A CUIRE"
+  },
+  {
+    "PLU": 3183.0,
+    "Designation": "MOULE DE BOUCHOT \"LES MOULES OCEANES\"",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "\"NON NETTOYEE\""
+  },
+  {
+    "PLU": 3114.0,
+    "Designation": "MOULE DE BOUCHOT \"ST MICHEL\"",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "France-BAIE DU MONT ST MICHEL",
+    "SousZone": NaN,
+    "Engin": "A-O-P",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3440.0,
+    "Designation": "MOULE DE CORDE GROSSE",
+    "NomLatin": "MYTILUS GALLOPROVINCIALIS",
+    "Zone": "ESPAGNE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3420.0,
+    "Designation": "MOULES DE CORDE",
+    "NomLatin": "MYTILUS GALLOPROVINCIALIS",
+    "Zone": "ESPAGNE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3421.0,
+    "Designation": "MOULES DE CORDE TRES GROSSE",
+    "NomLatin": "MYTILUS GALLOPROVINCIALIS",
+    "Zone": "ESPAGNE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3228.0,
+    "Designation": "MOULES DE CORDES DE L'AIGUILLON",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE-",
+    "SousZone": NaN,
+    "Engin": "BAIE DE L'AIGUILLON-SUR-MER",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3228.0,
+    "Designation": "MOULES DE CORDES LABEL ROUGE",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE-",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3228.0,
+    "Designation": "MOULES DE CORDES LABEL ROUGE",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "FRANCE-",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3228.0,
+    "Designation": "MOULES HOLLANDE",
+    "NomLatin": "MYTILUS EDULIS",
+    "Zone": "HOLLANDE/DANEMARK",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3127.0,
+    "Designation": "NOIX DE PETONCLE",
+    "NomLatin": "CHLAMYS OPERCULARIS",
+    "Zone": "FAO 27 - VII-a",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": "Contient : MOLLUSQUES"
+  },
+  {
+    "PLU": 3563243012829.0,
+    "Designation": "noix st jacque blanche 0,400G",
+    "NomLatin": NaN,
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3131.0,
+    "Designation": "NOIX DE ST JACQUES AVEC CORAIL",
+    "NomLatin": "PECTEN MAXIMUS",
+    "Zone": "FAO 27 IV VIa VII a,d,e,f,g,h",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": "CONTIENT:MOLLUSQUES"
+  },
+  {
+    "PLU": 3830.0,
+    "Designation": "NUGGETS DE POISSON PAPRIKA DOS LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO -IV-IIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "Contient : POISSONS, BLE, ORGE, MOUTARDE"
+  },
+  {
+    "PLU": 3830.0,
+    "Designation": "NUGGETS DE POISSON AU DOS LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO -IV-IIIa",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "Contient : POISSONS, ORGE"
+  },
+  {
+    "PLU": 3304.0,
+    "Designation": "OEUFS CABILLAUD FUMES",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - V -",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": "CONTIENT:CABILLAUD"
+  },
+  {
+    "PLU": 3499.0,
+    "Designation": "OURSIN VIVANT",
+    "NomLatin": "ECHINUIDEA",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "LIGNE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3213.0,
+    "Designation": "OURSIN VIVANT",
+    "NomLatin": "SPHAERECHINUS GRANULARIS",
+    "Zone": "FAO 27 - VIII-GOLFE DE GASCOGNE",
+    "SousZone": NaN,
+    "Engin": "DRAGUE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3410.0,
+    "Designation": "OURSIN VIVANT(DROEBACHIENSIS)",
+    "NomLatin": "STRONGYLOCENTROTUS",
+    "Zone": "FAO 27 - V",
+    "SousZone": NaN,
+    "Engin": "DRAGUE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3201.0,
+    "Designation": "PAGEOT ACARNE",
+    "NomLatin": "PAGELLUS ACARNE",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "FILET",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3179.0,
+    "Designation": "PALOURDE MOYENNE",
+    "NomLatin": "RUDITAPES PHILIPPINARUM",
+    "Zone": "FAO VIII VII",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3529.0,
+    "Designation": "PAVE DE SAUMON MARINEE AIL DES OURS",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "ECOSSE/NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3202.0,
+    "Designation": "PAVE DE DORADE CORYPHENE",
+    "NomLatin": "CORYPHEANA HIPPURUS",
+    "Zone": "FAO 27 - 34",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3529.0,
+    "Designation": "PAVE DE SAUMON MARINEE THYM CITRON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "ECOSSE/NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3077.0,
+    "Designation": "PAVE DE TRUITE",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3414.0,
+    "Designation": "PAVéS DE MORUE SALéE \"SANS PEAU\"",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO 61-PACIFIQUE NORD OUEST",
+    "SousZone": NaN,
+    "Engin": "LIGNES",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3168.0,
+    "Designation": "PAVES DE QUEUE DE CABILLAUD",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3065.0,
+    "Designation": "PAVES DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3211.0,
+    "Designation": "PAVES DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "SOIT 12,40LE KG"
+  },
+  {
+    "PLU": 3306.0,
+    "Designation": "PAVES DE SAUMON \"CHEMINEE\"",
+    "NomLatin": NaN,
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3305.0,
+    "Designation": "PAVES DE SAUMON \"FICELLE\"",
+    "NomLatin": NaN,
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": "JAMAIS CONGELé",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3092.0,
+    "Designation": "PAVES DE SAUMON DESARETE",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "SOIT 15,69:KG"
+  },
+  {
+    "PLU": 3282.0,
+    "Designation": "PAVES DE SAUMON FUME CHMINEE",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3065.0,
+    "Designation": "PAVES DE SAUMON GROS",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3510.0,
+    "Designation": "PAVES DE SAUMON SANS PEAU/SANS ARETE",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "ECOSSE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3551.0,
+    "Designation": "PAVES DE TRUITE",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3171.0,
+    "Designation": "PETONCLE VANNEAU",
+    "NomLatin": "CHLAMYS OPERCULARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3054.0,
+    "Designation": "PINCE CRABE ROYAL CUIT",
+    "NomLatin": "Paralithodes camtschaticus",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES, SEL"
+  },
+  {
+    "PLU": 3004.0,
+    "Designation": "PINCES DE TOURTEAUX CUITES 2/5",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "CASIERS",
+    "Allergenes": "CONTIENT:CRUSTACES-SULFITES"
+  },
+  {
+    "PLU": 3004.0,
+    "Designation": "PINCES DE TOURTEAUX CUITES 4/8",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 ANE VIa VII a b g Iva",
+    "SousZone": NaN,
+    "Engin": "CASIERS ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES ,SEL-SULFITES"
+  },
+  {
+    "PLU": 3322.0,
+    "Designation": "PINCES DE TOURTEAUX CUITES 8/12",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 VII/27 IV/27 II",
+    "SousZone": NaN,
+    "Engin": "CASIERS ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES-SULFITES"
+  },
+  {
+    "PLU": 3146.0,
+    "Designation": "PINCES TOURTEAUX CUITES 12/20",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 Ivb -VI",
+    "SousZone": NaN,
+    "Engin": "CASIERS ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES-MOLLUSQUES"
+  },
+  {
+    "PLU": 3226.0,
+    "Designation": "POELEE DE LA MER MARINEE THYM CITRON",
+    "NomLatin": NaN,
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:POISSON-SULFITES"
+  },
+  {
+    "PLU": 3835.0,
+    "Designation": "PLIE PRET A CUIRE",
+    "NomLatin": "GLYPTOCEPHALUS CYNOGLOSSUS",
+    "Zone": "FAO27 VII-VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3545.0,
+    "Designation": "POUCE PIEDS",
+    "NomLatin": "POLLIOPES POLLIOPES",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3300.0,
+    "Designation": "POULPES FRITURE",
+    "NomLatin": "OCTOPUS MEMBRANACEUS",
+    "Zone": "FAO 57 - OCEAN INDIEN ORIENTAL",
+    "SousZone": NaN,
+    "Engin": "CHALUT(OTM)",
+    "Allergenes": "Contient : POISSON"
+  },
+  {
+    "PLU": 3300.0,
+    "Designation": "POULPES ROCA",
+    "NomLatin": "OCTOPUS VULGARI",
+    "Zone": "FAO ANE",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "Contient : POISSON"
+  },
+  {
+    "PLU": 3495.0,
+    "Designation": "PRAIRE",
+    "NomLatin": "VENUS VERRUCOSA",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3035.0,
+    "Designation": "PRETRE",
+    "NomLatin": "ATHERINA PRESBYTER",
+    "Zone": "FAO 27 - VIII a",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3436.0,
+    "Designation": "QUEUE DE LOTTE 1/2",
+    "NomLatin": "LOPHIUS PISCATTORIUS/BUDEGASSA",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "FILET MAILLANTS ET SIMILAIRES",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3436.0,
+    "Designation": "QUEUE DE LOTTE 1/2",
+    "NomLatin": "LOPHIUS PISCATORIUS/BUDEGASSA",
+    "Zone": "FAO 27 - IV",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3215.0,
+    "Designation": "QUEUE DE LOTTE 5/1000",
+    "NomLatin": "LOPHIUS PISCATORIUS ET BUDEGASSA",
+    "Zone": "FAO 27 VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3013.0,
+    "Designation": "QUEUE DE LOTTE",
+    "NomLatin": "LOPHIUS PISCATTORIUS/BUDEGASSA",
+    "Zone": "FAO 27 IVA",
+    "SousZone": NaN,
+    "Engin": "CHALUT SENNES",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3450.0,
+    "Designation": "QUEUE DE LOTTE 2/500",
+    "NomLatin": "LOPHIUS PISCATORIUS/BUDEGASSA",
+    "Zone": "FAO 27 VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT LLS GNS SDN",
+    "Allergenes": "CONTIENT:LOTTE(POISSON)"
+  },
+  {
+    "PLU": 3202.0,
+    "Designation": "RASCASSE ROUGE",
+    "NomLatin": NaN,
+    "Zone": "FAO 34-ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3029.0,
+    "Designation": "ROUGET BARBET",
+    "NomLatin": "MULLUS SURMULETUS",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "SENNES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3047.0,
+    "Designation": "ROUSSETTE PELEE",
+    "NomLatin": "SCYLIORHINUS CANICULA",
+    "Zone": "FAO 27 - VII manches et mers celtiques",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3234.0,
+    "Designation": "SALADE DE POULPE",
+    "NomLatin": "DOSIDICUS GIGAS",
+    "Zone": "FAO 87 - OCEAN PACIFIQUE SUD EST",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3027.0,
+    "Designation": "SAINT PIERRE",
+    "NomLatin": "Zeus faber",
+    "Zone": "FAO 27 -VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3331.0,
+    "Designation": "SALICORNE",
+    "NomLatin": "SALICORNIA EUROPAEA",
+    "Zone": "FAO 27 VII",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3980.0,
+    "Designation": "SARDINE",
+    "NomLatin": "SARDEINA PILCHARDUS",
+    "Zone": "FAO 27 - VII-VIII",
+    "SousZone": NaN,
+    "Engin": "FILETS TOURNANTS ET SOULEVES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3032.0,
+    "Designation": "SARDINE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3036.0,
+    "Designation": "SARDINE",
+    "NomLatin": "SARDINA PILCHARDUS",
+    "Zone": "FAO 27 VII",
+    "SousZone": NaN,
+    "Engin": "SENNES COULISSANTES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3083.0,
+    "Designation": "SARDINE PRÊT A CUIRE",
+    "NomLatin": "SARDINA PILCHARDUS",
+    "Zone": "FAO 27 -VIIb",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3003.0,
+    "Designation": "SARDINE SALéE PRESSéE",
+    "NomLatin": "SARDINA PILCHARDUS",
+    "Zone": "FAO 34 ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "SENNES",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3011.0,
+    "Designation": "SAUMON ENTIER",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3430.0,
+    "Designation": "SAUMON VIDé ENTIER",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3246.0,
+    "Designation": "SAUMONETTE/GRANDE ROUSSETTE PELLEE",
+    "NomLatin": "SCYLIORHINUS STELLARIS",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3404.0,
+    "Designation": "SEBASTE ENTIERE",
+    "NomLatin": "SEBASTES NORVEGICUS",
+    "Zone": "FAO 27 - IV",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3413.0,
+    "Designation": "SEICHE ENTIERE",
+    "NomLatin": "SEPIA PHARAONIS",
+    "Zone": "FAO 51 - OCEAN INDIEN OCCIDENTALE",
+    "SousZone": NaN,
+    "Engin": "CHALUT(PTB)",
+    "Allergenes": "Contient : MOLLUSQUES"
+  },
+  {
+    "PLU": 3245.0,
+    "Designation": "SEICHE ENTIERE",
+    "NomLatin": "SEPIA PHARAONIS",
+    "Zone": "FAO 27- MANCHE ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3504.0,
+    "Designation": "SOLE PRET A CUIRE",
+    "NomLatin": "PEGUSEA LASCARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3020.0,
+    "Designation": "SOLE BLONDE",
+    "NomLatin": "PEGUSA LASCARIS",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3291.0,
+    "Designation": "SOLE RUARDON",
+    "NomLatin": NaN,
+    "Zone": "FAO 34-ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS DERIVANTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3040.0,
+    "Designation": "SOLE VIDEE",
+    "NomLatin": "SOLEA SOLEA",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3209.0,
+    "Designation": "SPRAT",
+    "NomLatin": "SPRATTUS SPRATTUS",
+    "Zone": "FAO 27 - IV",
+    "SousZone": NaN,
+    "Engin": "FILETS TOURNANTS ET SOULEVES",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3189.0,
+    "Designation": "TELLINE VIVANTE",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "PECHE A PIEDS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3456.0,
+    "Designation": "TENTACULE D'ENCORNET GEANT SAUMURE AVEC EAU AJOUTéE DECONGELé",
+    "NomLatin": "DOSIDICUS GIGAS",
+    "Zone": "FAO 87 - OCEAN PACIFIQUE SUD EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": "Contient : MOLLUSQUES"
+  },
+  {
+    "PLU": 3030.0,
+    "Designation": "THON ALBACORE",
+    "NomLatin": "THONUS ALBACARES",
+    "Zone": "FAO 34 ATLANTIQUE CENTRE EST",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3030.0,
+    "Designation": "THON ALBACORE",
+    "NomLatin": "THONUS ALBACARES",
+    "Zone": "FAO 71 77 OECEAN PACIFIQUE",
+    "SousZone": NaN,
+    "Engin": "LIGNES ET HAMECONS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3030.0,
+    "Designation": "THON ALBACORE",
+    "NomLatin": NaN,
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3009.0,
+    "Designation": "THONINE COMMUNE",
+    "NomLatin": "EUTHYNNUS ALLETTERATUS",
+    "Zone": "FAO 37- 37,1 MEDITERRANEE ET MER NOIR MEDITERANEE OCCIDENTAL",
+    "SousZone": NaN,
+    "Engin": "FILETS TOURNANTS ET FILETS SOULEV2S",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3442.0,
+    "Designation": "TOURTEAU VIVANT (1 PINCE)",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 -VIII",
+    "SousZone": NaN,
+    "Engin": "CASIERS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3162.0,
+    "Designation": "TOURTEAU VIVANT (2 PINCES)",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "CASIERS ET PIEGES ET FILETS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3432.0,
+    "Designation": "TOURTEAU VIVANT (2 PINCES)",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 -VII-",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES -FILETS",
+    "Allergenes": "CONTIENT:CRUSTACES"
+  },
+  {
+    "PLU": 3328.0,
+    "Designation": "TOURTEAUX CUITS PASTEURISES",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3220.0,
+    "Designation": "TRUITE ARC EN CIEL VIDéE",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3230.0,
+    "Designation": "TRUITE ARC EN CIEL VIDéE",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3051.0,
+    "Designation": "TRUITE PORTION BLANCHE VIDEE",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3238.0,
+    "Designation": "TURBOT",
+    "NomLatin": NaN,
+    "Zone": "ESPAGNE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3024.0,
+    "Designation": "TURBOT VIDE",
+    "NomLatin": "PSETTE MAXIMA",
+    "Zone": "FAO 27 - 3C MER DU BELT",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3502.0,
+    "Designation": "VENUS",
+    "NomLatin": "SPISULA solida",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "DRAGUES",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3454.0,
+    "Designation": "VERNIS",
+    "NomLatin": "CALLITA CHIONE",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "DRAGUE",
+    "Allergenes": "CONTIENT CRUSTACES"
+  },
+  {
+    "PLU": 3216.0,
+    "Designation": "FILET D EGLEFIN",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO27-IVa",
+    "SousZone": NaN,
+    "Engin": "CHALUT ET SEINE",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3544.0,
+    "Designation": "ENCORNETS ROUGE",
+    "NomLatin": "IIIEX COINDETII",
+    "Zone": "FAO27-VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "TRACES EVENTUELLES DE POISSONS ET CRUSTACES"
+  },
+  {
+    "PLU": 2001.0,
+    "Designation": "huitre 2dz n3",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 2002.0,
+    "Designation": "huitre 2dz n2",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 2003.0,
+    "Designation": "huitre 2dz n4",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 2005.0,
+    "Designation": "htr normandie N3",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 2006.0,
+    "Designation": "htr mar/ole N3",
+    "NomLatin": "CRASSOSTREA GIGAS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": "CONTIENT:MORUE,EGLEFIN,LAIT"
+  },
+  {
+    "PLU": 3388.0,
+    "Designation": "BRANDADE DE MORUE ET A L'EGLEFIN",
+    "NomLatin": NaN,
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3764.0,
+    "Designation": "FILET DE MOSTELLE",
+    "NomLatin": NaN,
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3586.0,
+    "Designation": "fe.1/2 TOURTEAUX CUIT",
+    "NomLatin": "CANCER PAGURUS",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CASIER ET PIEGES",
+    "Allergenes": "CONTIENT:CRUSTACES/SEL"
+  },
+  {
+    "PLU": 3489.0,
+    "Designation": "fe.AILE DE RAIE",
+    "NomLatin": "RAJA NAEVUS",
+    "Zone": "FAO 27 - VII-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3491.0,
+    "Designation": "fe.AILE DE RAIE AV PEAU",
+    "NomLatin": "RAJA CLAVATA-NAEVUS-MONTAGUI-CIRCUL-XXR",
+    "Zone": "FAO 27 - VII MANCHES ET MERS CELTIQUES",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3865.0,
+    "Designation": "fe.alose",
+    "NomLatin": NaN,
+    "Zone": NaN,
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3780.0,
+    "Designation": "fe.ANCHOIS",
+    "NomLatin": NaN,
+    "Zone": "FAO 27 VII VIII",
+    "SousZone": NaN,
+    "Engin": "SENNE COULISSENTE(BOLINCHE)",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3861.0,
+    "Designation": "fe.BOGUE",
+    "NomLatin": "BOOPS BOOPS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3133.0,
+    "Designation": "fe.BULOT CUIT",
+    "NomLatin": "BUCCINUM UNDATUM",
+    "Zone": "FAO 27 III",
+    "SousZone": NaN,
+    "Engin": "CASIER",
+    "Allergenes": "CONTIENT:COQUILLAGES,SEL"
+  },
+  {
+    "PLU": 3132.0,
+    "Designation": "fe.CREVETTE GRISE CUITE PAYS",
+    "NomLatin": "CRANGON VUIGARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CREVETTE SULFITE"
+  },
+  {
+    "PLU": 3242.0,
+    "Designation": "fe.DOS DE CABILLAUD",
+    "NomLatin": "GADUS MORHUA",
+    "Zone": "FAO 27 V",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3344.0,
+    "Designation": "fe.DOS DE LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 I",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3387.0,
+    "Designation": "fe.DOS D'EGLEFIN",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO 27 V",
+    "SousZone": NaN,
+    "Engin": "LIGNE/SENNES FILET MAILLANTS",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3984.0,
+    "Designation": "fe.FILET DE DORADE SEBASTES",
+    "NomLatin": "SEBASTES NORVEGICUS/SEBASTES MARINUS",
+    "Zone": "FAO 27-Va-",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3097.0,
+    "Designation": "fe.FILET DE JULIENNE",
+    "NomLatin": "MOLVA MOLVA",
+    "Zone": "FAO 27 III",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS/LIGNES ET HAMECONS",
+    "Allergenes": "CONTIENT:POISSON"
+  },
+  {
+    "PLU": 3099.0,
+    "Designation": "fe.FILET DE LIEU NOIR",
+    "NomLatin": "POLLACCHIUS VIRENS",
+    "Zone": "FAO 27 IV",
+    "SousZone": NaN,
+    "Engin": "CHALUTS",
+    "Allergenes": "CONTIENT:LIEU NOIR(POISSON)"
+  },
+  {
+    "PLU": 3070.0,
+    "Designation": "fe.FILET DE QUEUE DE LINGUE BLEUE",
+    "NomLatin": "MOLVA DYPTERYGIA",
+    "Zone": "FAO 27-Via",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3194.0,
+    "Designation": "fe.FILET EGLEFIN AEGLEFINUS",
+    "NomLatin": "MELANOGRAMMUS AEGLEFINUS",
+    "Zone": "FAO 27 V-VI",
+    "SousZone": NaN,
+    "Engin": "CHALUT OTB",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3129.0,
+    "Designation": "fe.LANGOUSTINE CUITE 21/30",
+    "NomLatin": "NEPHROPS NORVEGICUS",
+    "Zone": "FAO 27 -",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": "CONTIENT:CRUSTACES-SUFITES"
+  },
+  {
+    "PLU": 3549.0,
+    "Designation": "fe.SAUMON FUME SUR PLACE",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3243.0,
+    "Designation": "fe.PAVES DE SAUMON",
+    "NomLatin": "SALMO SALAR",
+    "Zone": "NORVEGE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3080.0,
+    "Designation": "fe.PAVES DE TRUITE",
+    "NomLatin": "ONCORHYNCHUS MYKISS",
+    "Zone": "FRANCE",
+    "SousZone": NaN,
+    "Engin": NaN,
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3796.0,
+    "Designation": "fe.EMISSOLE PELEE",
+    "NomLatin": "SCYLIORHINUS STELLARIS",
+    "Zone": "FAO 27 - VII",
+    "SousZone": NaN,
+    "Engin": "CHALUT",
+    "Allergenes": NaN
+  },
+  {
+    "PLU": 3848.0,
+    "Designation": "fe.SOLE PRET A CUIRE",
+    "NomLatin": "PEGUSEA LASCARIS",
+    "Zone": "FAO 27 - VIII",
+    "SousZone": NaN,
+    "Engin": "FILETS MAILLANTS ET SIMILAIRES",
+    "Allergenes": NaN
+  }
+]
