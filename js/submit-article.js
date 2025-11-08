@@ -1,27 +1,47 @@
-import { db } from './firebase-init.js';
-import { collection, addDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-lite.js';
+import { db, auth } from './firebase-init.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+import { setDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
-document.getElementById("article-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.querySelector('#article-form');
+  if (!form) return;
 
-  const form = e.target;
-  const PLU = form.plu.value.trim();
-  const designation = form.designation.value.trim();
-  const nomLatin = form.nomLatin.value.trim();
-  const prixVenteTTC = parseFloat(form.prixVenteTTC.value);
+  onAuthStateChanged(auth, (user) => {
+    if (!user) return;
 
-  if (!PLU || !designation || !nomLatin || isNaN(prixVenteTTC)) {
-    alert("Merci de remplir tous les champs correctement.");
-    return;
-  }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-  await addDoc(collection(db, "articles"), {
-    PLU,
-    designation,
-    nomLatin,
-    prixVenteTTC
+      const data = Object.fromEntries(new FormData(form).entries());
+      const id = (data.plu || '').trim();
+
+      if (!id) {
+        alert("Le champ PLU est obligatoire");
+        return;
+      }
+
+      // Construction de l’objet complet à enregistrer
+      const article = {
+        PLU: id,
+        Designation: data.designation || '',
+        NomLatin: data.nomLatin || '',
+        Categorie: data.categorie || '',
+        Unite: data.unite || '',
+        Allergenes: '',
+        Zone: '',
+        SousZone: '',
+        Engin: ''
+      };
+
+      try {
+        await setDoc(doc(db, 'articles', id), article);
+        console.log('✅ Article ajouté :', id);
+        window.reloadArticles();
+        form.reset();
+      } catch (err) {
+        console.error('❌ Erreur ajout article :', err);
+        alert("Erreur lors de l’ajout. Vérifie la console.");
+      }
+    });
   });
-
-  form.reset();
-  window.reloadArticles();
 });
