@@ -1,22 +1,29 @@
 import { db } from './firebase-init.js';
-import { collection, setDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+import { setDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+import { auth } from './firebase-init.js';
 
-// ⚠️ Modifie ce chemin si le fichier est ailleurs
-const jsonUrl = '../data/articles_firestore.json';
+const jsonUrl = '../data/articles_firestore.json'; // adapte si tu changes d’emplacement
 
 async function importerArticles() {
   const res = await fetch(jsonUrl);
-  const articles = await res.json();
+  const data = await res.json();
 
-  for (const art of articles) {
-    const id = String(art.PLU).replace('.0', '');  // ex: "3063"
-    await setDoc(doc(db, "articles", id), art);
-    console.log(`✅ Article ${id} importé`);
+  const entries = Object.entries(data); // [ [PLU, {Designation, ...}], ... ]
+
+  for (const [plu, article] of entries) {
+    try {
+      await setDoc(doc(db, "articles", plu), article);
+      console.log(`✅ Article ${plu} importé`);
+    } catch (e) {
+      console.error(`❌ Erreur pour ${plu}:`, e);
+    }
   }
 
   alert("🎉 Import terminé !");
 }
 
+// Lancer après auth Firebase
 window.__afterAuth = () => {
   importerArticles();
 };
