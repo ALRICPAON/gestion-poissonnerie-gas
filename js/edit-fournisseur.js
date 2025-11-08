@@ -30,7 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const tds = row.querySelectorAll('td');
       const fields = ['code', 'nom', 'contact', 'telephone', 'email', 'adresse', 'notes'];
       const data = {};
-      fields.forEach((field, i) => data[field] = prompt(`Modifier ${field}`, tds[i]?.textContent.trim() || '') ?? tds[i]?.textContent.trim());
+      fields.forEach((field, i) => {
+        const current = tds[i]?.textContent.trim() || '';
+        data[field] = prompt(`Modifier ${field}`, current) ?? current;
+      });
 
       try {
         await updateDoc(doc(db, 'fournisseurs', id), data);
@@ -41,3 +44,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+});
