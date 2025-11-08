@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
 
       const data = Object.fromEntries(new FormData(form));
-      const id = data.code.trim();
+      const id = data.code?.trim();
       if (!id) return alert("Code fournisseur manquant");
 
       try {
@@ -25,3 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.error('❌ Erreur ajout fournisseur :', err);
         alert("Erreur lors de l'ajout");
+      }
+    });
+  });
+});
