@@ -1,13 +1,13 @@
 :root {
-  --bg-main: #2b2d31;
-  --bg-box: #34373c;
-  --text-main: #f0f0f0;
-  --text-muted: #a0a0a0;
-  --accent: #3b82f6;
-  --danger: #ef4444;
-  --border: #444;
+  --bg-main: #e8f6f9;           /* bleu très clair */
+  --bg-box: #ffffff;
+  --text-main: #0d3b66;         /* bleu foncé marin */
+  --text-muted: #406882;
+  --accent: #1293a9;            /* bleu turquoise */
+  --danger: #da4a4a;
+  --border: #cfeaf1;
   --radius: 6px;
-  --shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  --shadow: 0 2px 6px rgba(0, 70, 100, 0.1);
 }
 
 body {
@@ -49,7 +49,7 @@ h1, h2 {
 }
 
 .btn-muted {
-  background: #555;
+  background: #d9eff2;
   color: var(--text-main);
 }
 
@@ -58,7 +58,7 @@ h1, h2 {
   font-size: 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg-box);
+  background: white;
   color: var(--text-main);
   width: 220px;
 }
@@ -78,7 +78,7 @@ form input {
   padding: 0.5em;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: #1f2024;
+  background: white;
   color: var(--text-main);
   flex: 1 1 160px;
 }
@@ -100,13 +100,13 @@ th, td {
 }
 
 th {
-  background: #3e4046;
+  background: #dff3f7;
   color: var(--text-main);
   font-weight: 600;
 }
 
 tr:hover {
-  background: #404248;
+  background: #f0fbfd;
 }
 
 .actions button {
