@@ -3,7 +3,7 @@ import { db, auth } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
 import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+function loadFournisseurs() {
   const tableBody = document.querySelector('#fournisseurs-list');
   if (!tableBody) return;
 
@@ -43,6 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('[loadFournisseurs] Erreur Firestore:', err);
       tableBody.innerHTML = '<tr><td colspan="8">Erreur de chargement</td></tr>';
     }
-    window.reloadFournisseurs = loadFournisseurs;
   });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadFournisseurs();
+  window.reloadFournisseurs = loadFournisseurs;
 });
