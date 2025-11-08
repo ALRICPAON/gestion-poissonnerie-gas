@@ -36,7 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         await setDoc(doc(db, 'articles', id), article);
         console.log('✅ Article ajouté :', id);
-        window.reloadArticles();
+       if (typeof window.reloadArticles === 'function') {
+  window.reloadArticles();
+}
         form.reset();
       } catch (err) {
         console.error('❌ Erreur ajout article :', err);
