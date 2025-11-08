@@ -3,19 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <title>Articles</title>
-  <script type="module" src="../js/auth.js"></script>
   <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
   <script type="module" src="../js/load-articles.js"></script>
   <script type="module" src="../js/submit-article.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 2em; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
+    h1, h2 { margin-top: 0; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
+    .top-bar button { padding: 0.5em 1em; font-size: 14px; }
+    .search-input { padding: 0.4em; font-size: 14px; width: 200px; margin-left: 1em; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1em; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background: #eee; }
-    form input { margin-right: 1em; }
+    form { margin-bottom: 1em; }
+    form input { margin-right: 1em; padding: 4px; }
   </style>
 </head>
 <body>
+
+  <div class="top-bar">
+    <button onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
+    <div>
+      🔎 <input type="text" id="search" class="search-input" placeholder="Rechercher PLU ou nom…">
+    </div>
+  </div>
+
+  <h2>Ajouter un article</h2>
+  <form id="article-form">
+    <input type="text" name="plu" placeholder="PLU" required>
+    <input type="text" name="designation" placeholder="Désignation" required>
+    <input type="text" name="nomLatin" placeholder="Nom latin">
+    <input type="text" name="categorie" placeholder="Catégorie">
+    <input type="text" name="unite" placeholder="Unité (€/kg ou pièce)">
+    <button type="submit">Ajouter</button>
+  </form>
+
   <h1>Liste des articles</h1>
   <table>
     <thead>
@@ -23,29 +46,33 @@
         <th>PLU</th>
         <th>Désignation</th>
         <th>Nom latin</th>
-        <th>PV TTC</th>
+        <th>Catégorie</th>
+        <th>Unité</th>
+        <th>Allergènes</th>
+        <th>Zone</th>
+        <th>Sous-zone</th>
+        <th>Engin</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody id="articles-list">
-      <!-- Rempli dynamiquement via JS -->
+      <!-- Rempli dynamiquement -->
     </tbody>
   </table>
 
-  <h2>Ajouter un article</h2>
-  <form id="article-form">
-    <input type="text" name="plu" placeholder="PLU" required>
-    <input type="text" name="designation" placeholder="Désignation" required>
-    <input type="text" name="nomLatin" placeholder="Nom latin" required>
-    <input type="number" step="0.01" name="prixVenteTTC" placeholder="Prix TTC" required>
-    <button type="submit">Ajouter</button>
-  </form>
-
-  <!-- ✅ Sécurité : s'assurer que l’utilisateur est connecté -->
   <script type="module">
     import { requireAuth } from '../js/auth.js';
     requireAuth();
   </script>
+
+  <script>
+    document.querySelector('#search').addEventListener('input', function () {
+      const query = this.value.toLowerCase();
+      document.querySelectorAll('#articles-list tr').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+      });
+    });
+  </script>
 </body>
 </html>
-
