@@ -1,7 +1,8 @@
 // load-articles.js
 import { db } from './firebase-init.js';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-lite.js';
+
 
 document.addEventListener('DOMContentLoaded', () => {
   const tableBody = document.querySelector('#articles-list');
