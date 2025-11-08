@@ -12,3 +12,4 @@ const cfg = {
 
 export const app = initializeApp(cfg);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
