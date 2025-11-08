@@ -1,5 +1,5 @@
 import { db } from './firebase-init.js';
-import { collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-lite.js';
+import { collection, addDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-lite.js';
 
 document.getElementById("article-form").addEventListener("submit", async (e) => {
   e.preventDefault();
