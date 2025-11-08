@@ -1,6 +1,9 @@
 // js/auth.js — version CDN-compatible avec logs et UI
 import { auth } from './firebase-init.js';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  onAuthStateChanged, signInWithEmailAndPassword, signOut
+} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+
 
 
 // --- Helpers UI ---
