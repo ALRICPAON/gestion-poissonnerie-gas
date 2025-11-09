@@ -1,4 +1,4 @@
-ok bon j'ai recuperer mon ancien code parce que tu m'as donner un truc qui marche pas 
+ 
 import { app, db } from "../js/firebase-init.js";
 import {
   doc, getDoc, updateDoc, setDoc, collection, addDoc,
