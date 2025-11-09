@@ -561,6 +561,9 @@ async function applyAFMapForLine(lineId){
 // ===================================================
 // Popup Articles
 // ===================================================
+// ===================================================
+// Popup Articles
+// ===================================================
 async function openPopupArticles(lineId){
   focusedLineId = lineId;
 
@@ -606,56 +609,57 @@ async function openPopupArticles(lineId){
   }
 
   async function applySelectedArticle(tr){
-  const plu   = tr.getAttribute("data-plu");
-  const des   = tr.getAttribute("data-des");
+    const plu   = tr.getAttribute("data-plu");
+    const des   = tr.getAttribute("data-des");
 
-  const row = qs(`tr[data-id="${focusedLineId}"]`);
-  if (!row) return;
+    const row = qs(`tr[data-id="${focusedLineId}"]`);
+    if (!row) return;
 
-  const inpPLU = row.querySelector(".plu");
-  const inpDES = row.querySelector(".designation");
+    const inpPLU = row.querySelector(".plu");
+    const inpDES = row.querySelector(".designation");
 
-  if (inpPLU) inpPLU.value = plu;
-  if (inpDES) inpDES.value = des;
+    if (inpPLU) inpPLU.value = plu;
+    if (inpDES) inpDES.value = des;
 
-  // Sauvegarde de la ligne
-  await saveLine(focusedLineId);
+    // Sauvegarde de la ligne
+    await saveLine(focusedLineId);
 
-  // Auto traça
-  await autofillTraceFromPLU(focusedLineId);
+    // Auto traça
+    await autofillTraceFromPLU(focusedLineId);
 
-  // ✅ PAS DE renderLines() ici !
-  // On met à jour l'affichage traça directement
-  const idx = lines.findIndex(x=>x.id===focusedLineId);
-  if (idx >= 0){
-    const L = lines[idx];
-    const pills = row.querySelectorAll(".pill");
-    pills.forEach(p =>{
-      const f = p.getAttribute("data-edit");
-      p.textContent = L[f] || "—";
-    });
+    // ✅ met à jour les pill locaux (sans renderLines)
+    const idx = lines.findIndex(x=>x.id===focusedLineId);
+    if (idx >= 0){
+      const L = lines[idx];
+      const pills = row.querySelectorAll(".pill");
+      pills.forEach(p =>{
+        const f = p.getAttribute("data-edit");
+        p.textContent = L[f] || "—";
+      });
+    }
+
+    restoreFocus();
+    closePopup();
   }
 
-  // ✅ Restore focus correctement
-  restoreFocus();
-
-  // ✅ Ferme le popup
-  closePopup();
-}
+  // ✅ Initial rendering
   render();
+
+  // ✅ live filtering
   search.oninput = () => render(search.value);
 
+  // ✅ bouton X
   qs("#btnClosePopup")?.onclick = closePopup;
-} // ✅ FIN de openPopupArticles()
+}
 
 
 // ===================================================
 // CLOSE POPUP
 // ===================================================
 function closePopup(){
-  qs("#popup-articles").style.display = "none";
+  const modal = qs("#popup-articles");
+  if (modal) modal.style.display = "none";
 }
-
 
 // ===================================================
 // Bind Header
