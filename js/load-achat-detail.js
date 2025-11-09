@@ -169,27 +169,26 @@ function renderLines(){
       recomputeTotals();
     };
     ["change","blur"].forEach(ev => {
-      get(".colis")?.addEventListener(ev, onCalc);
-      get(".pcolis")?.addEventListener(ev, onCalc);
-      get(".ptotal")?.addEventListener(ev, onCalc);
-      get(".prixkg")?.addEventListener(ev, onCalc);
-      get(".mht")?.addEventListener(ev, async () => { await saveLine(id); recomputeTotals(); });
-      get(".designation")?.addEventListener(ev, () => saveLine(id));
-    get(".plu")?.addEventListener(ev, async () => {
-  const tr2 = tr; // capture
+  get(".colis")?.addEventListener(ev, onCalc);
+  get(".pcolis")?.addEventListener(ev, onCalc);
+  get(".ptotal")?.addEventListener(ev, onCalc);
+  get(".prixkg")?.addEventListener(ev, onCalc);
+  get(".mht")?.addEventListener(ev, async () => { await saveLine(id); recomputeTotals(); });
+  get(".designation")?.addEventListener(ev, () => saveLine(id));
+});
+
+// <= ✅ ICI à l’extérieur du forEach
+get(".plu")?.addEventListener("change", async () => {
   await saveLine(id);
   await autofillTraceFromPLU(id);
-
-  // On rerend mais on attend le prochain tick
   renderLines();
-
   setTimeout(() => {
     const newTr = document.querySelector(`tr[data-id="${id}"]`);
     if (newTr)
       focusNextInput(newTr, "plu");
   }, 30);
 });
-    });
+
 
     // Traça inline edit (clic sur pill)
     tr.querySelectorAll(".pill").forEach(p => {
