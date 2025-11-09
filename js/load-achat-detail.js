@@ -641,10 +641,6 @@ async function openPopupArticles(lineId){
   // ✅ bouton X
   qs("#btnClosePopup")?.onclick = closePopup;
 }
-function closePopup(){
-  const modal = qs("#popup-articles");
-  if (modal) modal.style.display = "none";
-}
 
 
 
