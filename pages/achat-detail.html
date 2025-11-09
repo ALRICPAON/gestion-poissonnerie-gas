@@ -8,9 +8,10 @@
   <!-- Firebase app/auth/db/storage -->
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+  <!-- jsPDF + QRCode -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <!-- Module principal -->
   <script type="module" src="../js/load-achat-detail.js"></script>
@@ -29,11 +30,13 @@
     <button class="btn btn-muted" onclick="history.back()">← Retour</button>
     <h1 style="margin-left:1rem;">Détail de l'achat</h1>
     <div style="margin-left:auto; display:flex; gap:.5rem;">
-  <button id="btnSaveHeader" class="btn">💾 Enregistrer l’en-tête</button>
-  <button id="btnAddLine" class="btn">➕ Ajouter une ligne</button>
-  <button id="btnConvertBL" class="btn btn-accent">🔁 Convertir en BL</button>
-  <button id="btnQRCodeSheet" class="btn btn-primary">Feuille QR code</button>
-</div>
+
+      <button id="btnSaveHeader" class="btn">💾 Enregistrer l’en-tête</button>
+      <button id="btnAddLine" class="btn">➕ Ajouter une ligne</button>
+      <button id="btnConvertBL" class="btn btn-accent">🔁 Convertir en BL</button>
+      <button id="btnQRCodeSheet" class="btn btn-primary">Feuille QR code</button>
+
+    </div>
   </div>
 
   <!-- En-tête achat -->
@@ -111,24 +114,28 @@
     </div>
   </div>
 
+  <!-- Auth check -->
   <script type="module">
     import { requireAuth } from '../js/auth.js';
     requireAuth();
   </script>
- <script type="module">
-  import { generateQRCodeSheets } from "../js/generate-qrcodes.js";
 
-  // Récup id achat via URL
-  const achatId = new URLSearchParams(location.search).get("id");
+  <!-- QR Sheet -->
+  <script type="module">
+    import { generateQRCodeSheets } from "../js/generate-qrcodes.js";
 
-  const btn = document.getElementById("btnQRCodeSheet");
-  if (btn && achatId) {
-    btn.addEventListener("click", () => {
-      generateQRCodeSheets(achatId);
-    });
-  }
-</script>
+    const params = new URLSearchParams(location.search);
+    const achatId = params.get("id");
 
+    console.log("Loaded achatId:", achatId);
+
+    const btnQR = document.getElementById("btnQRCodeSheet");
+    if (btnQR && achatId) {
+      btnQR.addEventListener("click", () => {
+        generateQRCodeSheets(achatId);
+      });
+    }
+  </script>
 
 </body>
 </html>
