@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>Photo Sanitaire</title>
+
+  <!-- Firebase -->
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth.js"></script>
+
   <style>
     body { font-family: sans-serif; padding: 1rem; }
     .box { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; }
@@ -25,9 +28,15 @@
 
   <script type="module">
     import { app, db } from "../js/firebase-init.js";
+    import { requireAuth } from "../js/auth.js";
+
+    // ✅ FORCE L’AUTHENTIFICATION
+    await requireAuth();
+
     import {
       doc, getDocs, collection, query, where, setDoc, Timestamp
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
     import {
       getStorage, ref as storageRef, uploadBytes, getDownloadURL
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
@@ -45,9 +54,10 @@
       statusEl.textContent = msg;
     }
 
-    // ✅ Trouver Achat + Ligne correspondant au LOT
+    // ✅ Recherche Achat + Ligne
     async function findLine() {
-      log("Recherche du lot...");
+      log("Recherche du lot…");
+
       const achatsSnap = await getDocs(collection(db, "achats"));
 
       for (const achat of achatsSnap.docs) {
@@ -56,7 +66,7 @@
         const snap2 = await getDocs(q2);
 
         if (!snap2.empty) {
-          log(`✅ Ligne trouvée dans achat: ${achat.id}`);
+          log(`✅ Ligne trouvée → achat: ${achat.id}`);
           return { achatId: achat.id, lineId: snap2.docs[0].id };
         }
       }
@@ -64,11 +74,12 @@
     }
 
 
+    // ✅ Upload photo
     document.getElementById("btnUpload").addEventListener("click", async () => {
       try {
-        log("→ Début traitement…");
-
+        log("→ Recherche ligne…");
         const found = await findLine();
+
         if (!found) {
           alert("❌ Ligne introuvable pour ce LOT");
           log("❌ Ligne introuvable");
@@ -76,7 +87,8 @@
         }
         const { achatId, lineId } = found;
 
-        const file = photoInput.files[0];
+        const input = document.getElementById("photoInput");
+        const file = input.files[0];
         if (!file) {
           alert("Choisis une photo");
           log("❌ Aucune photo sélectionnée");
@@ -91,7 +103,7 @@
         await uploadBytes(sref, file);
         const url = await getDownloadURL(sref);
 
-        log("✅ Upload OK — URL:" + url);
+        log("✅ Upload OK → URL: " + url);
 
         await setDoc(
           doc(db, "achats", achatId, "lignes", lineId),
@@ -99,8 +111,8 @@
             photo_url: url,
             received: true,
             qr_scanned: true,
-            qr_scan_date: Timestamp.fromDate(new Date()),
-            updatedAt: Timestamp.fromDate(new Date())
+            qr_scan_date: Timestamp.now(),
+            updatedAt: Timestamp.now()
           },
           { merge: true }
         );
@@ -108,16 +120,15 @@
         log("✅ Firestore mis à jour");
 
         alert("✅ Photo enregistrée !");
-
-        // ✅ Retour detail achat
-        window.location.href = "/pages/achat-detail.html?id=" + achatId;
+        window.location.href = `/pages/achat-detail.html?id=${achatId}`;
 
       } catch (e) {
         console.error(e);
         alert("❌ Erreur : " + e.message);
-        log("ERREUR :" + e.message);
+        log("ERREUR : " + e.message);
       }
     });
+
   </script>
 
 </body>
