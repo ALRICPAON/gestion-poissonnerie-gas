@@ -61,12 +61,12 @@ async function main(){
       list.appendChild(item);
 
       // regenerer QR si besoin
-      setTimeout(()=>{
-        new QRCode(
-          document.getElementById(`qr-${L.lot}`),
-          L.qr_url || ""
-        );
-      },10);
+      const container = document.getElementById(`qr-${L.lot}`);
+if (L.qr_url) {
+  container.innerHTML = `<img src="${L.qr_url}" style="width:120px;">`;
+} else {
+  container.textContent = "❌ QR manquant";
+}
     });
 
     div.appendChild(list);
