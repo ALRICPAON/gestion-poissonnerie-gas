@@ -372,7 +372,7 @@ async function convertToBL(){
 
 // ---------- QR helpers ----------
 async function ensureQRForLine(lot){
-  const url = `${location.origin}/pages/lot.html?id=${encodeURIComponent(lot)}`;
+ const url = `${location.origin}/pages/photo.html?id=${encodeURIComponent(lot)}`;
   const tmp = document.createElement("div");
   // @ts-ignore
   const qr = new QRCode(tmp, { text: url, width: 128, height: 128 });
