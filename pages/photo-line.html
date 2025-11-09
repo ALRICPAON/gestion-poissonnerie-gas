@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Photo ligne</title>
+
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+
+  <style>
+    body{font-family:sans-serif;padding:1rem}
+    button{padding:.6rem 1rem;margin-top:1rem}
+  </style>
+</head>
+<body>
+
+<h2>📸 Photo sanitaire</h2>
+<p id="info"></p>
+
+<input id="photoInput" type="file" accept="image/*" capture="environment">
+<button id="btnUpload">📤 Envoyer</button>
+
+<div id="status" style="margin-top:1rem;"></div>
+
+<script type="module">
+import { app, db } from "../js/firebase-init.js";
+import { requireAuth } from "../js/auth.js";
+await requireAuth();
+
+import {
+  doc, setDoc, Timestamp
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+import {
+  getStorage, ref as storageRef, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+
+const storage = getStorage(app);
+
+const ps = new URLSearchParams(location.search);
+const achatId = ps.get("achatId");
+const lineId  = ps.get("lineId");
+
+document.getElementById("info").textContent =
+  `Achat : ${achatId} / Ligne : ${lineId}`;
+
+const statusEl = document.getElementById("status");
+
+document.getElementById("btnUpload").addEventListener("click", async ()=>{
+  try {
+    const file = photoInput.files[0];
+    if(!file){
+      alert("Choisir une photo");
+      return;
+    }
+
+    const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
+    const sref = storageRef(storage, path);
+
+    await uploadBytes(sref,file);
+    const url = await getDownloadURL(sref);
+
+    await setDoc(
+      doc(db,"achats",achatId,"lignes",lineId),
+      {
+        photo_url : url,
+        received  : true,
+        qr_scanned: true,
+        qr_scan_date: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      },
+      { merge:true }
+    );
+
+    statusEl.textContent = "✅ Photo enregistrée";
+    location.href = `/pages/photo-batch.html?achatId=${achatId}`;
+
+  } catch(e){
+    alert("Erreur : "+e.message);
+    statusEl.textContent = "❌ " + e.message;
+  }
+});
+</script>
+
+</body>
+</html>
