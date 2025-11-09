@@ -9,6 +9,17 @@ import {
 
 const storage = getStorage(app);
 
+// === utils ==================================================
+function focusNextInput(tr, fromClass){
+  const inputs = Array.from(tr.querySelectorAll("input.inp"));
+  const idx = inputs.findIndex(x => x.classList.contains(fromClass));
+  if (idx >= 0 && inputs[idx+1]) {
+    inputs[idx+1].focus();
+    inputs[idx+1].select?.();
+  }
+}
+
+
 // ---------- Utils ----------
 const qs = (s) => document.querySelector(s);
 const qsa = (s) => Array.from(document.querySelectorAll(s));
@@ -164,11 +175,20 @@ function renderLines(){
       get(".prixkg")?.addEventListener(ev, onCalc);
       get(".mht")?.addEventListener(ev, async () => { await saveLine(id); recomputeTotals(); });
       get(".designation")?.addEventListener(ev, () => saveLine(id));
-      get(".plu")?.addEventListener(ev, async () => {
-        await saveLine(id);
-        await autofillTraceFromPLU(id); // auto-traça par Article
-        renderLines();
-      });
+    get(".plu")?.addEventListener(ev, async () => {
+  const tr2 = tr; // capture
+  await saveLine(id);
+  await autofillTraceFromPLU(id);
+
+  // On rerend mais on attend le prochain tick
+  renderLines();
+
+  setTimeout(() => {
+    const newTr = document.querySelector(`tr[data-id="${id}"]`);
+    if (newTr)
+      focusNextInput(newTr, "plu");
+  }, 30);
+});
     });
 
     // Traça inline edit (clic sur pill)
