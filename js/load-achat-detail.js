@@ -527,3 +527,15 @@ window.addEventListener("DOMContentLoaded", async () => {
   bindHeader();
   await loadAchat();
 });
+import { generateQRCodeSheets } from "./generate-qrcodes.js";
+
+// Bouton "Feuille QR fournisseur"
+window.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btnQRCodeSheet");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      generateQRCodeSheets(achatId, lines);
+    });
+  }
+});
+
