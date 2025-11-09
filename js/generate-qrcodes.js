@@ -22,7 +22,7 @@ export async function generateQRCodeSheets(achatId) {
     fournisseurs[fournisseur].push({
       plu: data.plu,
       designation: data.designation,
-      poids: data.poids_total,
+      poids: isFinite(Number(data.poidsTotalKg)) ? Number(data.poidsTotalKg).toFixed(2) + " kg" : "—",
       qr_url: data.qr_url,
       lot: data.lot
     });
