@@ -605,36 +605,44 @@ async function openPopupArticles(lineId){
     });
   }
 
-  function applySelectedArticle(tr){
-    const plu   = tr.getAttribute("data-plu");
-    const des   = tr.getAttribute("data-des");
+  async function applySelectedArticle(tr){
+  const plu   = tr.getAttribute("data-plu");
+  const des   = tr.getAttribute("data-des");
 
-    const row = qs(`tr[data-id="${focusedLineId}"]`);
-    if (!row) return;
+  const row = qs(`tr[data-id="${focusedLineId}"]`);
+  if (!row) return;
 
-    const inpPLU = row.querySelector(".plu");
-    const inpDES = row.querySelector(".designation");
+  const inpPLU = row.querySelector(".plu");
+  const inpDES = row.querySelector(".designation");
 
-    if (inpPLU) inpPLU.value = plu;
-    if (inpDES) inpDES.value = des;
+  if (inpPLU) inpPLU.value = plu;
+  if (inpDES) inpDES.value = des;
 
-    saveLine(focusedLineId)
-      .then(() => autofillTraceFromPLU(focusedLineId))
-      .then(() => {
-        renderLines();
-        restoreFocus();
-        closePopup();
-      });
+  // Sauvegarde de la ligne
+  await saveLine(focusedLineId);
+
+  // Auto traça
+  await autofillTraceFromPLU(focusedLineId);
+
+  // ✅ PAS DE renderLines() ici !
+  // On met à jour l'affichage traça directement
+  const idx = lines.findIndex(x=>x.id===focusedLineId);
+  if (idx >= 0){
+    const L = lines[idx];
+    const pills = row.querySelectorAll(".pill");
+    pills.forEach(p =>{
+      const f = p.getAttribute("data-edit");
+      p.textContent = L[f] || "—";
+    });
   }
 
-  render();
-  search.oninput = () => render(search.value);
-  qs("#btnClosePopup").onclick = closePopup;
+  // ✅ Restore focus correctement
+  restoreFocus();
+
+  // ✅ Ferme le popup
+  closePopup();
 }
 
-function closePopup(){
-  qs("#popup-articles").style.display = "none";
-}
 
 // ===================================================
 // Bind Header
