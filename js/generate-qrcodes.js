@@ -16,15 +16,13 @@ export async function generateQRCodeSheets(achatId) {
   const lignesCol = collection(doc(db, "achats", achatId), "lignes");
   const snap = await getDocs(lignesCol);
 
-  // group by fournisseur
-  const groups = {};
+  // Pour l’instant → 1 seul groupe
+  const groups = { "Fournisseur": [] };
 
   snap.forEach(d => {
     const L = d.data();
-    const f = L.fournisseurNom || "Inconnu";
-    if (!groups[f]) groups[f] = [];
 
-    groups[f].push({
+    groups["Fournisseur"].push({
       plu: L.plu,
       designation: L.designation,
       poids: L.poidsTotalKg,
@@ -43,10 +41,13 @@ export async function generateQRCodeSheets(achatId) {
 
     for (const L of arr) {
 
-      // Générer un QR à la volée
+      // URL vers page photo
+      const url = `${location.origin}/pages/photo.html?id=${encodeURIComponent(L.lot)}`;
+
+      // Générer QR
       const tmp = document.createElement("div");
       const qr = new QRCode(tmp, {
-        text: L.lot,
+        text: url,
         width: 128,
         height: 128
       });
@@ -54,7 +55,7 @@ export async function generateQRCodeSheets(achatId) {
       await new Promise(res => setTimeout(res, 50));
 
       const canvas = tmp.querySelector("canvas");
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas ? canvas.toDataURL("image/png") : "";
 
       // Ajout dans PDF
       pdf.addImage(imgData, "PNG", 10, y, 30, 30);
@@ -67,7 +68,7 @@ export async function generateQRCodeSheets(achatId) {
 
       y += 40;
 
-      // Nouvelle page si trop bas
+      // Page suivante si bas
       if (y > 260) {
         pdf.addPage();
         y = 10;
