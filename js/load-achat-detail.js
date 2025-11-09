@@ -522,16 +522,8 @@ function bindHeader(){
   qs("#btnConvertBL").addEventListener("click", convertToBL);
 }
 
-import { generateQRCodeSheets } from "./generate-qrcodes.js";
 
 // ---------- Init ----------
-window.addEventListener("DOMContentLoaded", async () => {
-  bindHeader();
-  bindQRPrint();
-  await loadAchat();
-});
-
-
 import { generateQRCodeSheets } from "./generate-qrcodes.js";
 
 function bindQRPrint() {
@@ -542,13 +534,8 @@ function bindQRPrint() {
   });
 }
 
-
-// Bouton "Feuille QR fournisseur"
-function bindQRCodeSheetBtn() {
-  const btn = document.getElementById("btnQRCodeSheet");
-  if (btn) {
-    btn.addEventListener("click", () => {
-      generateQRCodeSheets(achatId, lines);
-    });
-  }
-}
+window.addEventListener("DOMContentLoaded", async () => {
+  bindHeader();
+  bindQRPrint();
+  await loadAchat();
+});
