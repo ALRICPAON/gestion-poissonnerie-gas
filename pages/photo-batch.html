@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Réception – Lots</title>
+
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+
+  <style>
+    body { font-family: sans-serif; padding:1rem; }
+    .row {
+      border:1px solid #ddd; padding:1rem; margin-bottom:.8rem;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    button { padding:.6rem 1rem; }
+  </style>
+</head>
+<body>
+
+<h2>📦 Réception – Lots</h2>
+<p id="achatInfo"></p>
+
+<div id="list"></div>
+
+<script type="module">
+import { app, db } from "../js/firebase-init.js";
+import { requireAuth } from "../js/auth.js";
+await requireAuth();
+
+import {
+  doc, getDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const params = new URLSearchParams(location.search);
+const achatId = params.get("achatId");
+const achatRef = doc(db,"achats",achatId);
+
+document.getElementById("achatInfo").textContent = "Achat : " + achatId;
+
+const snap = await getDocs(collection(achatRef,"lignes"));
+
+const list = document.getElementById("list");
+
+snap.forEach(d => {
+  const L = d.data();
+  const div = document.createElement("div");
+  div.className="row";
+
+  div.innerHTML = `
+    <div>
+      <b>${L.plu || ""}</b> — ${L.designation || ""} <br>
+      ${L.poidsTotalKg || ""} kg
+    </div>
+    <button data-id="${d.id}">📷</button>
+  `;
+
+  div.querySelector("button").addEventListener("click",()=>{
+    location.href = `/pages/photo-line.html?achatId=${achatId}&lineId=${d.id}`;
+  });
+
+  list.appendChild(div);
+});
+</script>
+</body>
+</html>
