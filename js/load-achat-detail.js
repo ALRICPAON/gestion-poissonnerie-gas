@@ -187,7 +187,10 @@ function renderLines(){
     get(".btn-qr")?.addEventListener("click", () => openQRForLine(id));
 
     // Photo sanitaire
-    get(".btn-photo")?.addEventListener("click", () => uploadPhotoForLine(id));
+    get(".btn-photo")?.addEventListener("click", () => {
+  location.href = `/pages/photo-line.html?achatId=${achatId}&lineId=${id}`;
+});
+
 
     // Delete
     get(".btn-del")?.addEventListener("click", async () => { if (!confirm("Supprimer cette ligne ?")) return; await deleteLine(id); });
