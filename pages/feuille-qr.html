@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Feuille QR fournisseur</title>
+
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script type="module" src="../js/feuille-qr.js"></script>
+
+  <style>
+    .group {
+      border:1px solid #ccc;
+      margin:1rem;
+      padding:0.5rem 1rem;
+    }
+    .qr-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:1rem;
+      margin-top:0.5rem;
+    }
+    .qr-item {
+      width:140px;
+      text-align:center;
+      font-size:0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>📄 Feuille QR Code – Réception</h1>
+  <div id="main"></div>
+</body>
+</html>
