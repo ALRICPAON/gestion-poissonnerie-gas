@@ -527,19 +527,21 @@ import { generateQRCodeSheets } from "./generate-qrcodes.js";
 // ---------- Init ----------
 window.addEventListener("DOMContentLoaded", async () => {
   bindHeader();
-  await loadAchat();
   bindQRPrint();
-  bindQRCodeSheetBtn();
+  await loadAchat();
 });
 
+
+import { generateQRCodeSheets } from "./generate-qrcodes.js";
+
 function bindQRPrint() {
-  const btn = document.querySelector("#btnPrintQR");
+  const btn = document.querySelector("#btnQRCodeSheet");
   if (!btn) return;
   btn.addEventListener("click", () => {
-    const url = `/pages/feuille-qr.html?achatId=${encodeURIComponent(achatId)}`;
-    window.open(url, "_blank");
+    generateQRCodeSheets(achatId);
   });
 }
+
 
 // Bouton "Feuille QR fournisseur"
 function bindQRCodeSheetBtn() {
