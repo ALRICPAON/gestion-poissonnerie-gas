@@ -1,8 +1,8 @@
-import { db } from "../firebase-init.js";
+import { db } from "../js/firebase-init.js";
 import { collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 async function importAFMap() {
-  const res = await fetch("/data/af-map.json");
+  const res = await fetch("../data/af-map.json");
   const items = await res.json();
 
   const col = collection(db, "af_map");
