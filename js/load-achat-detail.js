@@ -561,9 +561,6 @@ async function applyAFMapForLine(lineId){
 // ===================================================
 // Popup Articles
 // ===================================================
-// ===================================================
-// Popup Articles
-// ===================================================
 async function openPopupArticles(lineId){
   focusedLineId = lineId;
 
@@ -621,13 +618,9 @@ async function openPopupArticles(lineId){
     if (inpPLU) inpPLU.value = plu;
     if (inpDES) inpDES.value = des;
 
-    // Sauvegarde de la ligne
     await saveLine(focusedLineId);
-
-    // Auto traça
     await autofillTraceFromPLU(focusedLineId);
 
-    // ✅ met à jour les pill locaux (sans renderLines)
     const idx = lines.findIndex(x=>x.id===focusedLineId);
     if (idx >= 0){
       const L = lines[idx];
@@ -642,15 +635,17 @@ async function openPopupArticles(lineId){
     closePopup();
   }
 
-  // ✅ Initial rendering
   render();
-
-  // ✅ live filtering
   search.oninput = () => render(search.value);
 
   // ✅ bouton X
   qs("#btnClosePopup")?.onclick = closePopup;
 }
+function closePopup(){
+  const modal = qs("#popup-articles");
+  if (modal) modal.style.display = "none";
+}
+
 
 
 // ===================================================
