@@ -3,83 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <title>Photo Sanitaire</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 1rem; background: #f9fafb; }
-    h1 { font-size: 1.5rem; margin-bottom: 1rem; }
-    #preview { margin: 1rem 0; max-width: 100%; border-radius: 0.5rem; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
-    button { padding: .5rem 1rem; font-size: 1rem; border: none; border-radius: .25rem; background: #3b82f6; color: white; cursor: pointer; }
-    button:disabled { background: #9ca3af; cursor: not-allowed; }
-    .info { margin: 0.5rem 0; font-size: 0.9rem; color: #374151; }
+    body { font-family: sans-serif; padding: 1rem; }
+    .box { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; }
+    button { padding: .6rem 1.2rem; margin-top: 1rem; }
   </style>
+</head>
+<body>
+
+  <h2>📦 Réception – Photo sanitaire</h2>
+
+  <p id="lot"></p>
+
+  <div class="box">
+    <input id="photoInput" type="file" accept="image/*" capture="environment">
+    <button id="btnUpload">📤 Envoyer</button>
+  </div>
+
   <script type="module">
     import { app, db } from "../js/firebase-init.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
-    import { doc, collectionGroup, getDocs, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import {
+      doc, getDocs, collection, query, where, setDoc, Timestamp
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import {
+      getStorage, ref as storageRef, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
     const storage = getStorage(app);
-    const lotId = new URLSearchParams(location.search).get("id");
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      if (!lotId) return alert("Lot ID manquant dans l'URL.");
-      document.querySelector("#lotId").textContent = lotId;
+    // Récup LOT
+    const params = new URLSearchParams(location.search);
+    const lot = params.get("id");
+    document.getElementById("lot").textContent = "Lot : " + lot;
 
-      // Cherche la ligne correspondant au lot dans tous les achats
-      let lineRef = null, achatId = null, lineId = null;
-      const snap = await getDocs(collectionGroup(db, "lignes"));
-      snap.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.lot === lotId) {
-          lineRef = docSnap.ref;
-          lineId = docSnap.id;
-          const pathParts = lineRef.path.split("/");
-          achatId = pathParts[pathParts.indexOf("achats") + 1];
+    // Récup achat + ligne
+    async function findLine() {
+      const achatsSnap = await getDocs(collection(db, "achats"));
+      for (const a of achatsSnap.docs) {
+        const lignesCol = collection(a.ref, "lignes");
+        const q2 = query(lignesCol, where("lot", "==", lot));
+        const snap2 = await getDocs(q2);
+        if (!snap2.empty) {
+          return { achatId: a.id, lineId: snap2.docs[0].id };
         }
-      });
+      }
+      return null;
+    }
 
-      if (!lineRef) return alert("Ligne introuvable pour ce lot.");
+    document.getElementById("btnUpload").addEventListener("click", async () => {
+      const found = await findLine();
+      if (!found) {
+        alert("❌ Ligne introuvable.");
+        return;
+      }
+      const { achatId, lineId } = found;
 
-      const video = document.querySelector("video");
-      const btn = document.querySelector("#btnCapture");
-      const canvas = document.createElement("canvas");
+      const file = photoInput.files[0];
+      if (!file) {
+        alert("Choisis une photo");
+        return;
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
+      const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
+      const sref = storageRef(storage, path);
 
-      btn.onclick = async () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext("2d").drawImage(video, 0, 0);
+      await uploadBytes(sref, file);
+      const url = await getDownloadURL(sref);
 
-        btn.disabled = true;
-        const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
-        const path = `achats/${achatId}/lignes/${lineId}/photo-${Date.now()}.jpg`;
-        const sref = storageRef(storage, path);
-        await uploadBytes(sref, blob);
-        const url = await getDownloadURL(sref);
-
-        await setDoc(lineRef, {
+      await setDoc(
+        doc(db, "achats", achatId, "lignes", lineId),
+        {
           photo_url: url,
           received: true,
           qr_scanned: true,
           qr_scan_date: Timestamp.fromDate(new Date()),
           updatedAt: Timestamp.fromDate(new Date())
-        }, { merge: true });
+        },
+        { merge: true }
+      );
 
-        document.querySelector("#preview").src = url;
-        document.querySelector("#status").textContent = "✅ Photo enregistrée avec succès.";
-        stream.getTracks().forEach(t => t.stop());
-      };
+      alert("✅ Photo enregistrée !");
+      window.location.href = "/pages/achat-detail.html?id=" + achatId;
     });
   </script>
-</head>
-<body>
-  <h1>Photo Sanitaire</h1>
-  <p class="info">Lot : <strong id="lotId"></strong></p>
-  <video autoplay playsinline width="100%" style="max-width:480px; border-radius:0.5rem;"></video>
-  <br><br>
-  <button id="btnCapture">📸 Prendre la photo</button>
-  <p class="info" id="status"></p>
-  <img id="preview" style="display:block; max-width:100%;" />
+
 </body>
 </html>
