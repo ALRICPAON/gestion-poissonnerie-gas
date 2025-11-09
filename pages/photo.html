@@ -6,7 +6,6 @@
 
   <!-- Firebase -->
   <script type="module" src="../js/firebase-init.js"></script>
-  <script type="module" src="../js/auth.js"></script>
 
   <style>
     body { font-family: sans-serif; padding: 1rem; }
@@ -28,10 +27,6 @@
 
   <script type="module">
     import { app, db } from "../js/firebase-init.js";
-    import { requireAuth } from "../js/auth.js";
-
-    // ✅ FORCE L’AUTHENTIFICATION
-    await requireAuth();
 
     import {
       doc, getDocs, collection, query, where, setDoc, Timestamp
@@ -72,7 +67,6 @@
       }
       return null;
     }
-
 
     // ✅ Upload photo
     document.getElementById("btnUpload").addEventListener("click", async () => {
