@@ -1,43 +1,66 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Association Article Fournisseur</title>
+  <meta charset="UTF-8">
+  <title>Article ↔ Fournisseur</title>
   <link rel="stylesheet" href="../css/style.css">
-</head>
-
-<body>
-  <h1>Associations Article ↔ Fournisseur</h1>
-
-  <button onclick="showAddForm()">➕ Ajouter</button>
-
-  <button onclick="window.location.href='../index.html'">🏠 Retour</button>
-
-  <div id="list"></div>
-
-  <!-- FORMULAIRE AJOUT -->
-  <div id="addForm" style="display:none; margin-top:20px;">
-    <h3>Ajouter une association</h3>
-
-    <input id="add-fournisseurCode" placeholder="Code fournisseur"><br>
-    <input id="add-fournisseurNom" placeholder="Nom fournisseur"><br>
-    <input id="add-refFournisseur" placeholder="Réf fournisseur"><br>
-    <input id="add-plu" placeholder="PLU interne"><br>
-    <input id="add-designationInterne" placeholder="Désignation interne"><br>
-
-    <button onclick="submitAFMap()">✅ Enregistrer</button>
-    <button onclick="hideAddForm()">❌ Annuler</button>
-  </div>
 
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth.js"></script>
   <script type="module" src="../js/load-af-map.js"></script>
   <script type="module" src="../js/submit-af-map.js"></script>
   <script type="module" src="../js/edit-af-map.js"></script>
+</head>
+<body>
+
+  <div class="top-bar">
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
+    <input type="text" id="search" class="search-input" placeholder="🔍 Rechercher code / nom / réf / PLU…">
+  </div>
+
+  <!-- Formulaire d'ajout -->
+  <form id="af-form">
+    <input type="text" name="fournisseurCode" placeholder="Code fournisseur" required>
+    <input type="text" name="fournisseurNom"  placeholder="Nom fournisseur">
+    <input type="text" name="refFournisseur"  placeholder="Réf fournisseur" required>
+    <input type="text" name="plu"             placeholder="PLU interne">
+    <input type="text" name="designationInterne" placeholder="Désignation interne">
+    <button type="submit" class="btn btn-accent">Ajouter</button>
+  </form>
+
+  <h1>Associations Article ↔ Fournisseur</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Nom Fournisseur</th>
+        <th>Réf</th>
+        <th>PLU</th>
+        <th>Désignation</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="af-list">
+      <!-- Rempli dynamiquement -->
+    </tbody>
+  </table>
 
   <script type="module">
     import { requireAuth } from '../js/auth.js';
     requireAuth();
+  </script>
+
+  <script>
+    // filtre client comme sur articles
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.querySelector('#search');
+      input.addEventListener('input', function () {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#af-list tr').forEach(row => {
+          row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      });
+    });
   </script>
 </body>
 </html>
