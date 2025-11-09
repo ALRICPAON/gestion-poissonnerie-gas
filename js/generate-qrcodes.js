@@ -1,57 +1,87 @@
-// 📄 Génération de feuilles QR par fournisseur à partir des lignes d’achat
-// Utilise jsPDF pour créer un PDF par fournisseur avec : PLU, désignation, poids, QR
+import { db } from "../js/firebase-init.js";
+import {
+  doc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
-import QRCode from "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm";
-import { getDocs, collection, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { db } from "./firebase-init.js";
-
+// Génération PDF QR
 export async function generateQRCodeSheets(achatId) {
-  const achatRef = doc(db, "achats", achatId);
-  const lignesRef = collection(achatRef, "lignes");
-  const snapshot = await getDocs(lignesRef);
-
-  const fournisseurs = {}; // regroupe par fournisseur
-
-  for (const docSnap of snapshot.docs) {
-    const data = docSnap.data();
-    if (!data.received) continue;
-
-    const fournisseur = data.fournisseur || "Inconnu";
-    if (!fournisseurs[fournisseur]) fournisseurs[fournisseur] = [];
-    fournisseurs[fournisseur].push({
-      plu: data.plu,
-      designation: data.designation,
-      poids: isFinite(Number(data.poidsTotalKg)) ? Number(data.poidsTotalKg).toFixed(2) + " kg" : "—",
-      qr_url: data.qr_url,
-      lot: data.lot
-    });
+  if (!achatId) {
+    alert("Achat introuvable");
+    return;
   }
 
-  for (const [fournisseur, lignes] of Object.entries(fournisseurs)) {
-    const doc = new jsPDF();
-    let x = 10, y = 10;
-    let count = 0;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
 
-    for (const ligne of lignes) {
-      if (count && count % 4 === 0) { doc.addPage(); x = 10; y = 10; }
+  const lignesCol = collection(doc(db, "achats", achatId), "lignes");
+  const snap = await getDocs(lignesCol);
 
-      doc.setFontSize(10);
-      doc.text(`PLU : ${ligne.plu}`, x, y);
-      doc.text(`Désignation : ${ligne.designation}`, x, y + 5);
-      doc.text(`Poids : ${ligne.poids ?? "?"} kg`, x, y + 10);
+  // group by fournisseur
+  const groups = {};
 
-      if (ligne.qr_url?.startsWith("data:image")) {
-        doc.addImage(ligne.qr_url, "PNG", x, y + 15, 30, 30);
-      } else if (ligne.lot) {
-        const qrData = await QRCode.toDataURL(`/pages/lot.html?id=${ligne.lot}`);
-        doc.addImage(qrData, "PNG", x, y + 15, 30, 30);
+  snap.forEach(d => {
+    const L = d.data();
+    const f = L.fournisseurNom || "Inconnu";
+    if (!groups[f]) groups[f] = [];
+
+    groups[f].push({
+      plu: L.plu,
+      designation: L.designation,
+      poids: L.poidsTotalKg,
+      lot: L.lot,
+      qr_url: L.qr_url
+    });
+  });
+
+  let y = 10;
+
+  for (const [fourn, arr] of Object.entries(groups)) {
+
+    pdf.setFontSize(14);
+    pdf.text(`Fournisseur : ${fourn}`, 10, y);
+    y += 8;
+
+    for (const L of arr) {
+
+      // Générer un QR à la volée
+      const tmp = document.createElement("div");
+      const qr = new QRCode(tmp, {
+        text: L.lot,
+        width: 128,
+        height: 128
+      });
+
+      await new Promise(res => setTimeout(res, 50));
+
+      const canvas = tmp.querySelector("canvas");
+      const imgData = canvas.toDataURL("image/png");
+
+      // Ajout dans PDF
+      pdf.addImage(imgData, "PNG", 10, y, 30, 30);
+
+      pdf.setFontSize(10);
+      pdf.text(`PLU : ${L.plu || ""}`, 45, y + 5);
+      pdf.text(`Produit : ${L.designation || ""}`, 45, y + 10);
+      pdf.text(`Poids : ${(L.poids ?? "") + " kg"}`, 45, y + 15);
+      pdf.text(`Lot : ${L.lot}`, 45, y + 20);
+
+      y += 40;
+
+      // Nouvelle page si trop bas
+      if (y > 260) {
+        pdf.addPage();
+        y = 10;
       }
-
-      y += 50; count++;
-      if (y > 250) { doc.addPage(); y = 10; }
     }
 
-    doc.save(`QR-${fournisseur}.pdf`);
+    y += 10;
+
+    if (y > 260) {
+      pdf.addPage();
+      y = 10;
+    }
   }
+
+  pdf.save(`QR-${achatId}.pdf`);
+  alert("✅ PDF téléchargé");
 }
