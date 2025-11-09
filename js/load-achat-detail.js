@@ -643,15 +643,6 @@ async function openPopupArticles(lineId){
 }
 
 
-
-// ===================================================
-// CLOSE POPUP
-// ===================================================
-function closePopup(){
-  const modal = qs("#popup-articles");
-  if (modal) modal.style.display = "none";
-}
-
 // ===================================================
 // Bind Header
 // ===================================================
