@@ -1,4 +1,4 @@
- 
+
 import { app, db } from "../js/firebase-init.js";
 import {
   doc, getDoc, updateDoc, setDoc, collection, addDoc,
@@ -124,16 +124,11 @@ function renderLines(){
 
     // ENTER navigation (mêmes colonnes)
     tr.querySelectorAll("input.inp").forEach((inp, colIdx) => {
-     inp.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
-
-  // →→ On mémorise la cellule actuelle
-  focusedLineId = id;
-  focusedColIdx = colIdx;
-
-  saveLine(id).then(async () => {
-
+      inp.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        // Sauver la ligne courante
+        saveLine(id).then(async () => {
           // Ligne suivante
           const trs = qsa("#achat-lines tr");
           const rowIdx = trs.findIndex(x => x.getAttribute("data-id") === id);
