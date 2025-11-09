@@ -642,6 +642,19 @@ async function openPopupArticles(lineId){
   // ✅ Ferme le popup
   closePopup();
 }
+  render();
+  search.oninput = () => render(search.value);
+
+  qs("#btnClosePopup")?.onclick = closePopup;
+} // ✅ FIN de openPopupArticles()
+
+
+// ===================================================
+// CLOSE POPUP
+// ===================================================
+function closePopup(){
+  qs("#popup-articles").style.display = "none";
+}
 
 
 // ===================================================
