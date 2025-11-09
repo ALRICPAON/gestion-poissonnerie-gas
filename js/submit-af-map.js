@@ -4,53 +4,45 @@ import { loadAFMap } from "./load-af-map.js";
 
 const col = collection(db, "af_map");
 
-// petits helpers
+// helpers nettoyage
 const nz = v => (v == null ? "" : String(v).trim());
 const cleanNumStr = v => {
   const s = nz(v);
   return /^\d+\.0$/.test(s) ? s.replace(/\.0$/, "") : s;
 };
 
-export async function submitAFMap() {
-  const fournisseurCode = cleanNumStr(document.getElementById("add-fournisseurCode").value);
-  const fournisseurNom  = nz(document.getElementById("add-fournisseurNom").value);
-  const refFournisseur  = cleanNumStr(document.getElementById("add-refFournisseur").value);
-  const plu             = cleanNumStr(document.getElementById("add-plu").value);
-  const designation     = nz(document.getElementById("add-designationInterne").value);
+function bindForm() {
+  const form = document.getElementById("af-form");
+  if (!form) return;
 
-  if (!fournisseurCode || !refFournisseur) {
-    alert("Code fournisseur + Référence fournisseur sont obligatoires.");
-    return;
-  }
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  const id = `${fournisseurCode}__${refFournisseur}`.toUpperCase();
+    const fournisseurCode = cleanNumStr(form.fournisseurCode.value);
+    const fournisseurNom  = nz(form.fournisseurNom.value);
+    const refFournisseur  = cleanNumStr(form.refFournisseur.value);
+    const plu             = cleanNumStr(form.plu.value);
+    const designation     = nz(form.designationInterne.value);
 
-  await setDoc(doc(col, id), {
-    fournisseurCode,
-    fournisseurNom,
-    refFournisseur,
-    plu,
-    designationInterne: designation,
-    updatedAt: new Date()
-  }, { merge:true });
+    if (!fournisseurCode || !refFournisseur) {
+      alert("Code fournisseur + Référence fournisseur sont obligatoires.");
+      return;
+    }
 
-  // reset petit confort
-  document.getElementById("add-fournisseurCode").value = "";
-  document.getElementById("add-fournisseurNom").value  = "";
-  document.getElementById("add-refFournisseur").value  = "";
-  document.getElementById("add-plu").value             = "";
-  document.getElementById("add-designationInterne").value = "";
+    const id = `${fournisseurCode}__${refFournisseur}`.toUpperCase();
 
-  hideAddForm();
-  loadAFMap();
+    await setDoc(doc(col, id), {
+      fournisseurCode,
+      fournisseurNom,
+      refFournisseur,
+      plu,
+      designationInterne: designation,
+      updatedAt: new Date()
+    }, { merge: true });
+
+    form.reset();
+    loadAFMap();
+  });
 }
 
-// garder les handlers visibles pour le HTML inline
-window.submitAFMap = submitAFMap;
-
-window.showAddForm = () => {
-  document.getElementById("addForm").style.display = "block";
-};
-window.hideAddForm = () => {
-  document.getElementById("addForm").style.display = "none";
-};
+window.addEventListener('DOMContentLoaded', bindForm);
