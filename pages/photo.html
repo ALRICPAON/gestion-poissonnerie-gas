@@ -14,13 +14,14 @@
 <body>
 
   <h2>📦 Réception – Photo sanitaire</h2>
-
-  <p id="lot"></p>
+  <h3 id="lotDisp"></h3>
 
   <div class="box">
     <input id="photoInput" type="file" accept="image/*" capture="environment">
     <button id="btnUpload">📤 Envoyer</button>
   </div>
+
+  <div id="status" style="margin-top:1rem;color:#888;"></div>
 
   <script type="module">
     import { app, db } from "../js/firebase-init.js";
@@ -33,59 +34,89 @@
 
     const storage = getStorage(app);
 
-    // Récup LOT
     const params = new URLSearchParams(location.search);
     const lot = params.get("id");
-    document.getElementById("lot").textContent = "Lot : " + lot;
+    document.getElementById("lotDisp").textContent = "Lot : " + lot;
 
-    // Récup achat + ligne
+    const statusEl = document.getElementById("status");
+
+    function log(msg) {
+      console.log("[photo]", msg);
+      statusEl.textContent = msg;
+    }
+
+    // ✅ Trouver Achat + Ligne correspondant au LOT
     async function findLine() {
+      log("Recherche du lot...");
       const achatsSnap = await getDocs(collection(db, "achats"));
-      for (const a of achatsSnap.docs) {
-        const lignesCol = collection(a.ref, "lignes");
+
+      for (const achat of achatsSnap.docs) {
+        const lignesCol = collection(db, "achats", achat.id, "lignes");
         const q2 = query(lignesCol, where("lot", "==", lot));
         const snap2 = await getDocs(q2);
+
         if (!snap2.empty) {
-          return { achatId: a.id, lineId: snap2.docs[0].id };
+          log(`✅ Ligne trouvée dans achat: ${achat.id}`);
+          return { achatId: achat.id, lineId: snap2.docs[0].id };
         }
       }
       return null;
     }
 
+
     document.getElementById("btnUpload").addEventListener("click", async () => {
-      const found = await findLine();
-      if (!found) {
-        alert("❌ Ligne introuvable.");
-        return;
+      try {
+        log("→ Début traitement…");
+
+        const found = await findLine();
+        if (!found) {
+          alert("❌ Ligne introuvable pour ce LOT");
+          log("❌ Ligne introuvable");
+          return;
+        }
+        const { achatId, lineId } = found;
+
+        const file = photoInput.files[0];
+        if (!file) {
+          alert("Choisis une photo");
+          log("❌ Aucune photo sélectionnée");
+          return;
+        }
+
+        log("→ Upload en cours…");
+
+        const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
+        const sref = storageRef(storage, path);
+
+        await uploadBytes(sref, file);
+        const url = await getDownloadURL(sref);
+
+        log("✅ Upload OK — URL:" + url);
+
+        await setDoc(
+          doc(db, "achats", achatId, "lignes", lineId),
+          {
+            photo_url: url,
+            received: true,
+            qr_scanned: true,
+            qr_scan_date: Timestamp.fromDate(new Date()),
+            updatedAt: Timestamp.fromDate(new Date())
+          },
+          { merge: true }
+        );
+
+        log("✅ Firestore mis à jour");
+
+        alert("✅ Photo enregistrée !");
+
+        // ✅ Retour detail achat
+        window.location.href = "/pages/achat-detail.html?id=" + achatId;
+
+      } catch (e) {
+        console.error(e);
+        alert("❌ Erreur : " + e.message);
+        log("ERREUR :" + e.message);
       }
-      const { achatId, lineId } = found;
-
-      const file = photoInput.files[0];
-      if (!file) {
-        alert("Choisis une photo");
-        return;
-      }
-
-      const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
-      const sref = storageRef(storage, path);
-
-      await uploadBytes(sref, file);
-      const url = await getDownloadURL(sref);
-
-      await setDoc(
-        doc(db, "achats", achatId, "lignes", lineId),
-        {
-          photo_url: url,
-          received: true,
-          qr_scanned: true,
-          qr_scan_date: Timestamp.fromDate(new Date()),
-          updatedAt: Timestamp.fromDate(new Date())
-        },
-        { merge: true }
-      );
-
-      alert("✅ Photo enregistrée !");
-      window.location.href = "/pages/achat-detail.html?id=" + achatId;
     });
   </script>
 
