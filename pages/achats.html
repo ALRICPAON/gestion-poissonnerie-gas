@@ -1,61 +1,72 @@
-import { db } from "../js/firebase-init.js";
-import { collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Achats</title>
 
-const col = collection(db, "af_map");
+  <link rel="stylesheet" href="../css/style.css">
 
-export async function loadAFMap() {
-  const tbody = document.getElementById("af-list");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6">Chargement…</td></tr>`;
+  <!-- Firebase + Auth -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
 
-  const snap = await getDocs(col);
+  <!-- ✅ MODULES ACHATS -->
+  <script type="module" src="../js/load-achats.js"></script>
+  <script type="module" src="../js/submit-achat.js"></script>
+</head>
 
-  let html = "";
+<body>
 
-  snap.forEach(d => {
-    const r = d.data();
+  <div class="top-bar">
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
 
-    html += `
+    <div class="filters" style="display:flex; gap:.5rem; align-items:center;">
+      <label>
+        Du
+        <input type="date" id="filterFrom">
+      </label>
+      <label>
+        au
+        <input type="date" id="filterTo">
+      </label>
+
+      <input type="text" id="filterQuery" class="search-input" placeholder="🔍 Rechercher fournisseur / désignation…">
+
+      <button id="btnApplyFilters" class="btn">Filtrer</button>
+      <button id="btnResetFilters" class="btn btn-muted">Réinitialiser</button>
+    </div>
+
+    <div style="margin-left:auto; display:flex; gap:.5rem;">
+      <button class="btn" id="btnNewCommande">➕ Créer Commande</button>
+      <button class="btn btn-accent" id="btnNewBL">➕ Créer BL</button>
+    </div>
+  </div>
+
+  <h1>Achats</h1>
+
+  <table>
+    <thead>
       <tr>
-        <td>${r.fournisseurCode ? r.fournisseurCode : ""}</td>
-        <td>${r.fournisseurNom  ? r.fournisseurNom  : ""}</td>
-        <td>${r.refFournisseur  ? r.refFournisseur  : ""}</td>
-        <td>${r.plu             ? r.plu             : ""}</td>
-        <td>${r.designationInterne ? r.designationInterne : ""}</td>
-        <td>
-          <button class="btn" data-action="edit" data-id="${d.id}">✏️</button>
-          <button class="btn btn-danger" data-action="del" data-id="${d.id}">🗑️</button>
-        </td>
+        <th style="width:120px;">Date</th>
+        <th>Fournisseur</th>
+        <th>Désignation fournisseur</th>
+        <th style="width:110px;">Type</th>
+        <th style="width:130px;">Montant HT</th>
+        <th style="width:130px;">Montant TTC</th>
+        <th style="width:110px;">Statut</th>
+        <th style="width:120px;">Actions</th>
       </tr>
-    `;
-  });
+    </thead>
 
-  tbody.innerHTML = html || `<tr><td colspan="6">Aucune association</td></tr>`;
+    <tbody id="achats-list">
+      <!-- rempli par JS -->
+    </tbody>
+  </table>
 
-  // délégation
-  tbody.addEventListener(
-    "click",
-    async (e) => {
-      const btn = e.target.closest("button[data-action]");
-      if (!btn) return;
+  <script type="module">
+    import { requireAuth } from '../js/auth.js';
+    requireAuth();
+  </script>
 
-      const id = btn.getAttribute("data-id");
-      const action = btn.getAttribute("data-action");
-
-      if (action === "edit") {
-        if (window.editAFMap) window.editAFMap(id);
-        return;
-      }
-
-      if (action === "del") {
-        if (!confirm("Supprimer ?")) return;
-        await deleteDoc(doc(db, "af_map", id));
-        loadAFMap();
-        return;
-      }
-    },
-    { once: true }
-  );
-}
-
-window.addEventListener("DOMContentLoaded", loadAFMap);
+</body>
+</html>
