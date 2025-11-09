@@ -166,15 +166,21 @@ function renderLines(){
     });
 
     // ✅ AUTO TRACA PLU — écouteur propre (hors forEach)
-    get(".plu")?.addEventListener("change", async () => {
-      await saveLine(id);
-      await autofillTraceFromPLU(id);
-      renderLines();
-      setTimeout(() => {
-        const newTr = document.querySelector(`tr[data-id="${id}"]`);
-        if (newTr) focusNextInput(newTr, "plu");
-      }, 30);
-    });
+  const inpPLU = get(".plu");
+inpPLU?.addEventListener("change", async () => {
+  await saveLine(id);
+  await autofillTraceFromPLU(id);
+
+  // ✅ Mise à jour locale sans re-render
+  // (on ne touche pas renderLines ici)
+  const idx = lines.findIndex(x => x.id === id);
+  if (idx >= 0) {
+    lines[idx] = { ...lines[idx] };
+  }
+
+  focusNextInput(tr, "plu");
+});
+
 
     // Inline pills
     tr.querySelectorAll(".pill")
