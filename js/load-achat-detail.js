@@ -396,25 +396,6 @@ function openQRForLine(lineId){
   `);
 }
 
-// ---------- Photo sanitaire upload ----------
-async function uploadPhotoForLine(lineId){
-  const input = document.createElement("input");
-  input.type = "file"; input.accept = "image/*";
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
-    const sref = storageRef(storage, path);
-    await uploadBytes(sref, file);
-    const url = await getDownloadURL(sref);
-    await setDoc(doc(linesCol, lineId), { photo_url: url, updatedAt: Timestamp.fromDate(new Date()) }, { merge:true });
-    const idx = lines.findIndex(x=>x.id===lineId);
-    if (idx>=0) lines[idx].photo_url = url;
-    alert("✅ Photo sanitaire attachée (OCR à venir).");
-  };
-  input.click();
-}
-
 // ---------- Auto-traça depuis Article(PLU) ----------
 async function autofillTraceFromPLU(lineId){
   const idx = lines.findIndex(x=>x.id===lineId);
