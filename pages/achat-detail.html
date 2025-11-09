@@ -4,18 +4,103 @@
   <meta charset="UTF-8">
   <title>Détail Achat</title>
   <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Firebase app/auth/db/storage -->
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth.js"></script>
-  <!-- on ajoutera load-achat-detail.js etc. ensuite -->
+
+  <!-- QRCode lib (global QRCode) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+
+  <!-- Module principal -->
+  <script type="module" src="../js/load-achat-detail.js"></script>
 </head>
 <body>
   <div class="top-bar">
     <button class="btn btn-muted" onclick="history.back()">← Retour</button>
     <h1 style="margin-left:1rem;">Détail de l'achat</h1>
+    <div style="margin-left:auto; display:flex; gap:.5rem;">
+      <button id="btnSaveHeader" class="btn">💾 Enregistrer l’en-tête</button>
+      <button id="btnAddLine" class="btn">➕ Ajouter une ligne</button>
+      <button id="btnConvertBL" class="btn btn-accent">🔁 Convertir en BL</button>
+    </div>
   </div>
-  <div class="container">
-    <p>Page détail à implémenter (lignes, lot par ligne, conversion commande → BL, etc.).</p>
+
+  <!-- En-tête achat -->
+  <section class="card" style="margin:1rem;">
+    <div class="grid" style="grid-template-columns: repeat(6, minmax(0,1fr)); gap:.75rem;">
+      <label>Date
+        <input type="date" id="achat-date">
+      </label>
+      <label>Code fournisseur
+        <input type="text" id="achat-fourn-code" placeholder="81269…">
+      </label>
+      <label>Nom fournisseur
+        <input type="text" id="achat-fourn-nom" placeholder="Criée…">
+      </label>
+      <label>Désignation fournisseur
+        <input type="text" id="achat-fourn-desig" placeholder="N° BL / Réf…">
+      </label>
+      <label>Type
+        <select id="achat-type">
+          <option value="commande">Commande</option>
+          <option value="BL">BL</option>
+        </select>
+      </label>
+      <label>Statut
+        <select id="achat-statut">
+          <option value="new">new</option>
+          <option value="received">received</option>
+          <option value="closed">closed</option>
+        </select>
+      </label>
+      <label>Montant HT
+        <input type="text" id="achat-total-ht" readonly>
+      </label>
+      <label>Montant TTC
+        <input type="text" id="achat-total-ttc" readonly>
+      </label>
+    </div>
+  </section>
+
+  <!-- Lignes -->
+  <section style="margin:1rem;">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:96px;">PLU</th>
+          <th>Désignation</th>
+          <th style="width:84px;">Colis</th>
+          <th style="width:120px;">Poids/colis (kg)</th>
+          <th style="width:120px;">Poids total (kg)</th>
+          <th style="width:120px;">Prix/kg</th>
+          <th style="width:120px;">Montant HT</th>
+          <th style="width:130px;">Lot</th>
+          <th style="width:40px;">QR</th>
+          <th style="width:54px;">OK</th>
+          <th style="width:110px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="achat-lines"></tbody>
+    </table>
+  </section>
+
+  <!-- Popup Articles (F9) -->
+  <div id="popup-articles" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Articles</h3>
+        <button class="btn btn-muted" id="btnClosePopup">✖</button>
+      </div>
+      <input type="text" id="search-articles" class="search-input" placeholder="🔍 Rechercher PLU / Désignation…">
+      <table>
+        <thead><tr><th>PLU</th><th>Désignation</th><th>Nom latin</th><th>Catégorie</th></tr></thead>
+        <tbody id="articles-list"></tbody>
+      </table>
+      <p style="margin-top:.5rem;">Astuce : double-clique un article pour le renvoyer dans la ligne en cours.</p>
+    </div>
   </div>
+
   <script type="module">
     import { requireAuth } from '../js/auth.js';
     requireAuth();
