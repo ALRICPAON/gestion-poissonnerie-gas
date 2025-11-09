@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Association Article Fournisseur</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+  <h1>Associations Article ↔ Fournisseur</h1>
+
+  <button onclick="showAddForm()">➕ Ajouter</button>
+  <button onclick="window.location.href='import.html'">📁 Importer</button>
+  <button onclick="window.location.href='../index.html'">🏠 Retour</button>
+
+  <div id="list"></div>
+
+  <!-- FORMULAIRE AJOUT -->
+  <div id="addForm" style="display:none; margin-top:20px;">
+    <h3>Ajouter une association</h3>
+
+    <input id="add-fournisseurCode" placeholder="Code fournisseur"><br>
+    <input id="add-fournisseurNom" placeholder="Nom fournisseur"><br>
+    <input id="add-refFournisseur" placeholder="Réf fournisseur"><br>
+    <input id="add-plu" placeholder="PLU interne"><br>
+    <input id="add-designationInterne" placeholder="Désignation interne"><br>
+
+    <button onclick="submitAFMap()">✅ Enregistrer</button>
+    <button onclick="hideAddForm()">❌ Annuler</button>
+  </div>
+
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+  <script type="module" src="../js/load-af-map.js"></script>
+  <script type="module" src="../js/submit-af-map.js"></script>
+  <script type="module" src="../js/edit-af-map.js"></script>
+
+  <script type="module">
+    import { requireAuth } from '../js/auth.js';
+    requireAuth();
+  </script>
+</body>
+</html>
