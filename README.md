@@ -179,3 +179,365 @@ onAuthStateChanged(auth, (user) => {
 📌 Pense-bête : bien importer les modules `firebase/firestore.js` (et non `firestore-lite.js`) pour éviter les erreurs de type "Expected CollectionReference…"
 
 🔽 Mise à jour le 2025-11-08
+🐟 GESTION POISSONNERIE — RÉCAP GLOBAL
+✅ OBJECTIF
+
+Créer un outil pro, rapide, multi-magasins, permettant :
+
+Gestion achats + réception
+
+Suivi FIFO / traçabilité
+
+Calcul stock / marges
+
+Transformations
+
+Inventaire
+
+Étiquettes sanitaires
+
+🎯 Idéal pour rayon GMS / poissonnerie indépendante
+
+🔐 AUTHENTIFICATION & MULTI-MAGASINS
+
+Connexion email + mot de passe
+
+1 base par magasin
+
+Données totalement isolées
+
+Accès sécurisé aux modules
+
+📦 MODULE — ARTICLES
+
+📘 Base catalogue
+
+✅ Champs :
+
+PLU
+
+Désignation
+
+Nom latin
+
+Zone / Sous-zone
+
+Engin de pêche
+
+Allergènes
+
+Catégorie
+
+Unité (€/kg ou unité)
+
+✅ Fonctions :
+
+Création / modification / suppression
+
+Import depuis Excel
+
+Autofill traçabilité lors des achats
+
+Recherche rapide
+
+Popup sélection (F9)
+
+🚚 MODULE — FOURNISSEURS
+
+✅ Champs :
+
+Code
+
+Nom
+
+Contact
+
+Téléphone
+
+Email
+
+Notes
+
+✅ Fonctions :
+
+CRUD
+
+Recherche
+
+Mapping AF → permet de remplir automatiquement une ligne d’achat selon la ref fournisseur
+
+🧾 MODULE — ACHATS
+✅ OBJECTIF
+
+Saisie + réception + mise à jour stock
+
+✅ PROCESS
+
+Création achat
+
+Saisie lignes :
+
+PLU
+
+Désignation
+
+Colis
+
+Poids par colis
+
+Poids total
+
+Prix/kg
+
+Montant HT
+
+Autofill traçabilité depuis fiche article
+→ Nom latin / Zone / Sous-zone / Engin / Allergènes
+
+Génération automatique du LOT
+→ format AAAA MM JJ HH MM SS – XX
+
+Auto-calcul poids total + montant
+
+QR Code par ligne
+
+Possibilité d’ajouter photo étiquette sanitaire
+
+Conversion → BL :
+✅ Chaque ligne est intégrée au stock (FIFO)
+
+✅ Actions rapides
+
+F9 = choisir article catalogue
+
+AF = appliquer mappage fournisseur
+
+📷 = photo sanitaire
+
+◼︎ = QR code
+
+🗑️ = supprimer ligne
+
+✅ Auto-total en fin de page
+
+📦 MODULE — STOCK
+
+Méthode : mouvements stock FIFO
+
+📥 Entrées :
+
+Réception achat
+
+Transformation produit fini
+
+📤 Sorties :
+
+Inventaire
+
+Transformation produit source
+
+💰 Calculs :
+
+FIFO natif
+
+CUMP (prix moyen pondéré)
+
+Valeur stock
+
+Marge brute théorique
+
+🔁 MODULE — TRANSFORMATIONS
+
+Transformer un produit → un autre
+
+✅ Fonctionnement :
+
+Source = 1 ou plusieurs lots FIFO
+
+Rendement (%) appliqué
+
+Calcul nouveau CUMP produit fini
+
+Sorties stock (source) + entrée stock (fini)
+
+Traçabilité conservée
+
+Exemple :
+
+Dos cabillaud → brochette cabillaud
+
+📊 MODULE — INVENTAIRE
+
+✅ Saisie :
+
+Poids restant OU
+
+CA TTC
+
+✅ Calcul :
+
+Poids vendu
+
+CA HT
+
+Marge
+
+MAJ stock réel
+
+📌 Journal quotidien créé :
+
+CA théorique
+
+CA réel
+
+Achats
+
+Marge brute
+
+✅ Bouton validation → stock OK
+
+🐟 MODULE — TRAÇABILITÉ
+
+Repose sur :
+
+LOT
+
+FIFO
+
+Journal mouvements
+
+Informations clés gérées :
+
+Nom latin
+
+Zone
+
+Sous-zone
+
+Engin
+
+Allergenes
+
+Photo étiquette sanitaire
+
+QR code lot
+
+✅ Canonisation automatique
+
+FAO → format unique
+
+Engin → format normalisé
+
+🏷️ MODULE — ÉTIQUETTES
+
+✅ Génération conforme
+
+Nom du produit
+
+Nom latin
+
+Zone / sous-zone
+
+Engin
+
+Allergènes
+
+Origine
+
+Tarif
+
+✅ Export :
+
+Evolis
+
+Excel
+
+📊 MODULE — TABLEAU DE BORD
+
+✅ Données clés :
+
+CA
+
+Achats
+
+Marge %
+
+Valeur stock
+
+Rotation
+
+Perte
+
+Rendement transformation
+
+✅ IDENTIFIANTS (LOT)
+
+Format automatique :
+
+AAAA MM JJ HH MM SS – index
+(ex : 20251108-142311-03)
+
+🔗 QR code → page info lot
+
+🎯 OBJECTIFS FINAUX
+
+Ultra fluide rayon
+
+Multi-magasin
+
+Multi-rayon
+
+Traçabilité FIFO béton
+
+Étiquettes propres
+
+Valeur stock précise
+
+Marge parfaitement suivie
+
+Prêt à industrialiser
+
+✅ Feuille de route
+
+🟢 FAIT
+✔ Articles
+✔ Fournisseurs
+✔ Achats manuels
+✔ Autofill traçabilité
+✔ LOT auto
+✔ QR code ligne
+✔ Photo sanitaire (upload)
+✔ Convert → BL → stock FIFO
+✔ Transformations (partiel)
+✔ Inventaire
+✔ Étiquettes Excel
+✔ Auth multi-magasin
+
+🟡 EN COURS
+⏳ Import criée
+⏳ Import PDF BL
+⏳ Traitement OCR étiquette
+
+🔴 À VENIR
+⬜ Planning production
+⬜ Statistiques avancées
+⬜ Ventilation FE / FB
+⬜ Connecteur Pesage
+
+✅ Conclusion
+
+Outil dédié poissonnerie / marée
+→ Productivité x3
+→ Traçabilité béton
+→ Adapté GMS ou indépendant
+→ Conçu pour évoluer
+
+🔥 Prêt à déployer en production
+
+✅ PRÊT À COLLER DANS CANVA
+Si tu veux je peux te générer une version :
+✅ en 1 page
+✅ en plusieurs pages (1 module = 1 page)
+✅ + visuels / icônes / couleurs
+
+Dis-moi laquelle tu veux !
