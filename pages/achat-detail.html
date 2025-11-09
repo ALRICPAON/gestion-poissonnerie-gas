@@ -14,6 +14,15 @@
 
   <!-- Module principal -->
   <script type="module" src="../js/load-achat-detail.js"></script>
+
+  <style>
+    .subline { font-size:.85rem; color:#9aa3af; margin-top:.25rem }
+    .pill { display:inline-block; padding:.1rem .4rem; border:1px solid #374151; border-radius:.5rem; margin-right:.25rem; cursor:pointer }
+    .pill.editing { background:#111827; color:#e5e7eb; }
+    .pill input { background:transparent; border:none; outline:none; color:inherit; width:9rem }
+    td .inp { width:100%; }
+    td .txt-center { text-align:center; }
+  </style>
 </head>
 <body>
   <div class="top-bar">
@@ -69,7 +78,7 @@
       <thead>
         <tr>
           <th style="width:96px;">PLU</th>
-          <th>Désignation</th>
+          <th>Désignation & Traça</th>
           <th style="width:84px;">Colis</th>
           <th style="width:120px;">Poids/colis (kg)</th>
           <th style="width:120px;">Poids total (kg)</th>
@@ -78,7 +87,7 @@
           <th style="width:130px;">Lot</th>
           <th style="width:40px;">QR</th>
           <th style="width:54px;">OK</th>
-          <th style="width:110px;">Actions</th>
+          <th style="width:180px;">Actions</th>
         </tr>
       </thead>
       <tbody id="achat-lines"></tbody>
@@ -97,7 +106,7 @@
         <thead><tr><th>PLU</th><th>Désignation</th><th>Nom latin</th><th>Catégorie</th></tr></thead>
         <tbody id="articles-list"></tbody>
       </table>
-      <p style="margin-top:.5rem;">Astuce : double-clique un article pour le renvoyer dans la ligne en cours.</p>
+      <p style="margin-top:.5rem;">Astuce : double-clique un article pour remplir la ligne en cours.</p>
     </div>
   </div>
 
