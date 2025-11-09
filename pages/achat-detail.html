@@ -29,10 +29,11 @@
     <button class="btn btn-muted" onclick="history.back()">← Retour</button>
     <h1 style="margin-left:1rem;">Détail de l'achat</h1>
     <div style="margin-left:auto; display:flex; gap:.5rem;">
-      <button id="btnSaveHeader" class="btn">💾 Enregistrer l’en-tête</button>
-      <button id="btnAddLine" class="btn">➕ Ajouter une ligne</button>
-      <button id="btnConvertBL" class="btn btn-accent">🔁 Convertir en BL</button>
-    </div>
+  <button id="btnSaveHeader" class="btn">💾 Enregistrer l’en-tête</button>
+  <button id="btnAddLine" class="btn">➕ Ajouter une ligne</button>
+  <button id="btnConvertBL" class="btn btn-accent">🔁 Convertir en BL</button>
+  <button id="btnQRCodeSheet" class="btn">🖨️ Feuille QR fournisseur</button>
+</div>
   </div>
 
   <!-- En-tête achat -->
@@ -114,5 +115,14 @@
     import { requireAuth } from '../js/auth.js';
     requireAuth();
   </script>
+  <script type="module">
+  import { generateQRCodeSheets } from "../js/generate-qrcodes.js";
+
+  // achatId est déjà défini dans load-achat-detail.js → on l’utilise directement
+  document.getElementById("btnQRCodeSheet").addEventListener("click", () => {
+    generateQRCodeSheets(achatId);
+  });
+</script>
+
 </body>
 </html>
