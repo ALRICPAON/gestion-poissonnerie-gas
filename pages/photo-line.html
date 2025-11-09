@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <title>Photo ligne</title>
 
+  <!-- Firebase -->
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth.js"></script>
 
   <style>
-    body{font-family:sans-serif;padding:1rem}
-    button{padding:.6rem 1rem;margin-top:1rem}
+    body { font-family:sans-serif; padding:1rem }
+    button { padding:.6rem 1rem; margin-top:1rem }
   </style>
 </head>
 <body>
@@ -23,21 +24,35 @@
 <div id="status" style="margin-top:1rem;"></div>
 
 <script type="module">
+/* ------------------------------------------------------------------
+   IMPORTS
+------------------------------------------------------------------ */
 import { app, db } from "../js/firebase-init.js";
 import { requireAuth } from "../js/auth.js";
 await requireAuth();
 
 import {
-  doc, setDoc, Timestamp
+  doc,
+  setDoc,
+  Timestamp,
+  getDocs,
+  collection
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 import {
-  getStorage, ref as storageRef, uploadBytes, getDownloadURL
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
 const storage = getStorage(app);
 
-const ps = new URLSearchParams(location.search);
+
+/* ------------------------------------------------------------------
+   PARAMS URL
+------------------------------------------------------------------ */
+const ps      = new URLSearchParams(location.search);
 const achatId = ps.get("achatId");
 const lineId  = ps.get("lineId");
 
@@ -46,37 +61,86 @@ document.getElementById("info").textContent =
 
 const statusEl = document.getElementById("status");
 
-document.getElementById("btnUpload").addEventListener("click", async ()=>{
+
+/* ------------------------------------------------------------------
+   CLICK → UPLOAD
+------------------------------------------------------------------ */
+document.getElementById("btnUpload").addEventListener("click", async () => {
   try {
     const file = photoInput.files[0];
-    if(!file){
+    if (!file) {
       alert("Choisir une photo");
       return;
     }
 
+    statusEl.textContent = "→ Upload…";
+
+    // -----------------------------
+    // 1) Upload dans Storage
+    // -----------------------------
     const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
     const sref = storageRef(storage, path);
 
-    await uploadBytes(sref,file);
+    await uploadBytes(sref, file);
     const url = await getDownloadURL(sref);
 
+
+    // -----------------------------
+    // 2) Mise à jour de la ligne
+    // -----------------------------
     await setDoc(
-      doc(db,"achats",achatId,"lignes",lineId),
+      doc(db, "achats", achatId, "lignes", lineId),
       {
-        photo_url : url,
-        received  : true,
-        qr_scanned: true,
-        qr_scan_date: Timestamp.now(),
-        updatedAt: Timestamp.now()
+        photo_url    : url,
+        received     : true,
+        qr_scanned   : true,
+        qr_scan_date : Timestamp.now(),
+        updatedAt    : Timestamp.now()
       },
-      { merge:true }
+      { merge: true }
     );
 
     statusEl.textContent = "✅ Photo enregistrée";
-    location.href = `/pages/photo-batch.html?achatId=${achatId}`;
 
-  } catch(e){
-    alert("Erreur : "+e.message);
+
+    // -----------------------------
+    // ✅ 3) Vérifier si TOUT est reçu
+    // -----------------------------
+    const lignesCol = collection(db, "achats", achatId, "lignes");
+    const snap = await getDocs(lignesCol);
+
+    let allReceived = true;
+    snap.forEach(d => {
+      const L = d.data();
+      if (!L.received) allReceived = false;
+    });
+
+    // ✅ Si toutes les lignes sont received → passage BL
+    if (allReceived) {
+      console.log("✅ Tout reçu → Achat → BL");
+
+      await setDoc(
+        doc(db, "achats", achatId),
+        {
+          type: "BL",
+          statut: "received",
+          updatedAt: Timestamp.now()
+        },
+        { merge: true }
+      );
+    }
+
+
+    // -----------------------------
+    // 4) Retour
+    // -----------------------------
+    setTimeout(() => {
+      location.href = `/pages/photo-batch.html?achatId=${achatId}`;
+    }, 300);
+
+  } catch (e) {
+    console.error(e);
+    alert("Erreur : " + e.message);
     statusEl.textContent = "❌ " + e.message;
   }
 });
@@ -84,3 +148,4 @@ document.getElementById("btnUpload").addEventListener("click", async ()=>{
 
 </body>
 </html>
+
