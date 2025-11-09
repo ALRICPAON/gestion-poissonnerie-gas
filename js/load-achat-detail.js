@@ -387,6 +387,16 @@ function openQRForLine(lineId){
   const w = window.open("");
   w.document.write(`<img src="${L.qr_url}" style="max-width:100%;"/>`);
 }
+function openQRForLine(lineId){
+  const L = lines.find(x=>x.id===lineId);
+  if (!L?.qr_url){ alert("QR non généré"); return; }
+  const url = `${location.origin}/pages/photo.html?id=${encodeURIComponent(L.lot)}`;
+  const w = window.open("");
+  w.document.write(`
+    <p>URL : <a href="${url}" target="_blank">${url}</a></p>
+    <img src="${L.qr_url}" style="max-width:100%;"/>
+  `);
+}
 
 // ---------- Photo sanitaire upload ----------
 async function uploadPhotoForLine(lineId){
