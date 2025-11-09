@@ -522,10 +522,13 @@ function bindHeader(){
   qs("#btnConvertBL").addEventListener("click", convertToBL);
 }
 
+/* ---------- QR SHEETS ---------- */
 
-// ---------- Init ----------
 import { generateQRCodeSheets } from "./generate-qrcodes.js";
 
+/**
+ * Bind bouton "Feuille QR fournisseur"
+ */
 function bindQRPrint() {
   const btn = document.querySelector("#btnQRCodeSheet");
   if (!btn) return;
@@ -533,6 +536,8 @@ function bindQRPrint() {
     generateQRCodeSheets(achatId);
   });
 }
+
+/* ---------- INIT ---------- */
 
 window.addEventListener("DOMContentLoaded", async () => {
   bindHeader();
