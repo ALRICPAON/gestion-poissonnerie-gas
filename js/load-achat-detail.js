@@ -381,12 +381,7 @@ async function ensureQRForLine(lot){
   const dataUrl = canvas ? canvas.toDataURL("image/png") : "";
   return dataUrl;
 }
-function openQRForLine(lineId){
-  const L = lines.find(x=>x.id===lineId);
-  if (!L?.qr_url){ alert("QR non généré"); return; }
-  const w = window.open("");
-  w.document.write(`<img src="${L.qr_url}" style="max-width:100%;"/>`);
-}
+
 function openQRForLine(lineId){
   const L = lines.find(x=>x.id===lineId);
   if (!L?.qr_url){ alert("QR non généré"); return; }
