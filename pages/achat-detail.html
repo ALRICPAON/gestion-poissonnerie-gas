@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Détail Achat</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+  <!-- on ajoutera load-achat-detail.js etc. ensuite -->
+</head>
+<body>
+  <div class="top-bar">
+    <button class="btn btn-muted" onclick="history.back()">← Retour</button>
+    <h1 style="margin-left:1rem;">Détail de l'achat</h1>
+  </div>
+  <div class="container">
+    <p>Page détail à implémenter (lignes, lot par ligne, conversion commande → BL, etc.).</p>
+  </div>
+  <script type="module">
+    import { requireAuth } from '../js/auth.js';
+    requireAuth();
+  </script>
+</body>
+</html>
