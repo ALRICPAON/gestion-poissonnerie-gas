@@ -522,20 +522,31 @@ function bindHeader(){
   qs("#btnConvertBL").addEventListener("click", convertToBL);
 }
 
+import { generateQRCodeSheets } from "./generate-qrcodes.js";
+
 // ---------- Init ----------
 window.addEventListener("DOMContentLoaded", async () => {
   bindHeader();
   await loadAchat();
+  bindQRPrint();
+  bindQRCodeSheetBtn();
 });
-import { generateQRCodeSheets } from "./generate-qrcodes.js";
+
+function bindQRPrint() {
+  const btn = document.querySelector("#btnPrintQR");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const url = `/pages/feuille-qr.html?achatId=${encodeURIComponent(achatId)}`;
+    window.open(url, "_blank");
+  });
+}
 
 // Bouton "Feuille QR fournisseur"
-window.addEventListener("DOMContentLoaded", () => {
+function bindQRCodeSheetBtn() {
   const btn = document.getElementById("btnQRCodeSheet");
   if (btn) {
     btn.addEventListener("click", () => {
       generateQRCodeSheets(achatId, lines);
     });
   }
-});
-
+}
