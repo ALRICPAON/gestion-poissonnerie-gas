@@ -53,6 +53,12 @@ import {
   doc, getDoc, collection, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+const auth = getAuth();
+await signInAnonymously(auth).catch(() => {});
+
+
 const params = new URLSearchParams(location.search);
 const achatId = params.get("achatId");
 const achatRef = doc(db,"achats",achatId);
