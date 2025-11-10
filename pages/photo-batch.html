@@ -90,7 +90,9 @@ snap.forEach(d => {
 <div>${L.designation || ""}</div>
 <div style="margin-top:.2rem; color:#666;">${L.poidsTotalKg || ""} kg</div>
     </div>
-    <button class="mobile-btn" data-id="${d.id}">📸 Photo</button>
+    <button class="btn-photo" data-id="${d.id}">
+  📸 Prendre photo
+</button>
   `;
 
   div.querySelector("button").addEventListener("click",()=>{
