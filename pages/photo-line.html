@@ -27,23 +27,19 @@
       font-size: 1.6rem;
       border-radius: 14px;
       border: none;
-      display: inline-block;
-      text-align: center;
     }
 
-    .btn-camera {
-      background: #2270ff;
-      color: white;
-    }
+    .btn-camera { background:#2270ff; color:white; }
+    .btn-gallery { background:#ff9b00; color:white; }
+    .btn-upload { background:#00b44b; color:white; }
 
-    .btn-gallery {
-      background: #ff9b00;
-      color: white;
-    }
-
-    .btn-upload {
-      background: #00b44b;
-      color: white;
+    /* ✅ Input visible mais minuscule → Safari OK */
+    input[type=file] {
+      opacity: 0.01;
+      width: 1px;
+      height: 1px;
+      position: absolute;
+      z-index: -1;
     }
 
     #preview {
@@ -68,20 +64,18 @@
   <h2>📸 Photo sanitaire</h2>
   <p id="info"></p>
 
-  <!-- ✅ INPUT CAMERA -->
-  <input id="inputCamera" type="file" accept="image/*" capture="environment" style="display:none" />
-
-  <!-- ✅ INPUT GALERIE -->
-  <input id="inputGallery" type="file" accept="image/*" style="display:none" />
+  <!-- ✅ INPUTS -->
+  <input id="inputCamera" type="file" accept="image/*" capture="environment" />
+  <input id="inputGallery" type="file" accept="image/*" />
 
   <!-- ✅ BOUTONS -->
-  <label for="inputCamera" class="big-btn btn-camera">
+  <button class="big-btn btn-camera" id="btnCam">
     📸 Prendre une photo
-  </label>
+  </button>
 
-  <label for="inputGallery" class="big-btn btn-gallery">
+  <button class="big-btn btn-gallery" id="btnGal">
     📁 Importer depuis la galerie
-  </label>
+  </button>
 
   <!-- ✅ PREVIEW -->
   <img id="preview" />
@@ -120,9 +114,9 @@
       onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    /* ------------------------------------------------------------------
+    /* -------------------------------------------------------------
        ✅ Auth anonyme + attente
-    ------------------------------------------------------------------ */
+    ------------------------------------------------------------- */
     const auth = getAuth();
     await signInAnonymously(auth).catch(() => {});
 
@@ -137,16 +131,17 @@
       });
     }
     await waitAuth();
+
     console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
 
-    /* ------------------------------------------------------------------
+    /* -------------------------------------------------------------
        ✅ Storage
-    ------------------------------------------------------------------ */
+    ------------------------------------------------------------- */
     const storage = getStorage(app);
 
-    /* ------------------------------------------------------------------
+    /* -------------------------------------------------------------
        ✅ PARAMS URL
-    ------------------------------------------------------------------ */
+    ------------------------------------------------------------- */
     const ps      = new URLSearchParams(location.search);
     const achatId = ps.get("achatId");
     const lineId  = ps.get("lineId");
@@ -158,14 +153,23 @@
     const previewEl  = document.getElementById("preview");
     const inputCam   = document.getElementById("inputCamera");
     const inputGal   = document.getElementById("inputGallery");
+    const btnCam     = document.getElementById("btnCam");
+    const btnGal     = document.getElementById("btnGal");
 
     let currentFile = null;
 
-    /* ------------------------------------------------------------------
-       ✅ Preview helper
-    ------------------------------------------------------------------ */
+    /* -------------------------------------------------------------
+       ✅ Buttons → open inputs
+    ------------------------------------------------------------- */
+    btnCam.addEventListener("click", () => inputCam.click());
+    btnGal.addEventListener("click", () => inputGal.click());
+
+    /* -------------------------------------------------------------
+       ✅ Preview Handler
+    ------------------------------------------------------------- */
     function showPreview(file) {
       currentFile = file;
+
       const reader = new FileReader();
       reader.onload = (e) => {
         previewEl.src = e.target.result;
@@ -174,25 +178,19 @@
       reader.readAsDataURL(file);
     }
 
-    /* ------------------------------------------------------------------
-       ✅ PREVIEW CAMERA
-    ------------------------------------------------------------------ */
     inputCam.addEventListener("change", (e) => {
       const f = e.target.files?.[0];
       if (f) showPreview(f);
     });
 
-    /* ------------------------------------------------------------------
-       ✅ PREVIEW GALLERY
-    ------------------------------------------------------------------ */
     inputGal.addEventListener("change", (e) => {
       const f = e.target.files?.[0];
       if (f) showPreview(f);
     });
 
-    /* ------------------------------------------------------------------
-       ✅ CLICK → UPLOAD
-    ------------------------------------------------------------------ */
+    /* -------------------------------------------------------------
+       ✅ Upload
+    ------------------------------------------------------------- */
     document.getElementById("btnUpload").addEventListener("click", async () => {
       try {
         if (!currentFile) {
@@ -222,7 +220,6 @@
 
         statusEl.textContent = "✅ Photo enregistrée";
 
-        // Vérifier si tout est reçu
         const snap = await getDocs(collection(db, "achats", achatId, "lignes"));
         let allReceived = true;
         snap.forEach(d => {
@@ -241,7 +238,6 @@
           );
         }
 
-        // Retour
         setTimeout(() => {
           location.href = `/pages/photo-batch.html?achatId=${achatId}`;
         }, 600);
