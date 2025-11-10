@@ -1,154 +1,248 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Photo ligne</title>
+  <meta charset="UTF-8" />
+  <title>Photo sanitaire</title>
 
   <!-- Firebase -->
   <script type="module" src="../js/firebase-init.js"></script>
 
-
   <style>
-    body { font-family:sans-serif; padding:1rem }
-    button { padding:.6rem 1rem; margin-top:1rem }
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      background: #fafafa;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .big-btn {
+      width: 100%;
+      padding: 1.6rem;
+      margin: 1rem 0;
+      font-size: 1.6rem;
+      border-radius: 14px;
+      border: none;
+    }
+
+    .btn-camera {
+      background: #2270ff;
+      color: white;
+    }
+
+    .btn-gallery {
+      background: #ff9b00;
+      color: white;
+    }
+
+    .btn-upload {
+      background: #00b44b;
+      color: white;
+    }
+
+    #preview {
+      width: 100%;
+      max-height: 60vh;
+      object-fit: contain;
+      margin-top: 1rem;
+      border-radius: 14px;
+      border: 2px solid #ccc;
+      display: none;
+    }
+
+    #status {
+      margin-top: 1.2rem;
+      font-size: 1.4rem;
+    }
   </style>
+
 </head>
 <body>
 
-<h2>📸 Photo sanitaire</h2>
-<p id="info"></p>
+  <h2>📸 Photo sanitaire</h2>
+  <p id="info"></p>
 
-<input id="photoInput" type="file" accept="image/*" capture="environment">
-<button id="btnUpload">📤 Envoyer</button>
+  <!-- INPUT PHOTO -->
+  <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
 
-<div id="status" style="margin-top:1rem;"></div>
+  <!-- BOUTONS CHOIX -->
+  <button class="big-btn btn-camera" onclick="openCamera()">
+    📸 Prendre une photo
+  </button>
 
-<script type="module">
-/* ------------------------------------------------------------------
-   IMPORTS
------------------------------------------------------------------- */
-import { app, db } from "../js/firebase-init.js";
+  <button class="big-btn btn-gallery" onclick="openGallery()">
+    📁 Importer depuis la galerie
+  </button>
 
-import {
-  doc,
-  setDoc,
-  Timestamp,
-  getDocs,
-  collection
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+  <!-- PREVIEW -->
+  <img id="preview" />
 
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+  <!-- UPLOAD -->
+  <button class="big-btn btn-upload" id="btnUpload">
+    ✅ Envoyer
+  </button>
 
-const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+  <div id="status"></div>
 
-const auth = getAuth();
-await signInAnonymously(auth).catch(() => {});
+  <script type="module">
+    /* ------------------------------------------------------------------
+       IMPORTS
+    ------------------------------------------------------------------ */
+    import { app, db } from "../js/firebase-init.js";
 
+    import {
+      doc,
+      setDoc,
+      Timestamp,
+      getDocs,
+      collection
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+    import {
+      getStorage,
+      ref as storageRef,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
-/* ------------------------------------------------------------------
-   PARAMS URL
------------------------------------------------------------------- */
-const ps      = new URLSearchParams(location.search);
-const achatId = ps.get("achatId");
-const lineId  = ps.get("lineId");
+    import {
+      getAuth,
+      signInAnonymously
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-document.getElementById("info").textContent =
-  `Achat : ${achatId} / Ligne : ${lineId}`;
+    const auth = getAuth();
+    await signInAnonymously(auth).catch(() => {});
 
-const statusEl = document.getElementById("status");
-
-
-/* ------------------------------------------------------------------
-   CLICK → UPLOAD
------------------------------------------------------------------- */
-document.getElementById("btnUpload").addEventListener("click", async () => {
-  try {
-    const file = photoInput.files[0];
-    if (!file) {
-      alert("Choisir une photo");
-      return;
-    }
-
-    statusEl.textContent = "→ Upload…";
-
-    // -----------------------------
-    // 1) Upload dans Storage
-    // -----------------------------
-    const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
-    const sref = storageRef(storage, path);
-
-    await uploadBytes(sref, file);
-    const url = await getDownloadURL(sref);
+    const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
 
 
-    // -----------------------------
-    // 2) Mise à jour de la ligne
-    // -----------------------------
-    await setDoc(
-      doc(db, "achats", achatId, "lignes", lineId),
-      {
-        photo_url    : url,
-        received     : true,
-        qr_scanned   : true,
-        qr_scan_date : Timestamp.now(),
-        updatedAt    : Timestamp.now()
-      },
-      { merge: true }
-    );
+    /* ------------------------------------------------------------------
+       PARAMS URL
+    ------------------------------------------------------------------ */
+    const ps      = new URLSearchParams(location.search);
+    const achatId = ps.get("achatId");
+    const lineId  = ps.get("lineId");
 
-    statusEl.textContent = "✅ Photo enregistrée";
+    document.getElementById("info").textContent =
+      `Achat : ${achatId} / Ligne : ${lineId}`;
+
+    const statusEl  = document.getElementById("status");
+    const previewEl = document.getElementById("preview");
+    const inputEl   = document.getElementById("photoInput");
 
 
-    // -----------------------------
-    // ✅ 3) Vérifier si TOUT est reçu
-    // -----------------------------
-    const lignesCol = collection(db, "achats", achatId, "lignes");
-    const snap = await getDocs(lignesCol);
+    /* ------------------------------------------------------------------
+       UI Buttons
+    ------------------------------------------------------------------ */
+    window.openCamera = () => {
+      inputEl.setAttribute("capture", "environment");
+      inputEl.click();
+    };
 
-    let allReceived = true;
-    snap.forEach(d => {
-      const L = d.data();
-      if (!L.received) allReceived = false;
+    window.openGallery = () => {
+      inputEl.removeAttribute("capture");
+      inputEl.click();
+      setTimeout(() => {
+        inputEl.setAttribute("capture", "environment");
+      }, 1000);
+    };
+
+
+    /* ------------------------------------------------------------------
+       PREVIEW
+    ------------------------------------------------------------------ */
+    inputEl.addEventListener("change", () => {
+      const f = inputEl.files?.[0];
+      if (!f) return;
+      previewEl.src = URL.createObjectURL(f);
+      previewEl.style.display = "block";
     });
 
-    // ✅ Si toutes les lignes sont received → passage BL
-    if (allReceived) {
-      console.log("✅ Tout reçu → Achat → BL");
 
-      await setDoc(
-        doc(db, "achats", achatId),
-        {
-          type: "BL",
-          statut: "received",
-          updatedAt: Timestamp.now()
-        },
-        { merge: true }
-      );
-    }
+    /* ------------------------------------------------------------------
+       CLICK → UPLOAD
+    ------------------------------------------------------------------ */
+    document.getElementById("btnUpload").addEventListener("click", async () => {
+      try {
+        const file = inputEl.files?.[0];
+        if (!file) {
+          alert("Choisir une photo");
+          return;
+        }
+
+        statusEl.textContent = "→ Upload…";
+
+        /* -----------------------------
+           1) Upload dans Storage
+        ----------------------------- */
+        const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
+        const sref = storageRef(storage, path);
+
+        await uploadBytes(sref, file);
+        const url = await getDownloadURL(sref);
 
 
-    // -----------------------------
-    // 4) Retour
-    // -----------------------------
-    setTimeout(() => {
-      location.href = `/pages/photo-batch.html?achatId=${achatId}`;
-    }, 300);
+        /* -----------------------------
+           2) Mise à jour de la ligne
+        ----------------------------- */
+        await setDoc(
+          doc(db, "achats", achatId, "lignes", lineId),
+          {
+            photo_url    : url,
+            received     : true,
+            qr_scanned   : true,
+            qr_scan_date : Timestamp.now(),
+            updatedAt    : Timestamp.now()
+          },
+          { merge: true }
+        );
 
-  } catch (e) {
-    console.error(e);
-    alert("Erreur : " + e.message);
-    statusEl.textContent = "❌ " + e.message;
-  }
-});
-</script>
+        statusEl.textContent = "✅ Photo enregistrée";
+
+
+        /* -----------------------------
+           3) Vérifier si TOUT est reçu
+        ----------------------------- */
+        const lignesCol = collection(db, "achats", achatId, "lignes");
+        const snap = await getDocs(lignesCol);
+
+        let allReceived = true;
+        snap.forEach(d => {
+          const L = d.data();
+          if (!L.received) allReceived = false;
+        });
+
+        // Si toutes reçues → passer en BL
+        if (allReceived) {
+          await setDoc(
+            doc(db, "achats", achatId),
+            {
+              type: "BL",
+              statut: "received",
+              updatedAt: Timestamp.now()
+            },
+            { merge: true }
+          );
+        }
+
+        /* -----------------------------
+           4) Retour
+        ----------------------------- */
+        setTimeout(() => {
+          location.href = `/pages/photo-batch.html?achatId=${achatId}`;
+        }, 500);
+
+      } catch (e) {
+        console.error(e);
+        alert("Erreur : " + e.message);
+        statusEl.textContent = "❌ " + e.message;
+      }
+    });
+  </script>
 
 </body>
 </html>
-
