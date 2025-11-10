@@ -7,41 +7,38 @@
   <!-- Firebase -->
   <script type="module" src="../js/firebase-init.js"></script>
 
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      font-family: sans-serif;
-      padding: 1rem;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      padding: 16px;
       background: #fafafa;
       text-align: center;
     }
 
-    h2 {
-      font-size: 1.8rem;
-      margin-bottom: 0.5rem;
-    }
+    h2 { font-size: 1.9rem; margin: 0 0 .5rem; }
 
     .big-btn {
       width: 100%;
       padding: 1.6rem;
-      margin: 1rem 0;
+      margin: .8rem 0;
       font-size: 1.6rem;
       border-radius: 14px;
       border: none;
+      display: inline-block;
+      text-align: center;
+      cursor: pointer;
     }
 
-    .btn-camera {
-      background: #2270ff;
-      color: white;
-    }
+    .btn-camera  { background: #2270ff; color: #fff; }
+    .btn-gallery { background: #ff9b00; color: #fff; }
+    .btn-upload  { background: #00b44b; color: #fff; }
 
-    .btn-gallery {
-      background: #ff9b00;
-      color: white;
-    }
-
-    .btn-upload {
-      background: #00b44b;
-      color: white;
+    /* iPhone-friendly: input présent dans le DOM mais hors écran */
+    input[type="file"] {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
     }
 
     #preview {
@@ -52,39 +49,38 @@
       border-radius: 14px;
       border: 2px solid #ccc;
       display: none;
+      background: #fff;
     }
 
     #status {
       margin-top: 1.2rem;
-      font-size: 1.4rem;
+      font-size: 1.2rem;
+      color: #333;
+      white-space: pre-wrap;
+      text-align: left;
     }
-  </style>
 
+    #info { color:#444; font-size: 1rem; }
+  </style>
 </head>
 <body>
 
   <h2>📸 Photo sanitaire</h2>
   <p id="info"></p>
 
-  <!-- INPUT PHOTO -->
-  <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
+  <!-- ✅ 2 inputs distincts (caméra / galerie) -->
+  <input id="inputCamera"  type="file" accept="image/*" capture="environment" />
+  <input id="inputGallery" type="file" accept="image/*" />
 
-  <!-- BOUTONS CHOIX -->
-  <button class="big-btn btn-camera" onclick="openCamera()">
-    📸 Prendre une photo
-  </button>
+  <!-- ✅ Labels = tap direct utilisateur (iPhone approuve) -->
+  <label for="inputCamera" class="big-btn btn-camera">📸 Prendre une photo</label>
+  <label for="inputGallery" class="big-btn btn-gallery">📁 Importer depuis la galerie</label>
 
-  <button class="big-btn btn-gallery" onclick="openGallery()">
-    📁 Importer depuis la galerie
-  </button>
+  <!-- ✅ Preview -->
+  <img id="preview" alt="Aperçu photo" />
 
-  <!-- PREVIEW -->
-  <img id="preview" />
-
-  <!-- UPLOAD -->
-  <button class="big-btn btn-upload" id="btnUpload">
-    ✅ Envoyer
-  </button>
+  <!-- ✅ Upload -->
+  <button class="big-btn btn-upload" id="btnUpload">✅ Envoyer</button>
 
   <div id="status"></div>
 
@@ -95,33 +91,57 @@
     import { app, db } from "../js/firebase-init.js";
 
     import {
-      doc,
-      setDoc,
-      Timestamp,
-      getDocs,
-      collection
+      doc, setDoc, Timestamp, getDocs, collection
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
     import {
-      getStorage,
-      ref as storageRef,
-      uploadBytes,
-      getDownloadURL
+      getStorage, ref as storageRef, uploadBytes, getDownloadURL
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
     import {
-      getAuth,
-      signInAnonymously
+      getAuth, signInAnonymously, onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    const auth = getAuth();
-    await signInAnonymously(auth).catch(() => {});
+    /* ------------------------------------------------------------------
+       Mini logger visible (utile sur iPhone sans console)
+    ------------------------------------------------------------------ */
+    const statusEl = document.getElementById("status");
+    const log = (...args) => {
+      console.log(...args);
+      statusEl.textContent += args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ') + "\\n";
+    };
 
-    const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
-
+    log("🟢 Page chargée");
 
     /* ------------------------------------------------------------------
-       PARAMS URL
+       ✅ Auth anonyme + attente
+    ------------------------------------------------------------------ */
+    const auth = getAuth();
+    try {
+      await signInAnonymously(auth);
+    } catch (e) {
+      log("⚠️ signInAnonymously:", e.message || e);
+    }
+
+    await new Promise((resolve) => {
+      const stop = onAuthStateChanged(auth, (u) => {
+        if (u) {
+          stop();
+          resolve();
+        }
+      });
+    });
+    log("✅ Anonymous Auth OK:", auth.currentUser?.uid);
+
+    /* ------------------------------------------------------------------
+       ✅ Storage
+    ------------------------------------------------------------------ */
+    // Utilise le bucket par défaut de ton firebaseConfig (recommandé)
+    const storage = getStorage(app);
+    log("✅ Storage initialisé");
+
+    /* ------------------------------------------------------------------
+       ✅ PARAMS URL
     ------------------------------------------------------------------ */
     const ps      = new URLSearchParams(location.search);
     const achatId = ps.get("achatId");
@@ -130,65 +150,55 @@
     document.getElementById("info").textContent =
       `Achat : ${achatId} / Ligne : ${lineId}`;
 
-    const statusEl  = document.getElementById("status");
-    const previewEl = document.getElementById("preview");
-    const inputEl   = document.getElementById("photoInput");
+    const previewEl  = document.getElementById("preview");
+    const inputCam   = document.getElementById("inputCamera");
+    const inputGal   = document.getElementById("inputGallery");
+    const btnUpload  = document.getElementById("btnUpload");
 
-
-    /* ------------------------------------------------------------------
-       UI Buttons
-    ------------------------------------------------------------------ */
-    window.openCamera = () => {
-      inputEl.setAttribute("capture", "environment");
-      inputEl.click();
-    };
-
-    window.openGallery = () => {
-      inputEl.removeAttribute("capture");
-      inputEl.click();
-      setTimeout(() => {
-        inputEl.setAttribute("capture", "environment");
-      }, 1000);
-    };
-
+    let currentFile = null;
 
     /* ------------------------------------------------------------------
-       PREVIEW
+       ✅ Preview (la version qui marchait chez toi)
     ------------------------------------------------------------------ */
-    inputEl.addEventListener("change", () => {
-      const f = inputEl.files?.[0];
-      if (!f) return;
-      previewEl.src = URL.createObjectURL(f);
+    function showPreview(file) {
+      currentFile = file;
+      const url = URL.createObjectURL(file); // HEIC/HEIF OK
+      previewEl.src = url;
       previewEl.style.display = "block";
+      log("🖼️ Preview OK:", { name: file.name, size: file.size, type: file.type });
+    }
+
+    inputCam.addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) { log("⚠️ Camera: aucun fichier"); return; }
+      showPreview(f);
     });
 
+    inputGal.addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) { log("⚠️ Galerie: aucun fichier"); return; }
+      showPreview(f);
+    });
 
     /* ------------------------------------------------------------------
-       CLICK → UPLOAD
+       ✅ Upload
     ------------------------------------------------------------------ */
-    document.getElementById("btnUpload").addEventListener("click", async () => {
+    btnUpload.addEventListener("click", async () => {
       try {
-        const file = inputEl.files?.[0];
-        if (!file) {
+        if (!currentFile) {
           alert("Choisir une photo");
+          log("⛔ Aucun fichier sélectionné");
           return;
         }
 
-        statusEl.textContent = "→ Upload…";
-
-        /* -----------------------------
-           1) Upload dans Storage
-        ----------------------------- */
+        log("⬆️ Upload en cours…");
         const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
         const sref = storageRef(storage, path);
 
-        await uploadBytes(sref, file);
+        await uploadBytes(sref, currentFile);
         const url = await getDownloadURL(sref);
+        log("✅ Upload OK, URL:", url);
 
-
-        /* -----------------------------
-           2) Mise à jour de la ligne
-        ----------------------------- */
         await setDoc(
           doc(db, "achats", achatId, "lignes", lineId),
           {
@@ -200,48 +210,42 @@
           },
           { merge: true }
         );
+        log("✅ Ligne mise à jour (Firestore)");
 
-        statusEl.textContent = "✅ Photo enregistrée";
-
-
-        /* -----------------------------
-           3) Vérifier si TOUT est reçu
-        ----------------------------- */
-        const lignesCol = collection(db, "achats", achatId, "lignes");
-        const snap = await getDocs(lignesCol);
-
+        // Vérifier si toutes les lignes sont reçues
+        const snap = await getDocs(collection(db, "achats", achatId, "lignes"));
         let allReceived = true;
-        snap.forEach(d => {
-          const L = d.data();
-          if (!L.received) allReceived = false;
-        });
+        snap.forEach(d => { if (!d.data().received) allReceived = false; });
 
-        // Si toutes reçues → passer en BL
         if (allReceived) {
           await setDoc(
             doc(db, "achats", achatId),
-            {
-              type: "BL",
-              statut: "received",
-              updatedAt: Timestamp.now()
-            },
+            { type: "BL", statut: "received", updatedAt: Timestamp.now() },
             { merge: true }
           );
+          log("✅ Achat passé en BL/received");
         }
 
-        /* -----------------------------
-           4) Retour
-        ----------------------------- */
         setTimeout(() => {
           location.href = `/pages/photo-batch.html?achatId=${achatId}`;
-        }, 500);
+        }, 600);
 
       } catch (e) {
-        console.error(e);
-        alert("Erreur : " + e.message);
-        statusEl.textContent = "❌ " + e.message;
+        log("❌ Erreur upload:", e.message || e);
+        alert("Erreur : " + (e.message || e));
       }
     });
+
+    /* ------------------------------------------------------------------
+       ✅ Sanity-check iPhone : event “change” déclenché ?
+    ------------------------------------------------------------------ */
+    // (Si jamais rien ne s’affiche après sélection, on verra ici des logs)
+    ["focus","click","touchstart","touchend","change","input"].forEach(ev => {
+      inputCam.addEventListener(ev, () => log(`📱 CAM event: ${ev}`));
+      inputGal.addEventListener(ev, () => log(`📱 GAL event: ${ev}`));
+    });
+
+    log("🧪 Prêt. Ouvre caméra ou galerie.");
   </script>
 
 </body>
