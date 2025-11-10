@@ -67,15 +67,18 @@
   <h2>📸 Photo sanitaire</h2>
   <p id="info"></p>
 
-  <!-- ✅ INPUT PHOTO -->
-  <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
+  <!-- ✅ INPUT CAMERA -->
+  <input id="inputCamera" type="file" accept="image/*" capture="environment" style="display:none" />
 
-  <!-- ✅ BOUTONS (compatibles mobile) -->
-  <label for="photoInput" class="big-btn btn-camera">
+  <!-- ✅ INPUT GALERIE -->
+  <input id="inputGallery" type="file" accept="image/*" style="display:none" />
+
+  <!-- ✅ BOUTONS -->
+  <label for="inputCamera" class="big-btn btn-camera">
     📸 Prendre une photo
   </label>
 
-  <label for="photoInput" class="big-btn btn-gallery" id="galleryBtn">
+  <label for="inputGallery" class="big-btn btn-gallery">
     📁 Importer depuis la galerie
   </label>
 
@@ -151,39 +154,43 @@
     document.getElementById("info").textContent =
       `Achat : ${achatId} / Ligne : ${lineId}`;
 
-    const statusEl  = document.getElementById("status");
-    const previewEl = document.getElementById("preview");
-    const inputEl   = document.getElementById("photoInput");
-    const galleryBtn = document.getElementById("galleryBtn");
+    const statusEl   = document.getElementById("status");
+    const previewEl  = document.getElementById("preview");
+    const inputCam   = document.getElementById("inputCamera");
+    const inputGal   = document.getElementById("inputGallery");
+
+    let currentFile = null;
 
 
     /* ------------------------------------------------------------------
-       ✅ Forcer mode Galerie (supprimer capture temporairement)
+       ✅ PREVIEW CAMERA
     ------------------------------------------------------------------ */
-    galleryBtn.addEventListener("click", () => {
-      inputEl.removeAttribute("capture");   // autorise la galerie
-      setTimeout(() => {
-        inputEl.setAttribute("capture", "environment");
-      }, 800);
-    });
-
-    /* ------------------------------------------------------------------
-       ✅ PREVIEW
-    ------------------------------------------------------------------ */
-    inputEl.addEventListener("change", () => {
-      const f = inputEl.files?.[0];
+    inputCam.addEventListener("change", () => {
+      const f = inputCam.files?.[0];
       if (!f) return;
+      currentFile = f;
       previewEl.src = URL.createObjectURL(f);
       previewEl.style.display = "block";
     });
+
+    /* ------------------------------------------------------------------
+       ✅ PREVIEW GALLERY
+    ------------------------------------------------------------------ */
+    inputGal.addEventListener("change", () => {
+      const f = inputGal.files?.[0];
+      if (!f) return;
+      currentFile = f;
+      previewEl.src = URL.createObjectURL(f);
+      previewEl.style.display = "block";
+    });
+
 
     /* ------------------------------------------------------------------
        ✅ CLICK → UPLOAD
     ------------------------------------------------------------------ */
     document.getElementById("btnUpload").addEventListener("click", async () => {
       try {
-        const file = inputEl.files?.[0];
-        if (!file) {
+        if (!currentFile) {
           alert("Choisir une photo");
           return;
         }
@@ -194,7 +201,7 @@
         const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
         const sref = storageRef(storage, path);
 
-        await uploadBytes(sref, file);
+        await uploadBytes(sref, currentFile);
         const url = await getDownloadURL(sref);
 
         // 2) Mise à jour Firestore
