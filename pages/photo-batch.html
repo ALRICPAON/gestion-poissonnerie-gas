@@ -8,13 +8,36 @@
   <script type="module" src="../js/auth.js"></script>
 
   <style>
-    body { font-family: sans-serif; padding:1rem; }
-    .row {
-      border:1px solid #ddd; padding:1rem; margin-bottom:.8rem;
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    button { padding:.6rem 1rem; }
-  </style>
+  body { font-family: sans-serif; padding:1rem; }
+
+  .row {
+    border:1px solid #ddd;
+    padding:1rem;
+    margin-bottom:.8rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:1rem;
+  }
+
+  .row b {
+    font-size:1.2rem;
+  }
+
+  button {
+    padding:.6rem 1rem;
+  }
+
+  .mobile-btn {
+    padding:1rem 1.4rem;
+    font-size:1.2rem;
+    border-radius:12px;
+    background:#1293a9;
+    color:white;
+    border:none;
+  }
+</style>
+
 </head>
 <body>
 
@@ -44,6 +67,7 @@ const list = document.getElementById("list");
 
 snap.forEach(d => {
   const L = d.data();
+  if (!L.plu) return;   // ⬅️ ignore les lignes sans PLU
   const div = document.createElement("div");
   div.className="row";
 
