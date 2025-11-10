@@ -17,7 +17,6 @@
 
     h2 {
       font-size: 1.8rem;
-      margin-bottom: 0.5rem;
     }
 
     .big-btn {
@@ -28,11 +27,20 @@
       border-radius: 14px;
       border: none;
       display: block;
+      text-align: center;
+      cursor: pointer;
     }
 
     .btn-camera { background:#2270ff; color:white; }
     .btn-gallery { background:#ff9b00; color:white; }
     .btn-upload { background:#00b44b; color:white; }
+
+    /* ✅ iPhone compatibility */
+    input[type=file] {
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+    }
 
     #preview {
       width: 100%;
@@ -56,18 +64,20 @@
   <h2>📸 Photo sanitaire</h2>
   <p id="info"></p>
 
-  <!-- ✅ INPUTS (visibles mais réduits → Safari OK) -->
-  <input id="inputCamera" type="file" accept="image/*" capture="environment" style="opacity:0; height:0; width:0;" />
-  <input id="inputGallery" type="file" accept="image/*" style="opacity:0; height:0; width:0;" />
+  <!-- ✅ INPUT CAMERA -->
+  <input id="inputCamera" type="file" accept="image/*" capture="environment" />
 
-  <!-- ✅ BOUTONS -->
-  <button class="big-btn btn-camera" id="btnCam">
+  <!-- ✅ INPUT GALLERIE -->
+  <input id="inputGallery" type="file" accept="image/*" />
+
+  <!-- ✅ LABELS = iPhone OK -->
+  <label for="inputCamera" class="big-btn btn-camera">
     📸 Prendre une photo
-  </button>
+  </label>
 
-  <button class="big-btn btn-gallery" id="btnGal">
+  <label for="inputGallery" class="big-btn btn-gallery">
     📁 Importer depuis la galerie
-  </button>
+  </label>
 
   <!-- ✅ PREVIEW -->
   <img id="preview" />
@@ -79,167 +89,147 @@
 
   <div id="status"></div>
 
-  <script type="module">
-    /* ------------------------------------------------------------------
-       IMPORTS
-    ------------------------------------------------------------------ */
-    import { app, db } from "../js/firebase-init.js";
+<script type="module">
+import { app, db } from "../js/firebase-init.js";
 
-    import {
-      doc,
-      setDoc,
-      Timestamp,
-      getDocs,
-      collection
-    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import {
+  doc, setDoc, Timestamp, getDocs, collection
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    import {
-      getStorage,
-      ref as storageRef,
-      uploadBytes,
-      getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+import {
+  getStorage, ref as storageRef, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
-    import {
-      getAuth,
-      signInAnonymously,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    /* -------------------------------------------------------------
-       ✅ Auth anonyme + attente
-    ------------------------------------------------------------- */
-    const auth = getAuth();
-    await signInAnonymously(auth).catch(() => {});
+/* -------------------------------------------------------------
+   ✅ Auth anonyme
+------------------------------------------------------------- */
+const auth = getAuth();
+await signInAnonymously(auth).catch(() => {});
 
-    function waitAuth() {
-      return new Promise((resolve) => {
-        const stop = onAuthStateChanged(auth, (u) => {
-          if (u) {
-            stop();
-            resolve(u);
-          }
-        });
-      });
-    }
-    await waitAuth();
-
-    console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
-
-    /* -------------------------------------------------------------
-       ✅ Storage
-    ------------------------------------------------------------- */
-    const storage = getStorage(app);
-
-    /* -------------------------------------------------------------
-       ✅ PARAMS URL
-    ------------------------------------------------------------- */
-    const ps      = new URLSearchParams(location.search);
-    const achatId = ps.get("achatId");
-    const lineId  = ps.get("lineId");
-
-    document.getElementById("info").textContent =
-      `Achat : ${achatId} / Ligne : ${lineId}`;
-
-    const previewEl  = document.getElementById("preview");
-    const statusEl   = document.getElementById("status");
-
-    const inputCam   = document.getElementById("inputCamera");
-    const inputGal   = document.getElementById("inputGallery");
-    const btnCam     = document.getElementById("btnCam");
-    const btnGal     = document.getElementById("btnGal");
-
-    let currentFile = null;
-
-    /* -------------------------------------------------------------
-       ✅ Buttons → open inputs
-    ------------------------------------------------------------- */
-    btnCam.addEventListener("click", () => inputCam.click());
-    btnGal.addEventListener("click", () => inputGal.click());
-
-    /* -------------------------------------------------------------
-       ✅ Preview
-    ------------------------------------------------------------- */
-    function show(file) {
-      currentFile = file;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        previewEl.src = e.target.result;
-        previewEl.style.display = "block";
-      };
-      reader.readAsDataURL(file);
-    }
-
-    inputCam.addEventListener("change", (e) => {
-      if (e.target.files?.[0]) show(e.target.files[0]);
-    });
-
-    inputGal.addEventListener("change", (e) => {
-      if (e.target.files?.[0]) show(e.target.files[0]);
-    });
-
-    /* -------------------------------------------------------------
-       ✅ Upload
-    ------------------------------------------------------------- */
-    document.getElementById("btnUpload").addEventListener("click", async () => {
-      try {
-        if (!currentFile) {
-          alert("Sélectionne une photo");
-          return;
-        }
-
-        statusEl.textContent = "→ Upload…";
-
-        const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
-        const sref = storageRef(storage, path);
-
-        await uploadBytes(sref, currentFile);
-        const url = await getDownloadURL(sref);
-
-        await setDoc(
-          doc(db, "achats", achatId, "lignes", lineId),
-          {
-            photo_url    : url,
-            received     : true,
-            qr_scanned   : true,
-            qr_scan_date : Timestamp.now(),
-            updatedAt    : Timestamp.now()
-          },
-          { merge: true }
-        );
-
-        statusEl.textContent = "✅ Photo enregistrée";
-
-        // Vérifie si tout reçu
-        const snap = await getDocs(collection(db, "achats", achatId, "lignes"));
-        let allReceived = true;
-        snap.forEach(d => {
-          if (!d.data().received) allReceived = false;
-        });
-
-        if (allReceived) {
-          await setDoc(
-            doc(db, "achats", achatId),
-            {
-              type: "BL",
-              statut: "received",
-              updatedAt: Timestamp.now()
-            },
-            { merge: true }
-          );
-        }
-
-        setTimeout(() => {
-          location.href = `/pages/photo-batch.html?achatId=${achatId}`;
-        }, 600);
-
-      } catch (e) {
-        console.error(e);
-        alert("Erreur : " + e.message);
-        statusEl.textContent = "❌ " + e.message;
+function waitAuth() {
+  return new Promise((resolve) => {
+    const stop = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        stop();
+        resolve(u);
       }
     });
-  </script>
+  });
+}
+await waitAuth();
+
+console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
+
+/* -------------------------------------------------------------
+   ✅ Storage
+------------------------------------------------------------- */
+const storage = getStorage(app);
+
+/* -------------------------------------------------------------
+   URL params
+------------------------------------------------------------- */
+const ps = new URLSearchParams(location.search);
+const achatId = ps.get("achatId");
+const lineId  = ps.get("lineId");
+
+document.getElementById("info").textContent =
+  `Achat : ${achatId} / Ligne : ${lineId}`;
+
+const statusEl   = document.getElementById("status");
+const previewEl  = document.getElementById("preview");
+const inputCam   = document.getElementById("inputCamera");
+const inputGal   = document.getElementById("inputGallery");
+
+let currentFile = null;
+
+/* -------------------------------------------------------------
+   ✅ Preview
+------------------------------------------------------------- */
+function showPreview(file) {
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewEl.src = e.target.result;
+    previewEl.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+inputCam.addEventListener("change", e => {
+  const f = e.target.files?.[0];
+  if (f) showPreview(f);
+});
+
+inputGal.addEventListener("change", e => {
+  const f = e.target.files?.[0];
+  if (f) showPreview(f);
+});
+
+/* -------------------------------------------------------------
+   ✅ Upload
+------------------------------------------------------------- */
+document.getElementById("btnUpload").addEventListener("click", async () => {
+  try {
+    if (!currentFile) {
+      alert("Sélectionne une photo");
+      return;
+    }
+
+    statusEl.textContent = "→ Upload…";
+
+    const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
+    const sref = storageRef(storage, path);
+
+    await uploadBytes(sref, currentFile);
+    const url = await getDownloadURL(sref);
+
+    await setDoc(
+      doc(db, "achats", achatId, "lignes", lineId),
+      {
+        photo_url    : url,
+        received     : true,
+        qr_scanned   : true,
+        qr_scan_date : Timestamp.now(),
+        updatedAt    : Timestamp.now()
+      },
+      { merge: true }
+    );
+
+    statusEl.textContent = "✅ Photo enregistrée";
+
+    const snap = await getDocs(collection(db, "achats", achatId, "lignes"));
+    let allReceived = true;
+    snap.forEach(d => {
+      if (!d.data().received) allReceived = false;
+    });
+
+    if (allReceived) {
+      await setDoc(
+        doc(db, "achats", achatId),
+        {
+          type: "BL",
+          statut: "received",
+          updatedAt: Timestamp.now()
+        },
+        { merge: true }
+      );
+    }
+
+    setTimeout(() => {
+      location.href = `/pages/photo-batch.html?achatId=${achatId}`;
+    }, 600);
+
+  } catch (e) {
+    console.error(e);
+    alert("Erreur : " + e.message);
+    statusEl.textContent = "❌ " + e.message;
+  }
+});
+</script>
 
 </body>
 </html>
