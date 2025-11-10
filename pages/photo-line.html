@@ -45,6 +45,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
 const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+const auth = getAuth();
+await signInAnonymously(auth).catch(() => {});
 
 
 
