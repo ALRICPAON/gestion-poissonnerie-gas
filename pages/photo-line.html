@@ -93,45 +93,29 @@
 import { app, db } from "../js/firebase-init.js";
 
 import {
-  doc, setDoc, Timestamp, getDocs, collection
+  doc,
+  setDoc,
+  Timestamp,
+  getDocs,
+  collection
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 import {
-  getStorage, ref as storageRef, uploadBytes, getDownloadURL
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
 import {
-  getAuth, signInAnonymously, onAuthStateChanged
+  getAuth,
+  signInAnonymously
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-/* -------------------------------------------------------------
-   ✅ Auth anonyme
-------------------------------------------------------------- */
 const auth = getAuth();
 await signInAnonymously(auth).catch(() => {});
+const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
 
-function waitAuth() {
-  return new Promise((resolve) => {
-    const stop = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        stop();
-        resolve(u);
-      }
-    });
-  });
-}
-await waitAuth();
-
-console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
-
-/* -------------------------------------------------------------
-   ✅ Storage
-------------------------------------------------------------- */
-const storage = getStorage(app);
-
-/* -------------------------------------------------------------
-   URL params
-------------------------------------------------------------- */
 const ps = new URLSearchParams(location.search);
 const achatId = ps.get("achatId");
 const lineId  = ps.get("lineId");
@@ -139,41 +123,47 @@ const lineId  = ps.get("lineId");
 document.getElementById("info").textContent =
   `Achat : ${achatId} / Ligne : ${lineId}`;
 
-const statusEl   = document.getElementById("status");
-const previewEl  = document.getElementById("preview");
-const inputCam   = document.getElementById("inputCamera");
-const inputGal   = document.getElementById("inputGallery");
+const inputEl   = document.getElementById("photoInput");
+const previewEl = document.getElementById("preview");
+const statusEl  = document.getElementById("status");
 
 let currentFile = null;
 
-/* -------------------------------------------------------------
-   ✅ Preview (HEIC OK)
-------------------------------------------------------------- */
-function showPreview(file) {
-  currentFile = file;
-  const url = URL.createObjectURL(file);
-  previewEl.src = url;
+
+/* -------------------------------------------------------
+✅ Preview (fonctionnait sur iPhone)
+-------------------------------------------------------- */
+inputEl.addEventListener("change", (e) => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+
+  currentFile = f;
+  previewEl.src = URL.createObjectURL(f);   // ✅ iPhone OK
   previewEl.style.display = "block";
-}
-
-inputCam.addEventListener("change", e => {
-  const f = e.target.files?.[0];
-  if (f) showPreview(f);
-});
-
-inputGal.addEventListener("change", e => {
-  const f = e.target.files?.[0];
-  if (f) showPreview(f);
 });
 
 
-/* -------------------------------------------------------------
-   ✅ Upload
-------------------------------------------------------------- */
+/* -------------------------------------------------------
+✅ Boutons — version OK
+-------------------------------------------------------- */
+window.openCamera = () => {
+  inputEl.setAttribute("capture", "environment");
+  inputEl.click();
+};
+
+window.openGallery = () => {
+  inputEl.removeAttribute("capture");
+  inputEl.click();
+};
+
+
+/* -------------------------------------------------------
+✅ Envoi (c’était FAIL à cause des règles)
+-------------------------------------------------------- */
 document.getElementById("btnUpload").addEventListener("click", async () => {
   try {
     if (!currentFile) {
-      alert("Sélectionne une photo");
+      alert("Choisir une photo");
       return;
     }
 
@@ -199,7 +189,9 @@ document.getElementById("btnUpload").addEventListener("click", async () => {
 
     statusEl.textContent = "✅ Photo enregistrée";
 
-    const snap = await getDocs(collection(db, "achats", achatId, "lignes"));
+    const lignesCol = collection(db, "achats", achatId, "lignes");
+    const snap = await getDocs(lignesCol);
+
     let allReceived = true;
     snap.forEach(d => {
       if (!d.data().received) allReceived = false;
@@ -219,7 +211,7 @@ document.getElementById("btnUpload").addEventListener("click", async () => {
 
     setTimeout(() => {
       location.href = `/pages/photo-batch.html?achatId=${achatId}`;
-    }, 600);
+    }, 300);
 
   } catch (e) {
     console.error(e);
@@ -228,6 +220,7 @@ document.getElementById("btnUpload").addEventListener("click", async () => {
   }
 });
 </script>
+
 
 </body>
 </html>
