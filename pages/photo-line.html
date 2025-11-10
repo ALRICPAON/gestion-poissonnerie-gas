@@ -27,20 +27,12 @@
       font-size: 1.6rem;
       border-radius: 14px;
       border: none;
+      display: block;
     }
 
     .btn-camera { background:#2270ff; color:white; }
     .btn-gallery { background:#ff9b00; color:white; }
     .btn-upload { background:#00b44b; color:white; }
-
-    /* ✅ Input visible mais minuscule → Safari OK */
-    input[type=file] {
-      opacity: 0.01;
-      width: 1px;
-      height: 1px;
-      position: absolute;
-      z-index: -1;
-    }
 
     #preview {
       width: 100%;
@@ -64,9 +56,9 @@
   <h2>📸 Photo sanitaire</h2>
   <p id="info"></p>
 
-  <!-- ✅ INPUTS -->
-  <input id="inputCamera" type="file" accept="image/*" capture="environment" />
-  <input id="inputGallery" type="file" accept="image/*" />
+  <!-- ✅ INPUTS (visibles mais réduits → Safari OK) -->
+  <input id="inputCamera" type="file" accept="image/*" capture="environment" style="opacity:0; height:0; width:0;" />
+  <input id="inputGallery" type="file" accept="image/*" style="opacity:0; height:0; width:0;" />
 
   <!-- ✅ BOUTONS -->
   <button class="big-btn btn-camera" id="btnCam">
@@ -149,8 +141,9 @@
     document.getElementById("info").textContent =
       `Achat : ${achatId} / Ligne : ${lineId}`;
 
-    const statusEl   = document.getElementById("status");
     const previewEl  = document.getElementById("preview");
+    const statusEl   = document.getElementById("status");
+
     const inputCam   = document.getElementById("inputCamera");
     const inputGal   = document.getElementById("inputGallery");
     const btnCam     = document.getElementById("btnCam");
@@ -165,11 +158,10 @@
     btnGal.addEventListener("click", () => inputGal.click());
 
     /* -------------------------------------------------------------
-       ✅ Preview Handler
+       ✅ Preview
     ------------------------------------------------------------- */
-    function showPreview(file) {
+    function show(file) {
       currentFile = file;
-
       const reader = new FileReader();
       reader.onload = (e) => {
         previewEl.src = e.target.result;
@@ -179,13 +171,11 @@
     }
 
     inputCam.addEventListener("change", (e) => {
-      const f = e.target.files?.[0];
-      if (f) showPreview(f);
+      if (e.target.files?.[0]) show(e.target.files[0]);
     });
 
     inputGal.addEventListener("change", (e) => {
-      const f = e.target.files?.[0];
-      if (f) showPreview(f);
+      if (e.target.files?.[0]) show(e.target.files[0]);
     });
 
     /* -------------------------------------------------------------
@@ -220,6 +210,7 @@
 
         statusEl.textContent = "✅ Photo enregistrée";
 
+        // Vérifie si tout reçu
         const snap = await getDocs(collection(db, "achats", achatId, "lignes"));
         let allReceived = true;
         snap.forEach(d => {
