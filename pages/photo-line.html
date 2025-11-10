@@ -115,7 +115,21 @@
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     const auth = getAuth();
-    await signInAnonymously(auth).catch(() => {});
+await signInAnonymously(auth).catch(() => {});
+
+// ✅ On attend que l’auth anonyme soit vraiment active
+function waitAuth() {
+  return new Promise((resolve) => {
+    const unsub = auth.onAuthStateChanged((u) => {
+      if (u) {
+        unsub();
+        resolve(u);
+      }
+    });
+  });
+}
+await waitAuth();
+console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
 
     const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
 
