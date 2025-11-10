@@ -17,6 +17,7 @@
 
     h2 {
       font-size: 1.8rem;
+      margin-bottom: 0.5rem;
     }
 
     .big-btn {
@@ -26,20 +27,21 @@
       font-size: 1.6rem;
       border-radius: 14px;
       border: none;
-      display: block;
-      text-align: center;
-      cursor: pointer;
     }
 
-    .btn-camera { background:#2270ff; color:white; }
-    .btn-gallery { background:#ff9b00; color:white; }
-    .btn-upload { background:#00b44b; color:white; }
+    .btn-camera {
+      background: #2270ff;
+      color: white;
+    }
 
-    /* ✅ iPhone compatibility */
-    input[type=file] {
-      position: absolute;
-      top: -9999px;
-      left: -9999px;
+    .btn-gallery {
+      background: #ff9b00;
+      color: white;
+    }
+
+    .btn-upload {
+      background: #00b44b;
+      color: white;
     }
 
     #preview {
@@ -57,170 +59,190 @@
       font-size: 1.4rem;
     }
   </style>
-</head>
 
+</head>
 <body>
 
   <h2>📸 Photo sanitaire</h2>
   <p id="info"></p>
 
-  <!-- ✅ INPUT CAMERA -->
-  <input id="inputCamera" type="file" accept="image/*" capture="environment" />
+  <!-- INPUT PHOTO -->
+  <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
 
-  <!-- ✅ INPUT GALLERIE -->
-  <input id="inputGallery" type="file" accept="image/*" />
-
-  <!-- ✅ LABELS = iPhone OK -->
-  <label for="inputCamera" class="big-btn btn-camera">
+  <!-- BOUTONS CHOIX -->
+  <button class="big-btn btn-camera" onclick="openCamera()">
     📸 Prendre une photo
-  </label>
+  </button>
 
-  <label for="inputGallery" class="big-btn btn-gallery">
+  <button class="big-btn btn-gallery" onclick="openGallery()">
     📁 Importer depuis la galerie
-  </label>
+  </button>
 
-  <!-- ✅ PREVIEW -->
+  <!-- PREVIEW -->
   <img id="preview" />
 
-  <!-- ✅ UPLOAD -->
+  <!-- UPLOAD -->
   <button class="big-btn btn-upload" id="btnUpload">
     ✅ Envoyer
   </button>
 
   <div id="status"></div>
 
-<script type="module">
-import { app, db } from "../js/firebase-init.js";
+  <script type="module">
+    /* ------------------------------------------------------------------
+       IMPORTS
+    ------------------------------------------------------------------ */
+    import { app, db } from "../js/firebase-init.js";
 
-import {
-  doc,
-  setDoc,
-  Timestamp,
-  getDocs,
-  collection
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import {
+      doc,
+      setDoc,
+      Timestamp,
+      getDocs,
+      collection
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+    import {
+      getStorage,
+      ref as storageRef,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
-import {
-  getAuth,
-  signInAnonymously
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import {
+      getAuth,
+      signInAnonymously
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-const auth = getAuth();
-await signInAnonymously(auth).catch(() => {});
-const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
+    const auth = getAuth();
+    await signInAnonymously(auth).catch(() => {});
 
-const ps = new URLSearchParams(location.search);
-const achatId = ps.get("achatId");
-const lineId  = ps.get("lineId");
-
-document.getElementById("info").textContent =
-  `Achat : ${achatId} / Ligne : ${lineId}`;
-
-const inputEl   = document.getElementById("photoInput");
-const previewEl = document.getElementById("preview");
-const statusEl  = document.getElementById("status");
-
-let currentFile = null;
+    const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
 
 
-/* -------------------------------------------------------
-✅ Preview (fonctionnait sur iPhone)
--------------------------------------------------------- */
-inputEl.addEventListener("change", (e) => {
-  const f = e.target.files?.[0];
-  if (!f) return;
+    /* ------------------------------------------------------------------
+       PARAMS URL
+    ------------------------------------------------------------------ */
+    const ps      = new URLSearchParams(location.search);
+    const achatId = ps.get("achatId");
+    const lineId  = ps.get("lineId");
 
-  currentFile = f;
-  previewEl.src = URL.createObjectURL(f);   // ✅ iPhone OK
-  previewEl.style.display = "block";
-});
+    document.getElementById("info").textContent =
+      `Achat : ${achatId} / Ligne : ${lineId}`;
 
-
-/* -------------------------------------------------------
-✅ Boutons — version OK
--------------------------------------------------------- */
-window.openCamera = () => {
-  inputEl.setAttribute("capture", "environment");
-  inputEl.click();
-};
-
-window.openGallery = () => {
-  inputEl.removeAttribute("capture");
-  inputEl.click();
-};
+    const statusEl  = document.getElementById("status");
+    const previewEl = document.getElementById("preview");
+    const inputEl   = document.getElementById("photoInput");
 
 
-/* -------------------------------------------------------
-✅ Envoi (c’était FAIL à cause des règles)
--------------------------------------------------------- */
-document.getElementById("btnUpload").addEventListener("click", async () => {
-  try {
-    if (!currentFile) {
-      alert("Choisir une photo");
-      return;
-    }
+    /* ------------------------------------------------------------------
+       UI Buttons
+    ------------------------------------------------------------------ */
+    window.openCamera = () => {
+      inputEl.setAttribute("capture", "environment");
+      inputEl.click();
+    };
 
-    statusEl.textContent = "→ Upload…";
+    window.openGallery = () => {
+      inputEl.removeAttribute("capture");
+      inputEl.click();
+      setTimeout(() => {
+        inputEl.setAttribute("capture", "environment");
+      }, 1000);
+    };
 
-    const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
-    const sref = storageRef(storage, path);
 
-    await uploadBytes(sref, currentFile);
-    const url = await getDownloadURL(sref);
-
-    await setDoc(
-      doc(db, "achats", achatId, "lignes", lineId),
-      {
-        photo_url    : url,
-        received     : true,
-        qr_scanned   : true,
-        qr_scan_date : Timestamp.now(),
-        updatedAt    : Timestamp.now()
-      },
-      { merge: true }
-    );
-
-    statusEl.textContent = "✅ Photo enregistrée";
-
-    const lignesCol = collection(db, "achats", achatId, "lignes");
-    const snap = await getDocs(lignesCol);
-
-    let allReceived = true;
-    snap.forEach(d => {
-      if (!d.data().received) allReceived = false;
+    /* ------------------------------------------------------------------
+       PREVIEW
+    ------------------------------------------------------------------ */
+    inputEl.addEventListener("change", () => {
+      const f = inputEl.files?.[0];
+      if (!f) return;
+      previewEl.src = URL.createObjectURL(f);
+      previewEl.style.display = "block";
     });
 
-    if (allReceived) {
-      await setDoc(
-        doc(db, "achats", achatId),
-        {
-          type: "BL",
-          statut: "received",
-          updatedAt: Timestamp.now()
-        },
-        { merge: true }
-      );
-    }
 
-    setTimeout(() => {
-      location.href = `/pages/photo-batch.html?achatId=${achatId}`;
-    }, 300);
+    /* ------------------------------------------------------------------
+       CLICK → UPLOAD
+    ------------------------------------------------------------------ */
+    document.getElementById("btnUpload").addEventListener("click", async () => {
+      try {
+        const file = inputEl.files?.[0];
+        if (!file) {
+          alert("Choisir une photo");
+          return;
+        }
 
-  } catch (e) {
-    console.error(e);
-    alert("Erreur : " + e.message);
-    statusEl.textContent = "❌ " + e.message;
-  }
-});
-</script>
+        statusEl.textContent = "→ Upload…";
 
+        /* -----------------------------
+           1) Upload dans Storage
+        ----------------------------- */
+        const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
+        const sref = storageRef(storage, path);
+
+        await uploadBytes(sref, file);
+        const url = await getDownloadURL(sref);
+
+
+        /* -----------------------------
+           2) Mise à jour de la ligne
+        ----------------------------- */
+        await setDoc(
+          doc(db, "achats", achatId, "lignes", lineId),
+          {
+            photo_url    : url,
+            received     : true,
+            qr_scanned   : true,
+            qr_scan_date : Timestamp.now(),
+            updatedAt    : Timestamp.now()
+          },
+          { merge: true }
+        );
+
+        statusEl.textContent = "✅ Photo enregistrée";
+
+
+        /* -----------------------------
+           3) Vérifier si TOUT est reçu
+        ----------------------------- */
+        const lignesCol = collection(db, "achats", achatId, "lignes");
+        const snap = await getDocs(lignesCol);
+
+        let allReceived = true;
+        snap.forEach(d => {
+          const L = d.data();
+          if (!L.received) allReceived = false;
+        });
+
+        // Si toutes reçues → passer en BL
+        if (allReceived) {
+          await setDoc(
+            doc(db, "achats", achatId),
+            {
+              type: "BL",
+              statut: "received",
+              updatedAt: Timestamp.now()
+            },
+            { merge: true }
+          );
+        }
+
+        /* -----------------------------
+           4) Retour
+        ----------------------------- */
+        setTimeout(() => {
+          location.href = `/pages/photo-batch.html?achatId=${achatId}`;
+        }, 500);
+
+      } catch (e) {
+        console.error(e);
+        alert("Erreur : " + e.message);
+        statusEl.textContent = "❌ " + e.message;
+      }
+    });
+  </script>
 
 </body>
 </html>
