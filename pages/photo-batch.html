@@ -67,16 +67,18 @@ const list = document.getElementById("list");
 
 snap.forEach(d => {
   const L = d.data();
+  if (L.received) return;
   if (!L.plu) return;   // ⬅️ ignore les lignes sans PLU
   const div = document.createElement("div");
   div.className="row";
 
   div.innerHTML = `
     <div>
-      <b>${L.plu || ""}</b> — ${L.designation || ""} <br>
-      ${L.poidsTotalKg || ""} kg
+      <div style="font-size:1.2rem; font-weight:bold;">${L.plu || ""}</div>
+<div>${L.designation || ""}</div>
+<div style="margin-top:.2rem; color:#666;">${L.poidsTotalKg || ""} kg</div>
     </div>
-    <button data-id="${d.id}">📷</button>
+    <button class="mobile-btn" data-id="${d.id}">📸 Photo</button>
   `;
 
   div.querySelector("button").addEventListener("click",()=>{
