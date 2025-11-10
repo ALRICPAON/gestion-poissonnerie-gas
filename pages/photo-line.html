@@ -62,6 +62,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <h2>📸 Photo sanitaire</h2>
@@ -136,7 +137,6 @@
       });
     }
     await waitAuth();
-
     console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
 
     /* ------------------------------------------------------------------
@@ -161,29 +161,34 @@
 
     let currentFile = null;
 
+    /* ------------------------------------------------------------------
+       ✅ Preview helper
+    ------------------------------------------------------------------ */
+    function showPreview(file) {
+      currentFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewEl.src = e.target.result;
+        previewEl.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    }
 
     /* ------------------------------------------------------------------
        ✅ PREVIEW CAMERA
     ------------------------------------------------------------------ */
-    inputCam.addEventListener("change", () => {
-      const f = inputCam.files?.[0];
-      if (!f) return;
-      currentFile = f;
-      previewEl.src = URL.createObjectURL(f);
-      previewEl.style.display = "block";
+    inputCam.addEventListener("change", (e) => {
+      const f = e.target.files?.[0];
+      if (f) showPreview(f);
     });
 
     /* ------------------------------------------------------------------
        ✅ PREVIEW GALLERY
     ------------------------------------------------------------------ */
-    inputGal.addEventListener("change", () => {
-      const f = inputGal.files?.[0];
-      if (!f) return;
-      currentFile = f;
-      previewEl.src = URL.createObjectURL(f);
-      previewEl.style.display = "block";
+    inputGal.addEventListener("change", (e) => {
+      const f = e.target.files?.[0];
+      if (f) showPreview(f);
     });
-
 
     /* ------------------------------------------------------------------
        ✅ CLICK → UPLOAD
@@ -191,20 +196,18 @@
     document.getElementById("btnUpload").addEventListener("click", async () => {
       try {
         if (!currentFile) {
-          alert("Choisir une photo");
+          alert("Sélectionne une photo");
           return;
         }
 
         statusEl.textContent = "→ Upload…";
 
-        // 1) Upload Storage
         const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
         const sref = storageRef(storage, path);
 
         await uploadBytes(sref, currentFile);
         const url = await getDownloadURL(sref);
 
-        // 2) Mise à jour Firestore
         await setDoc(
           doc(db, "achats", achatId, "lignes", lineId),
           {
@@ -219,16 +222,13 @@
 
         statusEl.textContent = "✅ Photo enregistrée";
 
-        // 3) Vérifier si tout reçu
-        const lignesCol = collection(db, "achats", achatId, "lignes");
-        const snap = await getDocs(lignesCol);
-
+        // Vérifier si tout est reçu
+        const snap = await getDocs(collection(db, "achats", achatId, "lignes"));
         let allReceived = true;
         snap.forEach(d => {
           if (!d.data().received) allReceived = false;
         });
 
-        // Passe l'achat en BL si tout reçu
         if (allReceived) {
           await setDoc(
             doc(db, "achats", achatId),
