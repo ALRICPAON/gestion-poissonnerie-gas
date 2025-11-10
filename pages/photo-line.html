@@ -8,58 +8,15 @@
   <script type="module" src="../js/firebase-init.js"></script>
 
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 1rem;
-      background: #fafafa;
-      text-align: center;
-    }
-
-    h2 {
-      font-size: 1.8rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .big-btn {
-      width: 100%;
-      padding: 1.6rem;
-      margin: 1rem 0;
-      font-size: 1.6rem;
-      border-radius: 14px;
-      border: none;
-    }
-
-    .btn-camera {
-      background: #2270ff;
-      color: white;
-    }
-
-    .btn-gallery {
-      background: #ff9b00;
-      color: white;
-    }
-
-    .btn-upload {
-      background: #00b44b;
-      color: white;
-    }
-
-    #preview {
-      width: 100%;
-      max-height: 60vh;
-      object-fit: contain;
-      margin-top: 1rem;
-      border-radius: 14px;
-      border: 2px solid #ccc;
-      display: none;
-    }
-
-    #status {
-      margin-top: 1.2rem;
-      font-size: 1.4rem;
-    }
+    body { font-family: sans-serif; padding: 1rem; background: #fafafa; text-align: center; }
+    h2 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .big-btn { width: 100%; padding: 1.6rem; margin: 1rem 0; font-size: 1.6rem; border-radius: 14px; border: none; }
+    .btn-camera { background: #2270ff; color: white; }
+    .btn-gallery { background: #ff9b00; color: white; }
+    .btn-upload { background: #00b44b; color: white; }
+    #preview { width: 100%; max-height: 60vh; object-fit: contain; margin-top: 1rem; border-radius: 14px; border: 2px solid #ccc; display: none; }
+    #status { margin-top: 1.2rem; font-size: 1.4rem; }
   </style>
-
 </head>
 <body>
 
@@ -70,21 +27,14 @@
   <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
 
   <!-- BOUTONS CHOIX -->
-  <button class="big-btn btn-camera" onclick="openCamera()">
-    📸 Prendre une photo
-  </button>
-
-  <button class="big-btn btn-gallery" onclick="openGallery()">
-    📁 Importer depuis la galerie
-  </button>
+  <button class="big-btn btn-camera" onclick="openCamera()">📸 Prendre une photo</button>
+  <button class="big-btn btn-gallery" onclick="openGallery()">📁 Importer depuis la galerie</button>
 
   <!-- PREVIEW -->
   <img id="preview" />
 
   <!-- UPLOAD -->
-  <button class="big-btn btn-upload" id="btnUpload">
-    ✅ Envoyer
-  </button>
+  <button class="big-btn btn-upload" id="btnUpload">✅ Envoyer</button>
 
   <div id="status"></div>
 
@@ -95,59 +45,46 @@
     import { app, db } from "../js/firebase-init.js";
 
     import {
-      doc,
-      setDoc,
-      Timestamp,
-      getDocs,
-      collection
+      doc, setDoc, Timestamp, getDocs, collection
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
     import {
-      getStorage,
-      ref as storageRef,
-      uploadBytes,
-      getDownloadURL
+      getStorage, ref as storageRef, uploadBytes, getDownloadURL
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
     import {
-      getAuth,
-      signInAnonymously
+      getAuth, signInAnonymously, onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
+    // ✅ Auth anonyme + attente explicite que l'utilisateur soit prêt
     const auth = getAuth();
-await signInAnonymously(auth).catch(() => {});
+    await signInAnonymously(auth).catch(() => {});
 
-// ✅ On attend que l’auth anonyme soit vraiment active
-function waitAuth() {
-  return new Promise((resolve) => {
-    const unsub = auth.onAuthStateChanged((u) => {
-      if (u) {
-        unsub();
-        resolve(u);
-      }
-    });
-  });
-}
-await waitAuth();
-console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
+    function waitAuth() {
+      return new Promise((resolve) => {
+        const stop = onAuthStateChanged(auth, (u) => {
+          if (u) { stop(); resolve(u); }
+        });
+      });
+    }
+    await waitAuth();
+    console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
 
-    const storage = getStorage(app, "gs://poissonnerie-gas.firebasestorage.app");
-
+    // ✅ Laisse Firebase choisir automatiquement ton bucket (évite les erreurs mobile)
+    const storage = getStorage(app);
 
     /* ------------------------------------------------------------------
        PARAMS URL
     ------------------------------------------------------------------ */
-    const ps      = new URLSearchParams(location.search);
+    const ps = new URLSearchParams(location.search);
     const achatId = ps.get("achatId");
     const lineId  = ps.get("lineId");
 
-    document.getElementById("info").textContent =
-      `Achat : ${achatId} / Ligne : ${lineId}`;
+    document.getElementById("info").textContent = `Achat : ${achatId} / Ligne : ${lineId}`;
 
     const statusEl  = document.getElementById("status");
     const previewEl = document.getElementById("preview");
     const inputEl   = document.getElementById("photoInput");
-
 
     /* ------------------------------------------------------------------
        UI Buttons
@@ -158,13 +95,11 @@ console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
     };
 
     window.openGallery = () => {
-      inputEl.removeAttribute("capture");
+      inputEl.removeAttribute("capture"); // autorise la galerie
       inputEl.click();
-      setTimeout(() => {
-        inputEl.setAttribute("capture", "environment");
-      }, 1000);
+      // petite sécurité : on rétablit 'capture' après
+      setTimeout(() => inputEl.setAttribute("capture", "environment"), 800);
     };
-
 
     /* ------------------------------------------------------------------
        PREVIEW
@@ -176,33 +111,23 @@ console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
       previewEl.style.display = "block";
     });
 
-
     /* ------------------------------------------------------------------
        CLICK → UPLOAD
     ------------------------------------------------------------------ */
     document.getElementById("btnUpload").addEventListener("click", async () => {
       try {
         const file = inputEl.files?.[0];
-        if (!file) {
-          alert("Choisir une photo");
-          return;
-        }
+        if (!file) { alert("Choisir une photo"); return; }
 
         statusEl.textContent = "→ Upload…";
 
-        /* -----------------------------
-           1) Upload dans Storage
-        ----------------------------- */
+        // 1) Upload Storage
         const path = `achats/${achatId}/lignes/${lineId}/sanitaire-${Date.now()}.jpg`;
         const sref = storageRef(storage, path);
-
         await uploadBytes(sref, file);
         const url = await getDownloadURL(sref);
 
-
-        /* -----------------------------
-           2) Mise à jour de la ligne
-        ----------------------------- */
+        // 2) MAJ de la ligne
         await setDoc(
           doc(db, "achats", achatId, "lignes", lineId),
           {
@@ -217,35 +142,21 @@ console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
 
         statusEl.textContent = "✅ Photo enregistrée";
 
-
-        /* -----------------------------
-           3) Vérifier si TOUT est reçu
-        ----------------------------- */
+        // 3) Tout reçu ? → passer l'achat en BL
         const lignesCol = collection(db, "achats", achatId, "lignes");
         const snap = await getDocs(lignesCol);
-
         let allReceived = true;
-        snap.forEach(d => {
-          const L = d.data();
-          if (!L.received) allReceived = false;
-        });
+        snap.forEach(d => { if (!d.data().received) allReceived = false; });
 
-        // Si toutes reçues → passer en BL
         if (allReceived) {
           await setDoc(
             doc(db, "achats", achatId),
-            {
-              type: "BL",
-              statut: "received",
-              updatedAt: Timestamp.now()
-            },
+            { type: "BL", statut: "received", updatedAt: Timestamp.now() },
             { merge: true }
           );
         }
 
-        /* -----------------------------
-           4) Retour
-        ----------------------------- */
+        // 4) Retour à la liste
         setTimeout(() => {
           location.href = `/pages/photo-batch.html?achatId=${achatId}`;
         }, 500);
@@ -260,3 +171,4 @@ console.log("✅ Anonymous Auth ready:", auth.currentUser?.uid);
 
 </body>
 </html>
+
