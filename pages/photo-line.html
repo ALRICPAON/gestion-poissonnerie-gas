@@ -147,16 +147,13 @@ const inputGal   = document.getElementById("inputGallery");
 let currentFile = null;
 
 /* -------------------------------------------------------------
-   ✅ Preview
+   ✅ Preview (HEIC OK)
 ------------------------------------------------------------- */
 function showPreview(file) {
   currentFile = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    previewEl.src = e.target.result;
-    previewEl.style.display = "block";
-  };
-  reader.readAsDataURL(file);
+  const url = URL.createObjectURL(file);
+  previewEl.src = url;
+  previewEl.style.display = "block";
 }
 
 inputCam.addEventListener("change", e => {
@@ -168,6 +165,7 @@ inputGal.addEventListener("change", e => {
   const f = e.target.files?.[0];
   if (f) showPreview(f);
 });
+
 
 /* -------------------------------------------------------------
    ✅ Upload
