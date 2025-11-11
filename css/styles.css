@@ -131,3 +131,40 @@ a {
     overflow: auto;
   }
 }
+/* ========== AF-MAP POPUP ========== */
+.afmap-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 9999;
+}
+
+.afmap-modal {
+  background: #fff;
+  width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.afmap-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+}
+
+.afmap-artrow {
+  padding: 6px;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+}
+.afmap-artrow:hover {
+  background: #e9f4ff;
+}
+
+.afmap-search {
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 8px;
+}
+
