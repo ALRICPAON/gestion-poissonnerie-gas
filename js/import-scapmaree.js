@@ -114,7 +114,7 @@ async function createAchatHeader(supplier) {
 }
 
 /**************************************************
- * SAVE
+ * SAVE (SCAPMAREE)
  **************************************************/
 async function saveScapToFirestore(achatId, rows, afMap) {
 
@@ -155,20 +155,14 @@ async function saveScapToFirestore(achatId, rows, afMap) {
       zone = map?.zone || "";
       sousZone = map?.sousZone || "";
       engin = map?.engin || "";
-    } else {
-      // ✅ Collecte des refs sans map
-      missingRefs.push({
-        fournisseurCode: FOUR_CODE,
-        refFournisseur: ref,
-        designation
-      });
     }
 
     totalHT  += montantHT;
     totalTTC += montantHT;
     totalKg  += poidsTotalKg;
 
-    await addDoc(collection(db, "achats", achatId, "lignes"), {
+    // ✅ D’abord créer la ligne
+    const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: ref,
       fournisseurRef: ref,
 
@@ -192,8 +186,22 @@ async function saveScapToFirestore(achatId, rows, afMap) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    const ligneId = lineRef.id;
+
+    // ✅ Si non mappé → ajouter dans missingRefs
+    if (!map?.plu) {
+      missingRefs.push({
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: ref,
+        designation,
+        achatId,
+        ligneId
+      });
+    }
   }
 
+  // ✅ Update header
   const refA = doc(db, "achats", achatId);
   await updateDoc(refA, {
     montantHT: totalHT,
@@ -205,10 +213,8 @@ async function saveScapToFirestore(achatId, rows, afMap) {
   console.log("🔎 Missing refs:", missingRefs);
   if (missingRefs.length > 0) {
     await manageAFMap(missingRefs);
-    return true;   // --> YES, there are missing refs
+    return true;   // --> Yes, mapping needed
   }
 
-  return false;    // --> No missing refs
+  return false;   // --> OK
 }
-
-  
