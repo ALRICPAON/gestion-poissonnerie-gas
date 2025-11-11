@@ -15,7 +15,7 @@ import {
 const FOUR_CODE = "81268"; // CRIÉE de saint gilles croix de vie
 
 /**************************************************
- * Charger AF_MAP en -> { "81269__105": { ... } }
+ * Charger AF_MAP en -> { "81268__105": { ... } }
  **************************************************/
 async function loadAFMap() {
   console.log("📥 LOAD AF MAP…");
