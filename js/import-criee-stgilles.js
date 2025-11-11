@@ -95,7 +95,7 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
   let totalTTC = 0;
   let totalKg = 0;
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     if (!r || !r.length) continue;
 
@@ -107,8 +107,9 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     const designation   = r[1] ?? "";
     const nomLatin      = r[2] ?? "";
     const prixHTKg      = parseFloat(r[6] ?? 0);
-    const poidsKg       = parseFloat(r[7] ?? 0);
-    const totalLigneHT  = parseFloat(r[8] ?? 0);
+const poidsKg       = parseFloat(r[7] ?? 0);
+const totalLigneHT  = parseFloat(r[8] ?? 0);
+
 
     // zone / sousZone / engin
     const zoneRaw = (r[10] ?? "").toString();
