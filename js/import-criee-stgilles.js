@@ -84,7 +84,7 @@ function convertFAO(n) {
 }
 
 /**************************************************
- * SAVE LIGNES
+ * SAVE LIGNES CRIÉE ST-GILLES
  **************************************************/
 async function saveCrieeToFirestore(achatId, rows, afMap) {
 
@@ -95,26 +95,30 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     const r = rows[i];
     if (!r || !r.length) continue;
 
-    let ref = (r[0] ?? "").toString().trim()
-      .replace(/^0+/, "")
-      .replace(/\s+/g, "")
-      .replace(/\//g, "_");
+    // --- REF fournisseur
+    let ref = (r[0] ?? "").toString().trim();
+    ref = ref.replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
-    const designation = r[1] ?? "";
-    const nomLatin    = r[2] ?? "";
-    const prixKg       = parseFloat(r[6] ?? 0);
-    const poidsTotalKg = parseFloat(r[7] ?? 0);
-    const montantHT    = parseFloat(r[8] ?? 0);
+    // --- Champs bruts CRIÉE
+    const designation = r[1] ?? "";     // Col B
+    const nomLatin    = r[2] ?? "";     // Col C
 
-    const zoneRaw = (r[10] ?? "").toString();
-    const subRaw  = (r[11] ?? "").toString();
-    const engin   = (r[12] ?? "").toString();
+    // ✅ CORRECTION INDEX
+    const poidsTotalKg = parseFloat(r[7] ?? 0);   // Col H
+    const prixKg       = parseFloat(r[8] ?? 0);   // Col I
+    const montantHT    = parseFloat(r[9] ?? 0);   // Col J
+
+    // Zone — sous-zone — engin
+    const zoneRaw = (r[12] ?? "").toString();
+    const subRaw  = (r[13] ?? "").toString();
+    const engin   = (r[14] ?? "").toString();
 
     const zone = zoneRaw.match(/\((\d+)\)/)?.[1] ?? "";
     const sousZone = convertFAO(subRaw.match(/\((\d+)\)/)?.[1] ?? "");
 
     const fao = zone && sousZone ? `FAO${zone} ${sousZone}` : "";
 
+    // --- LOOKUP AF_MAP
     const key = `${FOUR_CODE}__${ref}`.toUpperCase();
     const map = afMap[key];
 
@@ -122,38 +126,44 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     const designationInterne = map?.designationInterne || designation;
     const allergenes = map?.allergenes || "";
 
+    // ----- Totaux
     totalHT += montantHT;
     totalKg += poidsTotalKg;
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: ref,
       fournisseurRef: ref,
+
       plu,
       designation,
       designationInterne,
       nomLatin,
+
       zone,
       sousZone,
       engin,
       allergenes,
       fao,
+
       colis: 0,
       poidsColisKg: 0,
       poidsTotalKg,
       prixKg,
       montantHT,
       montantTTC: montantHT,
+
       received: false,
+
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
 
-    console.log("✅ LIGNE:", ref, "→ PLU:", plu);
+    console.log("✅ LIGNE:", ref, "→ PLU:", plu, prixKg, poidsTotalKg, montantHT);
   }
 
   await updateDoc(doc(db, "achats", achatId), {
     montantHT: totalHT,
-    montantTTC: totalHT,  // TVA ignorée
+    montantTTC: totalHT,
     totalKg,
     updatedAt: serverTimestamp()
   });
