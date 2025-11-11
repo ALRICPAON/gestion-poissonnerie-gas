@@ -12,6 +12,9 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+import { manageAFMap } from "./manage-af-map.js";
+
+
 const FOUR_CODE = "10001"; // SCAPMAREE
 
 /**************************************************
@@ -112,13 +115,15 @@ async function createAchatHeader(supplier) {
 async function saveScapToFirestore(achatId, rows, afMap) {
 
   let totalHT = 0;
+  let totalTTC = 0;
   let totalKg = 0;
+
+  const missingRefs = [];   // <-- NEW
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    if (!r || !r.length) continue;
+    if (!r?.length) continue;
 
-    // --- REF fourni
     let ref = (r[0] ?? "").toString().trim();
     ref = ref.replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
@@ -129,20 +134,35 @@ async function saveScapToFirestore(achatId, rows, afMap) {
     const prixKg       = parseFloat(r[8] ?? 0);
     const montantHT    = parseFloat(r[9] ?? 0);
 
-    totalHT += montantHT;
-    totalKg += poidsTotalKg;
-
-    // lookup AF
     const key = `${FOUR_CODE}__${ref}`.toUpperCase();
     const map = afMap[key];
 
-    const plu = map?.plu || "";
-    const designationInterne = map?.designationInterne || designation;
-    const allergenes = map?.allergenes || "";
-    const zone = map?.zone || "";
-    const sousZone = map?.sousZone || "";
-    const engin = map?.engin || "";
-    const fao = (zone && sousZone) ? `FAO${zone} ${sousZone}` : "";
+    let plu = "";
+    let designationInterne = designation;
+    let allergenes = "";
+    let zone = "";
+    let sousZone = "";
+    let engin = "";
+
+    if (map?.plu) {
+      plu = map.plu;
+      designationInterne = map?.designationInterne || designation;
+      allergenes = map?.allergenes || "";
+      zone = map?.zone || "";
+      sousZone = map?.sousZone || "";
+      engin = map?.engin || "";
+    } else {
+      // ✅ Collecte des refs sans map
+      missingRefs.push({
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: ref,
+        designation
+      });
+    }
+
+    totalHT  += montantHT;
+    totalTTC += montantHT;
+    totalKg  += poidsTotalKg;
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: ref,
@@ -152,12 +172,10 @@ async function saveScapToFirestore(achatId, rows, afMap) {
       designation,
       designationInterne,
       nomLatin,
-
       zone,
       sousZone,
       engin,
       allergenes,
-      fao,
 
       colis: 0,
       poidsColisKg: 0,
@@ -167,20 +185,19 @@ async function saveScapToFirestore(achatId, rows, afMap) {
       montantTTC: montantHT,
 
       received: false,
-
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-
-    console.log("✅ LIGNE:", ref, "→ PLU:", plu);
   }
 
-  // maj header
   const refA = doc(db, "achats", achatId);
   await updateDoc(refA, {
     montantHT: totalHT,
-    montantTTC: totalHT,
+    montantTTC: totalTTC,
     totalKg,
     updatedAt: serverTimestamp()
   });
+
+  // ✅ UI mappage si refs non trouvées
+  await manageAFMap(missingRefs);
 }
