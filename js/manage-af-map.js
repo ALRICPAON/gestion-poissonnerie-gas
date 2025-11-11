@@ -42,30 +42,46 @@ async function loadArticles() {
 /**************************************************
  * MAIN POPUP
  **************************************************/
-function showAFMapPopup(missingRefs, articles) {
+function showAFMapPopup(missingRefs) {
   console.log("🚨 showAFMapPopup CALLED");
-  return new Promise((resolve) => {
 
-    // --- Overlay ---
-    const overlay = document.createElement("div");
-    overlay.className = "afmap-overlay";
+  // ✅ Supprime overlay précédent (si déjà ouvert)
+  document.querySelectorAll(".afmap-overlay").forEach(el => el.remove());
 
-    // --- Modal ---
-    const modal = document.createElement("div");
-    modal.className = "afmap-modal";
+  // ✅ Overlay
+  const overlay = document.createElement("div");
+  overlay.className = "afmap-overlay";
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,0.45)";
+  overlay.style.zIndex = "9999";
 
-    modal.innerHTML = `
-      <h2>Références fournisseur non mappées</h2>
-      <p>Associe chaque référence à un PLU interne.</p>
+  // ✅ Modal
+  const modal = document.createElement("div");
+  modal.className = "afmap-modal";
+  modal.style.background = "#fff";
+  modal.style.width = "600px";
+  modal.style.margin = "60px auto";
+  modal.style.padding = "20px";
+  modal.style.borderRadius = "8px";
 
-      <div class="afmap-list"></div>
-      <button id="afmap-close" class="btn btn-muted">Fermer</button>
-    `;
+  modal.innerHTML = `
+    <h2>Références fournisseur non mappées</h2>
+    <p>Sélectionnez un PLU pour continuer.</p>
+    <ul>
+      ${missingRefs.map(x => `
+        <li><b>${x.refFournisseur}</b> — ${x.designation}</li>
+      `).join("")}
+    </ul>
 
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
+    <button id="afmap-close" style="margin-top:20px;">Fermer</button>
+  `;
 
-    const list = modal.querySelector(".afmap-list");
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  document.getElementById("afmap-close").onclick = () => overlay.remove();
+}
 
     // Rendu des lignes
     list.innerHTML = missingRefs.map(item => `
