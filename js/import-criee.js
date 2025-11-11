@@ -1,6 +1,8 @@
 /**************************************************
  * IMPORT CRIÉE DES SABLES (code fournisseur = 81269)
  **************************************************/
+console.log("LOAD AF CRIÉE CALLED");
+
 import { db } from "../js/firebase-init.js";
 
 import {
@@ -40,6 +42,8 @@ async function loadAFMapCriee() {
 
   console.log("✅ AF MAP =", map);
   console.log("MAP KEYS =", Object.keys(map));
+  console.log("LOAD AF MAP OUTSIDE CALLED");
+
 
   return map;
 }
