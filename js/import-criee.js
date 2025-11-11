@@ -12,7 +12,7 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const FOUR_CODE = "81269"; // CRIÉE des Sables
+const FOUR_CODE = "81268"; // CRIÉE de saint gilles croix de vie
 
 /**************************************************
  * Charger AF_MAP en -> { "81269__105": { ... } }
