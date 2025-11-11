@@ -76,10 +76,14 @@ export async function importScapmaree(file) {
 
     const achatId = await createAchatHeader(supplier);
 
-    await saveScapToFirestore(achatId, rows, afMap);
+    const hasMissing = await saveScapToFirestore(achatId, rows, afMap);
 
-    alert("✅ Import SCAPMAREE terminé");
-    location.reload();
+    if (!hasMissing) {
+      alert("✅ Import SCAPMAREE terminé");
+      location.reload();   // <-- OK ici
+    } else {
+      alert("⚠️ Références à mapper → voir popup");
+    }
 
   } catch (e) {
     console.error("❌ Import SCAPMAREE:", e);
@@ -199,7 +203,12 @@ async function saveScapToFirestore(achatId, rows, afMap) {
   });
 
   console.log("🔎 Missing refs:", missingRefs);
+  if (missingRefs.length > 0) {
+    await manageAFMap(missingRefs);
+    return true;   // --> YES, there are missing refs
+  }
 
-  // ✅ UI mappage si refs non trouvées
-  await manageAFMap(missingRefs);
+  return false;    // --> No missing refs
 }
+
+  
