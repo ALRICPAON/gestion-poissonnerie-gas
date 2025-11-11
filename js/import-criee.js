@@ -18,7 +18,7 @@ const FOUR_CODE = "81269"; // ✅ CRIÉE DES SABLES
 /**************************************************
  * Charge le mapping AF_MAP → indexé par refFournisseur (col A)
  **************************************************/
-async function loadAFMap() {
+async function loadAFMapCriee() {
   const snap = await getDocs(collection(db, "af_map"));
   const map = {};
 
@@ -73,7 +73,7 @@ async function handleImportCriee() {
 
     const file = fileInput.files[0];
 
-    const afMap = await loadAFMap();
+    const afMap = await loadAFMapCriee();
     const supplier = await loadSupplierInfo();
 
     divStatus.textContent = "Lecture fichier…";
