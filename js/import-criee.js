@@ -140,7 +140,7 @@ function convertFAO(n) {
 }
 
 /**************************************************
- * SAVE LIGNES — version alignée achat-detail.js
+ * SAVE LIGNES CRIÉE
  **************************************************/
 async function saveCrieeToFirestore(achatId, rows, afMap) {
 
@@ -152,77 +152,81 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     const r = rows[i];
     if (!r || !r.length) continue;
 
-    /** ✅ Extraction colonnes CRIÉE **/
+    // --- REF fournisseur
     let ref = (r[0] ?? "").toString().trim();
-    ref = ref.replace(/^0+/, "");   // strip 0
-    ref = ref.replace(/\s+/g, "");  // strip spaces
-    ref = ref.replace(/\//g, "_");  // replace slash
+    ref = ref.replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
+    // --- Champs bruts CRIÉE
     const designation = r[1] ?? "";
-    const nomLatinCR  = r[2] ?? "";
+    const nomLatin    = r[2] ?? "";
 
-    const prixHTKgCR = parseFloat(r[6] ?? 0);
-    const poidsKgCR  = parseFloat(r[7] ?? 0);
-    const totalLigne = parseFloat(r[8] ?? 0);
+    const prixKg       = parseFloat(r[6] ?? 0);   // prixHT/kg
+    const poidsTotalKg = parseFloat(r[7] ?? 0);   // poids
+    const montantHT    = parseFloat(r[8] ?? 0);   // total HT
 
-    // Zone
+    // Zone — sous-zone — engin
     const zoneRaw = (r[10] ?? "").toString();
     const subRaw  = (r[11] ?? "").toString();
-    const enginCR = (r[12] ?? "").toString();
+    const engin   = (r[12] ?? "").toString();
 
     const zoneMatch = zoneRaw.match(/\((\d+)\)/);
     const zone = zoneMatch ? zoneMatch[1] : "";
 
     const subMatch = subRaw.match(/\((\d+)\)/);
-    let sousZone = subMatch ? convertFAO(subMatch[1]) : "";
+    let sousZone = "";
+    if (subMatch) sousZone = convertFAO(subMatch[1]);
 
-    /** ✅ Lookup AF_MAP **/
+    // FAO
+    const fao = zone && sousZone ? `FAO${zone} ${sousZone}` : "";
+
+    // --- LOOKUP AF_MAP
     const key = `${FOUR_CODE}__${ref}`.toUpperCase();
     const map = afMap[key];
 
     const plu = map?.plu || "";
     const designationInterne = map?.designationInterne || designation;
-    const nomLatin = map?.nomLatin || nomLatinCR || "";
-    const engin    = map?.engin    || enginCR || "";
     const allergenes = map?.allergenes || "";
 
-    /** ✅ Montants **/
-    totalHT  += totalLigne;
-    totalTTC += totalLigne * 1.1;
-    totalKg  += poidsKgCR;
+    // ----- Accumulation totals
+    totalHT  += montantHT;
+    totalTTC += montantHT;   // TVA pas gérée
+    totalKg  += poidsTotalKg;
 
-    /** ✅ ÉCRITURE Firestore (format UI achat-detail.js) **/
+    // ----- CREATE LINE
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: ref,
+      fournisseurRef: ref,
+
       plu,
-      designation: designationInterne,
+      designation,
+      designationInterne,
       nomLatin,
+
       zone,
       sousZone,
       engin,
       allergenes,
+      fao,
 
-      // ✅ Champs UI achats
       colis: 0,
       poidsColisKg: 0,
-      poidsTotalKg: poidsKgCR,
-      prixKg: prixHTKgCR,
-      montantHT: totalLigne,
+      poidsTotalKg,
+      prixKg,
+      montantHT,
+      montantTTC: montantHT,
 
-      // Optionnel
-      designationFournisseur: designation,
-      fournisseurRef: ref,
+      received: false,
 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
 
-    console.log("✅ LIGNE importée:", ref, "→ PLU:", plu);
+    console.log("✅ LIGNE:", ref, "→ PLU:", plu);
   }
 
-  /** ✅ Update achat header **/
-  const achatRef = doc(db, "achats", achatId);
-  await updateDoc(achatRef, {
+  // ----- UPDATE ACHAT HEADER
+  const refA = doc(db, "achats", achatId);
+  await updateDoc(refA, {
     montantHT: totalHT,
     montantTTC: totalTTC,
     totalKg,
