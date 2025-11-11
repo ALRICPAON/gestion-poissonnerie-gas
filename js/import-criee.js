@@ -1,11 +1,5 @@
 /*************************************************
  * IMPORT CRIÉE — Les Sables
- * Fichier local (.xlsx/.csv) → Firestore
- *
- * Collections :
- *   afMap/{codeFournisseur} = { plu }
- *   achats/{achatId}
- *   achats/{achatId}/lignes/{lineId}
  *************************************************/
 
 import { read, utils } from "https://cdn.sheetjs.com/xlsx-0.19.3/package/xlsx.mjs";
@@ -16,12 +10,9 @@ import {
   setDoc,
   getDocs,
   Timestamp
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 
-/*************************************************
- * UI — BUTTON CLICK
- *************************************************/
 document.getElementById("importCrieeBtn")?.addEventListener("click", async () => {
   const file = document.getElementById("crieeFile")?.files?.[0];
   if (!file) {
@@ -32,12 +23,14 @@ document.getElementById("importCrieeBtn")?.addEventListener("click", async () =>
   const status = document.getElementById("importStatus");
   if (status) status.innerText = "📄 Lecture du fichier…";
 
+  console.log("DB =", db);
+
   try {
     const rows = await readCrieeXLSX(file);
     if (status) status.innerText = `✅ ${rows.length} lignes détectées`;
 
     const afMap = await loadAFMap();
-    if (status) status.innerText = `🔎 Mapping chargé (${Object.keys(afMap).length} entrées)`;
+    if (status) status.innerText = `🔎 Mapping chargé (${Object.keys(afMap).length})`;
 
     await saveCrieeToFirestore(rows, afMap);
 
@@ -50,10 +43,9 @@ document.getElementById("importCrieeBtn")?.addEventListener("click", async () =>
 });
 
 
-
-/*************************************************
- * 1) Lecture fichier XLSX → lignes brutes
- *************************************************/
+// =========================================
+// 1) Lecture fichier
+// =========================================
 async function readCrieeXLSX(file) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -72,15 +64,15 @@ async function readCrieeXLSX(file) {
 
 
 
-/*************************************************
- * 2) Charger AF_MAP depuis Firestore
- *************************************************/
+// =========================================
+// 2) Charger AF MAP
+// =========================================
 async function loadAFMap() {
   const snap = await getDocs(collection(db, "afMap"));
   const map = {};
 
   snap.forEach((d) => {
-    map[d.id] = d.data().plu;     // key = code fournisseur
+    map[d.id] = d.data().plu; 
   });
 
   return map;
@@ -88,26 +80,23 @@ async function loadAFMap() {
 
 
 
-/*************************************************
- * 3) Enregistrer les lignes dans Firestore
- *************************************************/
+// =========================================
+// 3) Firestore save
+// =========================================
 async function saveCrieeToFirestore(rows, afMap) {
 
-  // Majoration CRIÉE
   const MAJ_RATE = 1.10;
   const FIX = 0.30;
 
-  // Création achat
   const achatRef = doc(collection(db, "achats"));
   const lignesColl = collection(achatRef, "lignes");
 
   let totalHT = 0;
   let totalKg = 0;
 
-  // Boucle lignes
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    if (!r || !r[0]) continue;   // ignore lignes vides
+    if (!r || !r[0]) continue;
 
     const codeF = String(r[0]).trim();
     const designation = r[1] || "";
@@ -120,14 +109,12 @@ async function saveCrieeToFirestore(rows, afMap) {
 
     const plu = afMap[codeF] || null;
 
-    // Majoration CRIÉE
     const prixMaj = prix * MAJ_RATE + FIX;
     const total = prixMaj * poids;
 
     totalHT += total;
     totalKg += poids;
 
-    // Write line
     await setDoc(doc(lignesColl), {
       codeFournisseur: codeF,
       plu,
@@ -143,7 +130,6 @@ async function saveCrieeToFirestore(rows, afMap) {
     });
   }
 
-  // Écriture doc achat
   await setDoc(achatRef, {
     id: achatRef.id,
     fournisseur: "criee_sables",
@@ -153,17 +139,4 @@ async function saveCrieeToFirestore(rows, afMap) {
   });
 
   return true;
-}
-
-
-
-/*************************************************
- * (Option) Convertit sous-zone → chiffres romains
- *************************************************/
-function toRoman(sub) {
-  const map = {
-    "01":"I","02":"II","03":"III","04":"IV","05":"V","06":"VI","07":"VII","08":"VIII",
-    "09":"IX","10":"X","11":"XI","12":"XII"
-  };
-  return map[String(sub).padStart(2,"0")] || sub;
 }
