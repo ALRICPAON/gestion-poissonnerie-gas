@@ -52,10 +52,19 @@ async function loadAchats() {
   let rows = [];
   snap.forEach(docSnap => {
     const r = docSnap.data();
-    rows.push({
-      id: docSnap.id,
-      date: r.date,
-      fournisseurNom: r.fournisseurNom || "",
+    let d = r.date;
+if (d?.toDate) {
+  d = d.toDate();
+} else if (typeof d === "string") {
+  d = new Date(d);
+} else {
+  d = null;
+}
+
+rows.push({
+  id: docSnap.id,
+  date: d,
+  fournisseurNom: r.fournisseurNom || "",
       designationFournisseur: r.designationFournisseur || "",
       type: r.type || "commande",
       statut: r.statut || "new",
