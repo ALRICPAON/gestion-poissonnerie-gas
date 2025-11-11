@@ -4,11 +4,11 @@
 <button onclick="importAFMap()">Importer AF Map</button>
 
 <script type="module" src="../js/import-af-map.js"></script>
-<script type="module" src="./js/admin-fix-afmap.js"></script>
+<script type="module" src="../js/admin-fix-afmap.js"></script>
 
 <script type="module">
   import { requireAuth } from '../js/auth.js';
-  import { fixAFMapPLU } from './js/admin-fix-afmap.js';
+  import { fixAFMapPLU } from '../js/admin-fix-afmap.js';
 
   // Expose global → console OK
   window.fixAFMapPLU = fixAFMapPLU;
