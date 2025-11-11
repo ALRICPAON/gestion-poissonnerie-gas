@@ -3,20 +3,29 @@
  * — Détection refs manquantes
  * — Popup mapping (recherche article)
  * — Enregistrement Firestore
+ * — Mise à jour ligne d’achat
  **************************************************/
 import { db } from "./firebase-init.js";
 import {
   doc,
   setDoc,
   getDocs,
+  getDoc,
   collection,
-  serverTimestamp
+  serverTimestamp,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 
 /**
  * missingRefs = [
- *   { fournisseurCode, refFournisseur, designation }
+ *   {
+ *     fournisseurCode,
+ *     refFournisseur,
+ *     designation,
+ *     achatId,
+ *     ligneId
+ *   }
  * ]
  */
 export async function manageAFMap(missingRefs = []) {
@@ -42,7 +51,7 @@ async function loadArticles() {
       id: d.id,
       plu: x.PLU ?? x.plu ?? "",
       designation:
-        x.Designation ??       // <-- ✅ bonne clé Firestore
+        x.Designation ??
         x.designation ?? 
         x.designationInterne ??
         x.nom ??
@@ -107,11 +116,15 @@ function showAFMapPopup(missingRefs, articles) {
     const list = modal.querySelector(".afmap-list");
 
     list.innerHTML = missingRefs.map(item => `
-      <div class="afmap-row" data-ref="${item.refFournisseur}">
+      <div class="afmap-row" data-ligne="${item.ligneId}">
         <div class="afmap-ref">
           <b>${item.refFournisseur}</b> — ${item.designation ?? ""}
         </div>
-        <button class="btn btn-small afmap-map-btn" data-key="${item.fournisseurCode}__${item.refFournisseur}">
+        <button class="btn btn-small afmap-map-btn"
+          data-fc="${item.fournisseurCode}"
+          data-ref="${item.refFournisseur}"
+          data-achat="${item.achatId}"
+          data-ligne="${item.ligneId}">
           Associer
         </button>
       </div>
@@ -124,8 +137,10 @@ function showAFMapPopup(missingRefs, articles) {
     list.addEventListener("click", async (e) => {
       if (!e.target.classList.contains("afmap-map-btn")) return;
 
-      const key = e.target.dataset.key;
-      const [fournisseurCode, refFournisseur] = key.split("__");
+      const fournisseurCode = e.target.dataset.fc;
+      const refFournisseur = e.target.dataset.ref;
+      const achatId = e.target.dataset.achat;
+      const ligneId = e.target.dataset.ligne;
 
       const chosen = await showArticleSelector(articles);
       if (!chosen) return;
@@ -133,14 +148,22 @@ function showAFMapPopup(missingRefs, articles) {
       await saveAFMap({
         fournisseurCode,
         refFournisseur,
+        achatId,
+        ligneId,
         plu: chosen.plu,
-        designationInterne: chosen.designation,
+        designationInterne: chosen.designation
       });
 
       alert(`✅ Mappage enregistré : ${refFournisseur} → PLU ${chosen.plu}`);
 
       // Remove line
       e.target.closest(".afmap-row")?.remove();
+
+      // ✅ Si plus rien → fermer
+      if (!modal.querySelector(".afmap-row")) {
+        overlay.remove();
+        resolve();
+      }
     });
 
 
@@ -153,12 +176,15 @@ function showAFMapPopup(missingRefs, articles) {
 }
 
 
+
 /**************************************************
- * SAVE mapping → Firestore
+ * SAVE mapping → Firestore + MAJ ligne achat
  **************************************************/
-async function saveAFMap({ fournisseurCode, refFournisseur, plu, designationInterne }) {
+async function saveAFMap({ fournisseurCode, refFournisseur, achatId, ligneId, plu, designationInterne }) {
+
   const key = `${fournisseurCode}__${refFournisseur}`.toUpperCase();
 
+  // ✅ 1) Update AF_MAP
   await setDoc(doc(db, "af_map", key), {
     fournisseurCode,
     refFournisseur,
@@ -166,6 +192,18 @@ async function saveAFMap({ fournisseurCode, refFournisseur, plu, designationInte
     designationInterne,
     updatedAt: serverTimestamp()
   }, { merge: true });
+
+  // ✅ 2) Update Achat Line
+  if (achatId && ligneId) {
+    await updateDoc(
+      doc(db, "achats", achatId, "lignes", ligneId),
+      {
+        plu,
+        designationInterne,
+        updatedAt: serverTimestamp()
+      }
+    );
+  }
 }
 
 
