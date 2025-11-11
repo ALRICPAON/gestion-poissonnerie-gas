@@ -24,13 +24,12 @@ async function loadAFMap() {
 
   snap.forEach((d) => {
     const data = d.data();
-    if (!data.fournisseurCode || data.fournisseurCode !== FOUR_CODE) return;
 
-    let refF = (data.refFournisseur || "").toString().trim();
-    if (!refF) return;
+    if (data.fournisseurCode !== FOUR_CODE) return;
 
-    // supprime les 0 devant
+    let refF = (data.refFournisseur ?? "").toString().trim();
     refF = refF.replace(/^0+/, "");
+    if (!refF) return;
 
     map[refF] = {
       plu: data.plu ?? null,
@@ -42,6 +41,7 @@ async function loadAFMap() {
   console.log("✅ AF MAP =", map);
   return map;
 }
+
 
 /**************************************************
  * Charge infos fournisseur => nom
