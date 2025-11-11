@@ -1,39 +1,79 @@
+/**************************************************
+ * IMPORT AF_MAP depuis /data/af-map.json
+ *  → reconstruit la collection af_map
+ *  → ID = fournisseurCode__refFournisseur (clean)
+ **************************************************/
+
 import { db } from "../js/firebase-init.js";
-import { collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import {
+  collection,
+  doc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 async function importAFMap() {
-  const res = await fetch("../data/af-map.json");
-  const items = await res.json();
+  try {
+    console.log("📦 Import AF_MAP…");
 
-  const col = collection(db, "af_map");
+    const res = await fetch("../data/af-map.json");
+    if (!res.ok) {
+      throw new Error(`Impossible d'accéder à /data/af-map.json → ${res.status}`);
+    }
 
-  for (const r of items) {
-    const id = `${r.fournisseurCode}__${r.refFournisseur}`.toUpperCase();
+    const items = await res.json();
+    const col = collection(db, "af_map");
 
-    await setDoc(
-      doc(col, id),
-      {
-        fournisseurCode: r.fournisseurCode || "",
-        fournisseurNom: r.fournisseurNom || "",
-        refFournisseur: r.refFournisseur || "",
-        plu: r.plu || "",
-        designationInterne: r.designationInterne || "",
-        aliasFournisseur: r.aliasFournisseur || "",
-        nomLatin: r.nomLatin || "",
-        zone: r.zone || "",
-        sousZone: r.sousZone || "",
-        methode: r.methode || "",
-        allergenes: r.allergenes || "",
-        engin: r.engin || "",
-        updatedAt: new Date()
-      },
-      { merge: true }
-    );
+    let count = 0;
 
-    console.log("✅ import →", id);
+    for (const r of items) {
+      let fcode = (r.fournisseurCode || "").toString().trim();
+      let ref   = (r.refFournisseur || "").toString().trim();
+
+      // ✅ Nettoyage
+      fcode = fcode.replace(/\.0$/, ""); // retire ".0"
+      fcode = fcode.replace(/\s+/g, ""); // retire espaces
+
+      ref = ref.replace(/\.0$/, "");     // retire ".0"
+      ref = ref.replace(/\s+/g, "");     // retire espaces
+      ref = ref.replace(/\//g, "_");     // remplace "/" → "_"
+
+      if (!fcode || !ref) {
+        console.warn("⏭️ ligne ignorée : mauvais identifiant", r);
+        continue;
+      }
+
+      const id = `${fcode}__${ref}`.toUpperCase();
+
+      await setDoc(
+        doc(col, id),
+        {
+          fournisseurCode: fcode,
+          fournisseurNom: r.fournisseurNom || "",
+          refFournisseur: ref,
+          plu: r.plu || "",
+          designationInterne: r.designationInterne || "",
+          aliasFournisseur: r.aliasFournisseur || "",
+          nomLatin: r.nomLatin || "",
+          zone: r.zone || "",
+          sousZone: r.sousZone || "",
+          methode: r.methode || "",
+          allergenes: r.allergenes || "",
+          engin: r.engin || "",
+          updatedAt: new Date()
+        },
+        { merge: true }
+      );
+
+      console.log("✅ import →", id);
+      count++;
+    }
+
+    alert(`✅ Import AF_MAP terminé → ${count} références`);
+
+  } catch (err) {
+    console.error("❌ Erreur import AF_MAP:", err);
+    alert("Erreur import AF_MAP : " + err.message);
   }
-
-  alert("✅ Import AF_MAP terminé !");
 }
 
 window.importAFMap = importAFMap;
