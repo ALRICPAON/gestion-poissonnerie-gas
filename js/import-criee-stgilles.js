@@ -63,11 +63,9 @@ function readWorkbookAsync(file) {
 /**************************************************
  * Handler bouton
  **************************************************/
-document
-  .getElementById("importCrieeBtn")
-  ?.addEventListener("click", handleImportCriee);
 
-async function handleImportCriee() {
+
+async function handleImportCriee(file) {
   try {
     const fileInput = document.getElementById("crieeFile");
     const divStatus = document.getElementById("importStatus");
@@ -232,4 +230,7 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     totalKg,
     updatedAt: serverTimestamp()
   });
+}
+export async function importCrieeStGilles(file) {
+  return await handleImportCriee(file);
 }
