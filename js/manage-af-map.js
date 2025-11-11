@@ -15,10 +15,10 @@ import {
  * ]
  */
 export async function manageAFMap(missingRefs = []) {
+  console.log("✅ manageAFMap called", missingRefs);
   if (!missingRefs.length) return;
 
-  const articles = await loadArticles();
-  await showAFMapPopup(missingRefs, articles);
+  await showAFMapPopup(missingRefs);
 }
 
 /***********************
@@ -43,6 +43,7 @@ async function loadArticles() {
  * MAIN POPUP
  **************************************************/
 function showAFMapPopup(missingRefs, articles) {
+  console.log("🚨 showAFMapPopup CALLED");
   return new Promise((resolve) => {
 
     // --- Overlay ---
