@@ -1,5 +1,5 @@
 /**************************************************
- * IMPORT CRIÉE SAINT-GILLES (81268)
+ * IMPORT CRIÉE – ST GILLES
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -12,10 +12,10 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const FOUR_CODE = "81268"; // CRIÉE Saint-Gilles
+const FOUR_CODE = "81268";
 
 /**************************************************
- * AF_MAP
+ * LOAD AF_MAP
  **************************************************/
 async function loadAFMap() {
   const snap = await getDocs(collection(db, "af_map"));
@@ -25,21 +25,22 @@ async function loadAFMap() {
 }
 
 /**************************************************
- * Fournisseur
+ * LOAD supplier
  **************************************************/
 async function loadSupplierInfo() {
   const ref = doc(db, "fournisseurs", FOUR_CODE);
   const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : { code: FOUR_CODE, nom: "CRIÉE Saint-Gilles" };
+  if (!snap.exists()) return { code: FOUR_CODE, nom: "CRIÉE" };
+  return snap.data();
 }
 
 /**************************************************
- * XLSX
+ * XLSX reader
  **************************************************/
 function readWorkbookAsync(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
-    fr.onload = e => {
+    fr.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const wb = XLSX.read(data, { type: "array" });
@@ -54,14 +55,14 @@ function readWorkbookAsync(file) {
 }
 
 /**************************************************
- * En-tête achat
+ * Create achat header
  **************************************************/
 async function createAchatHeader(supplier) {
   const colAchats = collection(db, "achats");
   const docRef = await addDoc(colAchats, {
     date: new Date().toISOString().slice(0, 10),
     fournisseurCode: supplier.code || FOUR_CODE,
-    fournisseurNom: supplier.nom || "CRIÉE Saint-Gilles",
+    fournisseurNom: supplier.nom || "CRIÉE",
     montantHT: 0,
     montantTTC: 0,
     totalKg: 0,
@@ -74,7 +75,7 @@ async function createAchatHeader(supplier) {
 }
 
 /**************************************************
- * FAO conversion
+ * Helper convert FAO
  **************************************************/
 function convertFAO(n) {
   const map = {
@@ -91,24 +92,25 @@ function convertFAO(n) {
 async function saveCrieeToFirestore(achatId, rows, afMap) {
 
   let totalHT = 0;
+  let totalTTC = 0;
   let totalKg = 0;
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || !r.length) continue;
 
-    // REF
+    // ref
     let ref = (r[0] ?? "").toString().trim();
     ref = ref.replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
-    // Données CRIÉE
-    const designation = r[1] ?? "";
-    const nomLatin    = r[2] ?? "";
+    // raw columns
+    const designation   = r[1] ?? "";
+    const nomLatin      = r[2] ?? "";
+    const prixHTKg      = parseFloat(r[6] ?? 0);
+    const poidsKg       = parseFloat(r[7] ?? 0);
+    const totalLigneHT  = parseFloat(r[8] ?? 0);
 
-    const prixKg       = parseFloat(r[6] ?? 0);
-    const poidsTotalKg = parseFloat(r[7] ?? 0);
-    const montantHT    = parseFloat(r[8] ?? 0);
-
+    // zone / sousZone / engin
     const zoneRaw = (r[10] ?? "").toString();
     const subRaw  = (r[11] ?? "").toString();
     const engin   = (r[12] ?? "").toString();
@@ -122,7 +124,7 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
 
     const fao = zone && sousZone ? `FAO${zone} ${sousZone}` : "";
 
-    // AF_MAP
+    // lookup AF_MAP
     const key = `${FOUR_CODE}__${ref}`.toUpperCase();
     const map = afMap[key];
 
@@ -130,10 +132,10 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     const designationInterne = map?.designationInterne || designation;
     const allergenes = map?.allergenes || "";
 
-    totalHT += montantHT;
-    totalKg += poidsTotalKg;
+    totalHT  += totalLigneHT;
+    totalTTC += totalLigneHT;
+    totalKg  += poidsKg;
 
-    // CREATE LINE
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: ref,
       fournisseurRef: ref,
@@ -149,12 +151,15 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
       allergenes,
       fao,
 
+      poidsKg,
+      prixHTKg,
+      totalHT: totalLigneHT,
+      montantTTC: totalLigneHT,
+
       colis: 0,
       poidsColisKg: 0,
-      poidsTotalKg,
-      prixHTKg: prixKg,
-      montantHT,
-      montantTTC: montantHT,
+      poidsTotalKg: poidsKg,
+
       received: false,
 
       createdAt: serverTimestamp(),
@@ -164,26 +169,25 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     console.log("✅ LIGNE:", ref, "→ PLU:", plu);
   }
 
-  // Update header
-  await updateDoc(doc(db, "achats", achatId), {
+  // update header
+  const refA = doc(db, "achats", achatId);
+  await updateDoc(refA, {
     montantHT: totalHT,
-    montantTTC: totalHT,
+    montantTTC: totalTTC,
     totalKg,
     updatedAt: serverTimestamp()
   });
 }
 
 /**************************************************
- * EXPORT PRINCIPAL
+ * EXPORT
  **************************************************/
 export async function importCrieeStGilles(file) {
-
+  const afMap = await loadAFMap();
+  const supplier = await loadSupplierInfo();
   const wb = await readWorkbookAsync(file);
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-  const afMap = await loadAFMap();
-  const supplier = await loadSupplierInfo();
 
   const achatId = await createAchatHeader(supplier);
   await saveCrieeToFirestore(achatId, rows, afMap);
