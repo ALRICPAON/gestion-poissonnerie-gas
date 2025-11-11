@@ -1,52 +1,63 @@
 /**************************************************
- * AF-MAP MANAGER (générique)
+ * AF-MAP MANAGER
  * — Détection refs manquantes
- * — Popup mapping
+ * — Popup mapping (auto + recherche article)
  * — Enregistrement Firestore
  **************************************************/
 import { db } from "./firebase-init.js";
 import {
-  doc, setDoc, getDoc, serverTimestamp
+  doc, setDoc, getDocs, collection, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**
- * Demande à l'utilisateur de mapper les références manquantes.
- * @param {Array} missingRefs — [{ fournisseurCode, refFournisseur, designation }]
- * @returns {Promise<void>}
+ * missingRefs = [
+ *   {fournisseurCode, refFournisseur, designation}
+ * ]
  */
 export async function manageAFMap(missingRefs = []) {
-
   if (!missingRefs.length) return;
 
-  // ---- UI ----
-  await showAFMapPopup(missingRefs);
+  const articles = await loadArticles();
+  await showAFMapPopup(missingRefs, articles);
 }
 
+/***********************
+ * Charger Articles
+ ***********************/
+async function loadArticles() {
+  const snap = await getDocs(collection(db, "articles"));
+  const out = [];
+  snap.forEach(d => {
+    const x = d.data();
+    out.push({
+      id: d.id,
+      plu: x.plu ?? "",
+      designation: x.designation ?? "",
+      nomLatin: x.nomLatin ?? "",
+    });
+  });
+  return out;
+}
 
-/**
- * Ouvre une popup pour sélectionner un PLU
- * @param {*} missingRefs
- */
-async function showAFMapPopup(missingRefs) {
-
+/**************************************************
+ * MAIN POPUP
+ **************************************************/
+function showAFMapPopup(missingRefs, articles) {
   return new Promise((resolve) => {
 
-    // Overlay
+    // --- Overlay ---
     const overlay = document.createElement("div");
     overlay.className = "afmap-overlay";
 
-    // Modal
+    // --- Modal ---
     const modal = document.createElement("div");
     modal.className = "afmap-modal";
 
     modal.innerHTML = `
       <h2>Références fournisseur non mappées</h2>
-
-      <p>Ces références ne sont pas associées à un article interne.<br>
-      Sélectionnez le PLU correspondant.</p>
+      <p>Associe chaque référence à un PLU interne.</p>
 
       <div class="afmap-list"></div>
-
       <button id="afmap-close" class="btn btn-muted">Fermer</button>
     `;
 
@@ -55,46 +66,44 @@ async function showAFMapPopup(missingRefs) {
 
     const list = modal.querySelector(".afmap-list");
 
-    for (const item of missingRefs) {
-      const row = document.createElement("div");
-      row.className = "afmap-row";
-
-      row.innerHTML = `
+    // Rendu des lignes
+    list.innerHTML = missingRefs.map(item => `
+      <div class="afmap-row" data-ref="${item.refFournisseur}">
         <div class="afmap-ref">
           <b>${item.refFournisseur}</b> — ${item.designation ?? ""}
         </div>
-        <button class="btn btn-small" data-key="${item.fournisseurCode}__${item.refFournisseur}">
+        <button class="btn btn-small afmap-map-btn" data-key="${item.fournisseurCode}__${item.refFournisseur}">
           Associer
         </button>
-      `;
+      </div>
+    `).join("");
 
-      list.appendChild(row);
-    }
-
-    // Button action
+    /************************************
+     * ASSOCIER → ouvrir choix articles
+     ************************************/
     list.addEventListener("click", async (e) => {
-      const key = e.target.dataset.key;
-      if (!key) return;
+      if (!e.target.classList.contains("afmap-map-btn")) return;
 
+      const key = e.target.dataset.key;
       const [fournisseurCode, refFournisseur] = key.split("__");
 
-      // --- Ouvrir sélection article (UI F9 existante)
-      const chosen = await choosePLUForMapping();
+      const chosen = await showArticleSelector(articles);
       if (!chosen) return;
 
       await saveAFMap({
         fournisseurCode,
         refFournisseur,
         plu: chosen.plu,
-        designationInterne: chosen.designationInterne,
+        designationInterne: chosen.designation,
       });
 
       alert(`✅ Mappage enregistré : ${refFournisseur} → PLU ${chosen.plu}`);
 
       // Remove entry
-      e.target.closest(".afmap-row").remove();
+      e.target.closest(".afmap-row")?.remove();
     });
 
+    // CLOSE
     document.getElementById("afmap-close").addEventListener("click", () => {
       overlay.remove();
       resolve();
@@ -103,12 +112,11 @@ async function showAFMapPopup(missingRefs) {
 }
 
 
-/**
- * Enregistre AF_MAP
- */
+/**************************************************
+ * SAVE
+ **************************************************/
 async function saveAFMap({ fournisseurCode, refFournisseur, plu, designationInterne }) {
   const key = `${fournisseurCode}__${refFournisseur}`.toUpperCase();
-
   await setDoc(doc(db, "af_map", key), {
     fournisseurCode,
     refFournisseur,
@@ -119,21 +127,69 @@ async function saveAFMap({ fournisseurCode, refFournisseur, plu, designationInte
 }
 
 
-/**
- * Ouvre un sélecteur d’article (F9)
- * → tu as déjà quelque chose → on wrapper
- */
-async function choosePLUForMapping() {
+/**************************************************
+ * Article selector
+ **************************************************/
+function showArticleSelector(articles) {
   return new Promise((resolve) => {
 
-    // ✅ TODO — réutiliser la popup article existante
-    // Enn attendant → prompt
-    const plu = prompt("PLU ?");
-    if (!plu) return resolve(null);
+    // Overlay
+    const o = document.createElement("div");
+    o.className = "afmap-overlay";
 
-    resolve({
-      plu,
-      designationInterne: ""     // tu peux améliorer
+    const w = document.createElement("div");
+    w.className = "afmap-modal";
+
+    w.innerHTML = `
+      <h3>Associer un PLU</h3>
+
+      <input type="text" id="afmap-search" placeholder="Rechercher…" class="afmap-search"/>
+
+      <div class="afmap-tab"></div>
+
+      <div style="text-align:right;margin-top:12px;">
+        <button id="afmap-cancel" class="btn btn-muted">Annuler</button>
+      </div>
+    `;
+
+    o.appendChild(w);
+    document.body.appendChild(o);
+
+    const tab = w.querySelector(".afmap-tab");
+    const input = w.querySelector("#afmap-search");
+
+    // Rendu
+    function render(filter = "") {
+      const f = filter.toLowerCase();
+      const filtered = articles.filter(a =>
+        a.plu.toLowerCase().includes(f) ||
+        a.designation.toLowerCase().includes(f)
+      );
+
+      tab.innerHTML = filtered.map(a => `
+        <div class="afmap-artrow" data-plu="${a.plu}" data-des="${a.designation}">
+          <b>${a.plu}</b> — ${a.designation}
+        </div>
+      `).join("");
+    }
+    render();
+
+    input.addEventListener("input", () => {
+      render(input.value);
+    });
+
+    tab.addEventListener("click", (e) => {
+      const row = e.target.closest(".afmap-artrow");
+      if (!row) return;
+      const plu = row.dataset.plu;
+      const des = row.dataset.des;
+      o.remove();
+      resolve({ plu, designation: des });
+    });
+
+    w.querySelector("#afmap-cancel").addEventListener("click", () => {
+      o.remove();
+      resolve(null);
     });
   });
 }
