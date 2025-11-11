@@ -3,6 +3,18 @@
 <button onclick="importAFMap()">Importer AF Map</button>
 <script type="module" src="../js/import-af-map.js"></script>
 <script type="module" src="./js/admin-fix-afmap.js"></script>
+<script type="module" src="./js/admin-fix-afmap.js"></script>
+
+<script type="module">
+  import { requireAuth } from '../js/auth.js';
+  import { fixAFMapPLU } from './js/admin-fix-afmap.js';
+
+  // expose dans window → accessible depuis console
+  window.fixAFMapPLU = fixAFMapPLU;
+
+  requireAuth();
+</script>
+
 <script type="module">
   import { requireAuth } from '../js/auth.js';
   requireAuth();
