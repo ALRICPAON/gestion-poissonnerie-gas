@@ -1,8 +1,9 @@
 /*************************************************
  * IMPORT CRIÉE — Les Sables
  *  - Fichier XLSX local → Firestore
- *  - Mapping via AF_MAP (code article CRIÉE → PLU)
- *  - Majoration CRIÉE : +10% + 0.30 €/kg
+ *  - Mapping via AF_MAP (af_map/{fournisseur__codeArticle})
+ *  - Majoration CRIÉE : prix * 1.10 + 0.30 €/kg
+ *  - Extraction zone/sous-zone → FAO 27 VIII
  *************************************************/
 
 import { read, utils } from "https://cdn.sheetjs.com/xlsx-0.19.3/package/xlsx.mjs";
@@ -10,14 +11,15 @@ import { db } from "./firebase-init.js";
 import {
   collection,
   doc,
-  setDoc,
+  getDoc,
   getDocs,
+  setDoc,
   Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 
 /*************************************************
- * UI — LISTENER
+ * UI — BOUTON
  *************************************************/
 document.getElementById("importCrieeBtn")?.addEventListener("click", async () => {
   const file = document.getElementById("crieeFile")?.files?.[0];
@@ -27,16 +29,19 @@ document.getElementById("importCrieeBtn")?.addEventListener("click", async () =>
   }
 
   const status = document.getElementById("importStatus");
-  if (status) status.innerText = "📄 Lecture du fichier…";
+  if (status) status.innerText = "📄 Lecture fichier…";
 
   try {
     const rows = await readCrieeXLSX(file);
     if (status) status.innerText = `✅ ${rows.length} lignes détectées`;
 
-    const afMap = await loadAFMap();
-    if (status) status.innerText = `🔎 Mapping AF chargé (${Object.keys(afMap).length} entrées)`;
+    const afMap = await loadAFMap("81269");      // ✅ mapping PLU
+    if (status) status.innerText = `🔎 Mapping AF : ${Object.keys(afMap).length} références`;
 
-    await saveCrieeToFirestore(rows, afMap);
+    const fournisseur = await loadFournisseur("81269");  // ✅ fournisseur
+    if (status) status.innerText = `✅ Fournisseur : ${fournisseur.nom}`;
+
+    await saveCrieeToFirestore(rows, afMap, fournisseur);
 
     if (status) status.innerText = "✅ Import CRIÉE terminé !";
 
@@ -49,7 +54,7 @@ document.getElementById("importCrieeBtn")?.addEventListener("click", async () =>
 
 
 /*************************************************
- * 1) Lecture XLSX brut → tableau
+ * 1) Lecture XLSX → rows[][]
  *************************************************/
 async function readCrieeXLSX(file) {
   return new Promise((resolve) => {
@@ -70,71 +75,103 @@ async function readCrieeXLSX(file) {
 
 
 /*************************************************
- * 2) Charger AF_MAP : code CRIEE → PLU
+ * 2) Charger AF_MAP
+ *    af_map/{fournisseur__codeArticle}  (ID)
  *************************************************/
-async function loadAFMap() {
-  const snap = await getDocs(collection(db, "afMap"));
+async function loadAFMap(fournisseurCode) {
+  const snap = await getDocs(collection(db, "af_map"));
   const map = {};
 
   snap.forEach((d) => {
-    map[d.id] = d.data().plu;      // clé = codeArticleCriee
+    const id = d.id;               // ex: "81269__36130"
+    const parts = id.split("__");
+    if (parts.length !== 2) return;
+
+    const f = parts[0];            // "81269"
+    const codeArticle = parts[1];  // "36130"
+
+    if (f !== fournisseurCode) return;
+
+    const plu = d.data().plu || null;
+    map[codeArticle] = plu;
   });
 
+  console.log("AF MAP =", map);
   return map;
 }
 
 
 
 /*************************************************
- * 3) Import → Firestore
+ * 3) Charger Fournisseur
  *************************************************/
-async function saveCrieeToFirestore(rows, afMap) {
+async function loadFournisseur(code) {
+  const ref = doc(db, "fournisseurs", code);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    return {
+      code,
+      nom: ""
+    };
+  }
+  return {
+    code,
+    nom: snap.data().nom || ""
+  };
+}
+
+
+
+/*************************************************
+ * 4) Import → Firestore
+ *************************************************/
+async function saveCrieeToFirestore(rows, afMap, fournisseur) {
 
   const MAJ_RATE = 1.10;
   const FIX = 0.30;
 
-  const FOURNISSEUR_CODE = "81269";   // CRIÉE Les Sables
-
-  // Création de l'achat
   const achatRef = doc(collection(db, "achats"));
   const lignesColl = collection(achatRef, "lignes");
 
   let totalHT = 0;
   let totalKg = 0;
 
+  // Ligne 0 = entêtes → on commence à 1
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || !r[0]) continue;
 
-    /** ✅ mapping CRIÉE (colonnes) */
-    const codeArticle = String(r[0]).trim();  // A
-    const designation = r[1] || "";           // B
-    const latin = r[2] || "";                 // C
-    const prix = parseFloat(r[6]) || 0;       // G
-    const poids = parseFloat(r[7]) || 0;      // H
-    const zoneRaw = r[10] || "";              // K
-    const subRaw = r[11] || "";               // L
-    const engin = (r[12] || "").trim();       // M
+    /** ✅ mapping CRIÉE */
+    const codeArticle = String(r[0]).trim();   // Col A
+    const designation = r[1] || "";            // Col B
+    const latin = r[2] || "";                  // Col C
+    const prix = parseFloat(r[6]) || 0;        // Col G
+    const poids = parseFloat(r[7]) || 0;       // Col H
+    const zoneRaw = r[10] || "";               // Col K
+    const subRaw = r[11] || "";                // Col L
+    const engin = (r[12] || "").trim();        // Col M
 
-    /** ✅ Mapping code CRIEE → PLU */
+    /** ✅ mapping PLU */
     const plu = afMap[codeArticle] ?? null;
 
-    /** ✅ Prix majoré */
+    /** ✅ prix majoré */
     const prixMaj = prix * MAJ_RATE + FIX;
     const total = prixMaj * poids;
 
     totalHT += total;
     totalKg += poids;
 
-    /** ✅ Zone & sous-zone */
+    /** ✅ extraction zone/sous-zone */
     const zoneNum = extractParen(zoneRaw);   // "27"
-    const subNum = extractParen(subRaw);     // "080" → "08"
+    const subNum = extractParen(subRaw);     // "080"
     const subRoman = toRoman(subNum);        // → "VIII"
     const fao = zoneNum ? `FAO ${zoneNum} ${subRoman}`.trim() : "";
 
-    /** ✅ Écriture ligne */
+    /** ✅ write line */
     await setDoc(doc(lignesColl), {
-      fournisseur: FOURNISSEUR_CODE,
+      fournisseurCode: fournisseur.code,
+      fournisseurNom: fournisseur.nom,
       codeArticle,
       plu,
       designation,
@@ -150,10 +187,11 @@ async function saveCrieeToFirestore(rows, afMap) {
     });
   }
 
-  /** ✅ Écriture achat */
+  /** ✅ DOC achat (header) */
   await setDoc(achatRef, {
     id: achatRef.id,
-    fournisseur: FOURNISSEUR_CODE,
+    fournisseurCode: fournisseur.code,
+    fournisseurNom: fournisseur.nom,
     createdAt: Timestamp.now(),
     totalHT,
     totalKg,
@@ -171,15 +209,13 @@ async function saveCrieeToFirestore(rows, afMap) {
 function extractParen(txt = "") {
   const m = String(txt).match(/\((\d+)\)/);
   if (!m) return "";
-  return m[1].padStart(2, "0");   // "080" → "080"
+  return m[1].padStart(2, "0");
 }
-
 
 function toRoman(subNum = "") {
   const map = {
     "01": "I", "02": "II", "03": "III", "04": "IV", "05": "V", "06": "VI",
     "07": "VII", "08": "VIII", "09": "IX", "10": "X", "11": "XI", "12": "XII"
   };
-  const key = String(subNum).padStart(2, "0");
-  return map[key] || "";
+  return map[String(subNum).padStart(2, "0")] || "";
 }
