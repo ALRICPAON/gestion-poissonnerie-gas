@@ -1,212 +1,241 @@
-/*************************************************
- * IMPORT CRIÉE — Les Sables d’Olonne (81269)
- *************************************************/
+/**************************************************
+ * IMPORT CRIÉE DES SABLES (code fournisseur = 81269)
+ **************************************************/
+import { db } from "../js/firebase-init.js";
 
-import { read, utils } from "https://cdn.sheetjs.com/xlsx-0.19.3/package/xlsx.mjs";
-import { db } from "./firebase-init.js";
 import {
   collection,
-  doc,
+  addDoc,
   getDoc,
   getDocs,
-  setDoc,
-  Timestamp
+  doc,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+const FOUR_CODE = "81269"; // ✅ CRIÉE DES SABLES
 
-/*************************************************
- * UI BUTTON
- *************************************************/
-document.getElementById("importCrieeBtn")?.addEventListener("click", async () => {
-  const file = document.getElementById("crieeFile")?.files?.[0];
-  if (!file) {
-    alert("Sélectionne un fichier CRIÉE (.xlsx/.csv)");
-    return;
-  }
-
-  const status = document.getElementById("importStatus");
-  if (status) status.innerText = "📄 Lecture fichier…";
-
-  try {
-    const rows = await readCrieeXLSX(file);
-
-    const fournisseurCode = "81269";
-    const fournisseur = await loadFournisseur(fournisseurCode);
-    const afMap = await loadAFMap(fournisseurCode);
-
-    await saveCrieeToFirestore(rows, afMap, fournisseur);
-
-    if (status) status.innerText = "✅ Import CRIÉE terminé !";
-
-  } catch (err) {
-    console.error("Erreur import :", err);
-    alert("Erreur durant l'import : " + err.message);
-  }
-});
-
-
-
-/*************************************************
- * XLSX → rows[][]
- *************************************************/
-async function readCrieeXLSX(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = read(data, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = utils.sheet_to_json(sheet, { header: 1 });
-      resolve(rows);
-    };
-
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-
-
-/*************************************************
- * CHARGER MAPPING AF_MAP
- *  af_map / 81269__CODE
- *************************************************/
-async function loadAFMap(fournisseurCode) {
+/**************************************************
+ * Charge le mapping AF_MAP → indexé par refFournisseur (col A)
+ **************************************************/
+async function loadAFMap() {
   const snap = await getDocs(collection(db, "af_map"));
   const map = {};
 
   snap.forEach((d) => {
-    const id = d.id;               // ex: "81269__1116"
-    const parts = id.split("__");
-    if (parts.length !== 2) return;
-
-    const f = parts[0];
-    const codeArticle = parts[1];
-
-    // filtre fournisseur
-    if (f !== fournisseurCode) return;
-
     const data = d.data();
-    const refF = (data.refFournisseur || "").trim().replace(/^0+/, "");
-map[refF] = {
-  plu: data.plu ?? null,
-  designationInterne: data.designationInterne ?? "",
-  aliasFournisseur: data.aliasFournisseur ?? ""
-};
-  });
-  console.log("AF MAP = ", map);   // ✅ AJOUT ICI
+    if (!data.fournisseurCode || data.fournisseurCode !== FOUR_CODE) return;
 
-  console.log("AF MAP =", map);
+    let refF = (data.refFournisseur || "").toString().trim();
+    if (!refF) return;
+
+    // supprime les 0 devant
+    refF = refF.replace(/^0+/, "");
+
+    map[refF] = {
+      plu: data.plu ?? null,
+      designationInterne: data.designationInterne ?? "",
+      aliasFournisseur: data.aliasFournisseur ?? "",
+    };
+  });
+
+  console.log("✅ AF MAP =", map);
   return map;
 }
 
-
-
-/*************************************************
- * Charger fournisseur : nom + code
- *************************************************/
-async function loadFournisseur(code) {
-  const snap = await getDoc(doc(db, "fournisseurs", code));
-  if (!snap.exists()) return { code, nom: "" };
-  return {
-    code,
-    nom: snap.data().nom || ""
-  };
+/**************************************************
+ * Charge infos fournisseur => nom
+ **************************************************/
+async function loadSupplierInfo() {
+  const ref = doc(db, "fournisseurs", FOUR_CODE);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { code: FOUR_CODE, nom: "CRIÉE" };
+  return snap.data();
 }
 
+/**************************************************
+ * Handler bouton
+ **************************************************/
+document
+  .getElementById("importCrieeBtn")
+  ?.addEventListener("click", handleImportCriee);
 
+async function handleImportCriee() {
+  try {
+    const fileInput = document.getElementById("crieeFile");
+    const divStatus = document.getElementById("importStatus");
+    if (!fileInput?.files.length) {
+      alert("Merci de choisir un fichier XLSX/CSV");
+      return;
+    }
 
-/*************************************************
- * SAUVEGARDE FIRESTORE
- *************************************************/
-async function saveCrieeToFirestore(rows, afMap, fournisseur) {
+    const file = fileInput.files[0];
 
-  const MAJ_RATE = 1.10;
-  const FIX = 0.30;
+    // Charge le mapping + infos fournisseur
+    const afMap = await loadAFMap();
+    const supplier = await loadSupplierInfo();
 
-  const achatRef = doc(collection(db, "achats"));
-  const lignesColl = collection(achatRef, "lignes");
+    divStatus.textContent = "Lecture fichier…";
 
-  let totalHT = 0;
-  let totalKg = 0;
+    /*********************************************
+     * Parse du fichier (SheetJS)
+     *********************************************/
+    const wb = await readWorkbookAsync(file);
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
-    if (!r || !r[0]) continue;
+    // en tête achat
+    const achatId = await createAchatHeader(supplier);
 
-    /** ✅ mapping XLS */
-    const codeArticle = String(r[0]).trim();   // Col A
-    const designation = r[1] || "";            // Col B
-    const latin = r[2] || "";                  // Col C
-    const prix = parseFloat(r[6]) || 0;        // Col G
-    const poids = parseFloat(r[7]) || 0;       // Col H
-    const zoneRaw = r[10] || "";               // Col K
-    const subRaw = r[11] || "";                // Col L
-    const engin = (r[12] || "").trim();        // Col M
+    divStatus.textContent = "Import des lignes…";
 
-    /** ✅ lookup PLU */
-    const mapping = afMap[codeArticle] ?? null;
-    const plu = mapping?.plu ?? null;
+    // lignes XLSX -> Firestore sous-collection items
+    await saveCrieeToFirestore(achatId, json, afMap);
 
-    /** ✅ prix majoré */
-    const prixMaj = prix * MAJ_RATE + FIX;
-    const total = prixMaj * poids;
-    totalHT += total;
-    totalKg += poids;
+    divStatus.textContent = "✅ Terminé";
 
-    /** ✅ zone → FAO */
-    const zoneNum = extractParen(zoneRaw);
-    const subNum = extractParen(subRaw);
-    const subRoman = toRoman(subNum);
-    const fao = zoneNum ? `FAO ${zoneNum} ${subRoman}`.trim() : "";
+    alert("Import CRIÉE terminé ✅");
+    location.reload();
 
-    /** ✅ write line */
-    await setDoc(doc(lignesColl), {
-      fournisseurCode: fournisseur.code,
-      fournisseurNom: fournisseur.nom,
-      codeArticle,
-      plu,
-      designation,
-      latin,
-      poidsKg: poids,
-      prixHTKg: prixMaj,
-      totalHT: total,
-      fao,
-      zone: zoneNum,
-      sousZone: subRoman,
-      engin,
-      createdAt: Timestamp.now(),
-    });
+  } catch (e) {
+    console.error("❌ Erreur import CRIÉE:", e);
+    alert("Erreur durant l'import : " + e);
   }
+}
 
-  /** ✅ achat header */
-  await setDoc(achatRef, {
-    id: achatRef.id,
-    fournisseurCode: fournisseur.code,
-    fournisseurNom: fournisseur.nom,
-    createdAt: Timestamp.now(),
-    totalHT,
-    totalKg,
+/**************************************************
+ * Async read XLSX
+ **************************************************/
+function readWorkbookAsync(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        resolve(wb);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    fr.onerror = reject;
+    fr.readAsArrayBuffer(file);
+  });
+}
+
+/**************************************************
+ * Crée l’entête achat
+ **************************************************/
+async function createAchatHeader(supplier) {
+  const colAchats = collection(db, "achats");
+  const docRef = await addDoc(colAchats, {
+    date: new Date().toISOString().slice(0, 10),
+    fournisseurCode: supplier.code || FOUR_CODE,
+    fournisseurNom: supplier.nom || "CRIÉE DES SABLES",
+    montantHT: 0,
+    montantTTC: 0,
+    statut: "new",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
-  return true;
+  console.log("✅ Header achat créé:", docRef.id);
+  return docRef.id;
 }
 
+/**************************************************
+ * Sauvegarde lignes CRIÉE -> subcollection items
+ **************************************************/
+async function saveCrieeToFirestore(achatId, sheetData, afMap) {
 
+  let totalHT = 0;
+  let totalTTC = 0;
+  let totalKg = 0;
 
-/*************************************************
- * HELPERS
- *************************************************/
+  // boucle lignes
+  for (let i = 1; i < sheetData.length; i++) {
+    const r = sheetData[i];
+    if (!r || !r.length) continue;
 
-function extractParen(txt = "") {
-  const m = String(txt).match(/\((\d+)\)/);
-  return m ? m[1] : "";
+    /*****************************
+     * MAPPING COLONNES
+     *****************************/
+    let codeArt = (r[0] ?? "").toString().trim(); // ✅ col A
+    codeArt = codeArt.replace(/^0+/, "");
+
+    const designation = r[1] ?? "";            // col B
+    const nomLatin = r[2] ?? "";               // col C
+
+    const prixHTKg = parseFloat(r[6] ?? 0);    // col G
+    const poidsKg  = parseFloat(r[7] ?? 0);    // col H
+    const totalLigne = parseFloat(r[8] ?? 0);  // col I
+
+    // zone/sous zone / engin
+    const zoneRaw     = (r[10] ?? "").toString();
+    const sousZoneRaw = (r[11] ?? "").toString();
+    const engin       = (r[12] ?? "").toString();
+
+    // Nettoyage zone → ex "atlantique nord est (27)" -> "27"
+    const zoneMatch = zoneRaw.match(/\((\d+)\)/);
+    const zone = zoneMatch ? zoneMatch[1] : "";
+
+    // Sous zone → ex "(080)" -> "VIII"
+    const subMatch = sousZoneRaw.match(/\((\d+)\)/);
+    let sousZone = "";
+    if (subMatch) {
+      sousZone = convertFAO(subMatch[1]); // 080 → VIII
+    }
+
+    const fao = zone && sousZone ? `FAO${zone} ${sousZone}` : "";
+
+    // Mapping PLU
+    const map = afMap[codeArt];
+    const plu = map?.plu ?? null;
+    const designationInterne = map?.designationInterne ?? designation;
+
+    // cumul totals
+    totalHT += totalLigne;
+    totalTTC += totalLigne * 1.1; // règle générale ?
+    totalKg += poidsKg;
+
+    // push ligne
+    await addDoc(collection(db, "achats", achatId, "items"), {
+      codeArticle: codeArt,
+      plu,
+      designation,
+      designationInterne,
+      nomLatin,
+      poidsKg,
+      prixHTKg,
+      totalHT: totalLigne,
+      fao,
+      zone,
+      sousZone,
+      engin,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log("✅ ITEM:", codeArt, "-> PLU=", plu);
+  }
+
+  // maj header achat
+  const refA = doc(db, "achats", achatId);
+  await updateDoc(refA, {
+    montantHT: totalHT,
+    montantTTC: totalTTC,
+    totalKg,
+    updatedAt: serverTimestamp(),
+  });
 }
 
-function toRoman(subNum = "") {
+/**************************************************
+ * Convertit FAO numeric → roman (080 → VIII)
+ **************************************************/
+function convertFAO(n) {
   const map = {
-    "01": "I", "02": "II", "03": "III", "04": "IV", "05": "V", "06": "VI",
-    "07": "VII", "08": "VIII", "09": "IX", "10": "X", "11": "XI", "12": "XII"
+    "27": "VIII", // Golfe
+    "080": "VIII",
+    "081": "VIII",
   };
-  return map[String(subNum).padStart(2, "0")] || "";
+  return map[n] ?? n;
 }
