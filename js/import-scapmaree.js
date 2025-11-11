@@ -142,20 +142,30 @@ async function saveScapToFirestore(achatId, rows, afMap) {
     const map = afMap[key];
 
     let plu = "";
-    let designationInterne = designation;
-    let allergenes = "";
-    let zone = "";
-    let sousZone = "";
-    let engin = "";
+let designationInterne = designation;
+let allergenes = "";
+let zone = "";
+let sousZone = "";
+let engin = "";
 
-    if (map?.plu) {
-      plu = map.plu;
-      designationInterne = map?.designationInterne || designation;
-      allergenes = map?.allergenes || "";
-      zone = map?.zone || "";
-      sousZone = map?.sousZone || "";
-      engin = map?.engin || "";
-    }
+if (map?.plu) {
+  plu = map.plu;
+  designationInterne = map?.designationInterne || designation;
+}
+
+// ✅ Si PLU trouvé → lire article
+if (plu) {
+   const artSnap = await getDoc(doc(db, "articles", plu));
+   if (artSnap.exists()) {
+      const x = artSnap.data();
+
+      // Complète SEULEMENT si manquant
+      allergenes = allergenes || x.Allergenes || x.allergenes || "";
+      zone       = zone       || x.Zone       || x.zone       || "";
+      sousZone   = sousZone   || x.SousZone   || x.sousZone   || "";
+      engin      = engin      || x.Engin      || x.engin      || "";
+   }
+}
 
     totalHT  += montantHT;
     totalTTC += montantHT;
