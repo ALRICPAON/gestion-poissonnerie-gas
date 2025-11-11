@@ -1,43 +1,31 @@
 /**************************************************
- * IMPORT CRIÉE ST-GILLES
+ * IMPORT CRIÉE ST-GILLES (FOUR_CODE = 81268)
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
-  collection,
-  addDoc,
-  getDoc,
-  getDocs,
-  doc,
-  serverTimestamp,
-  updateDoc
+  collection, addDoc, getDoc, getDocs, doc,
+  serverTimestamp, updateDoc, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const FOUR_CODE = "81268"; // CRIÉE St-Gilles
+const FOUR_CODE = "81268"; // Criée St-Gilles
 
-/**************************************************
- * AF_MAP
- **************************************************/
+/******** AF_MAP → { "81268__33320": { plu, designationInterne, ... } } */
 async function loadAFMap() {
   const snap = await getDocs(collection(db, "af_map"));
   const map = {};
-  snap.forEach(d => (map[d.id] = d.data()));
+  snap.forEach(d => { map[d.id] = d.data(); });
   return map;
 }
 
-/**************************************************
- * Fournisseur
- **************************************************/
+/******** Fournisseur */
 async function loadSupplierInfo() {
   const ref = doc(db, "fournisseurs", FOUR_CODE);
   const snap = await getDoc(ref);
-  return snap.exists()
-    ? snap.data()
-    : { code: FOUR_CODE, nom: "CRIÉE St-Gilles" };
+  if (!snap.exists()) return { code: FOUR_CODE, nom: "Criée St-Gilles" };
+  return snap.data();
 }
 
-/**************************************************
- * Lecture XLSX
- **************************************************/
+/******** XLSX reader (SheetJS) */
 function readWorkbookAsync(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -46,144 +34,135 @@ function readWorkbookAsync(file) {
         const data = new Uint8Array(e.target.result);
         const wb = XLSX.read(data, { type: "array" });
         resolve(wb);
-      } catch (err) {
-        reject(err);
-      }
+      } catch (err) { reject(err); }
     };
     fr.onerror = reject;
     fr.readAsArrayBuffer(file);
   });
 }
 
-/**************************************************
- * Create header
- **************************************************/
+/******** Header Achat (→ Timestamp, pas string) */
 async function createAchatHeader(supplier) {
-  const d = await addDoc(collection(db, "achats"), {
-    date: new Date().toISOString().slice(0,10),
-    fournisseurCode: supplier.code,
-    fournisseurNom: supplier.nom,
+  const colAchats = collection(db, "achats");
+  const now = new Date();
+  const ref = await addDoc(colAchats, {
+    date: Timestamp.fromDate(now),             // ✅ Timestamp
+    fournisseurCode: supplier.code || FOUR_CODE,
+    fournisseurNom: supplier.nom || "Criée St-Gilles",
+    designationFournisseur: "Import Criée St-Gilles",
+    type: "BL",
+    statut: "new",
     montantHT: 0,
     montantTTC: 0,
     totalKg: 0,
-    statut: "new",
-    type: "BL",
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   });
-
-  return d.id;
+  return ref.id;
 }
 
-/**************************************************
- * Convert zone → FAO
- **************************************************/
+/******** FAO num → roman (ex: "080" → "VIII") */
 function convertFAO(n) {
-  const map = { "27":"VIII", "080":"VIII", "081":"VIII" };
+  const map = { "27": "VIII", "080": "VIII", "081": "VIII" };
   return map[n] ?? n;
 }
 
-/**************************************************
- * SAVE LIGNES CRIÉE ST-GILLES
- **************************************************/
-async function saveCrieeToFirestore(achatId, rows, afMap) {
+/******** Petite util */
+const nz = v => (v == null ? "" : String(v).trim());
 
-  let totalHT = 0;
-  let totalKg = 0;
+/******** Save lignes */
+async function saveCrieeToFirestore(achatId, rows, afMap) {
+  let totalHT = 0, totalTTC = 0, totalKg = 0;
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || !r.length) continue;
 
-    // --- REF fournisseur
-    let ref = (r[0] ?? "").toString().trim();
-    ref = ref.replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
+    // A ref fournisseur
+    let ref = nz(r[0]).replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
-    // --- Champs bruts CRIÉE
-    const designation = r[1] ?? "";     // Col B
-    const nomLatin    = r[2] ?? "";     // Col C
+    // B designation, C nom latin
+    const designation = nz(r[1]);
+    const nomLatin    = nz(r[2]);
 
-    // ✅ CORRECTION INDEX
-    const poidsTotalKg = parseFloat(r[7] ?? 0);   // Col H
-    const prixKg       = parseFloat(r[8] ?? 0);   // Col I
-    const montantHT    = parseFloat(r[9] ?? 0);   // Col J
+    // G prix/kg, H poids total, I total HT
+    const prixKg       = parseFloat(String(r[6]).replace(",", ".")) || 0;
+    const poidsTotalKg = parseFloat(String(r[7]).replace(",", ".")) || 0;
+    const montantHT    = parseFloat(String(r[8]).replace(",", ".")) || 0;
 
-    // Zone — sous-zone — engin
-    const zoneRaw = (r[12] ?? "").toString();
-    const subRaw  = (r[13] ?? "").toString();
-    const engin   = (r[14] ?? "").toString();
+    // K zone "(27)", L sous-zone "(080)", M engin
+    const zoneRaw = nz(r[10]);
+    const subRaw  = nz(r[11]);
+    const engin   = nz(r[12]);
 
-    const zone = zoneRaw.match(/\((\d+)\)/)?.[1] ?? "";
-    const sousZone = convertFAO(subRaw.match(/\((\d+)\)/)?.[1] ?? "");
+    const zoneMatch = zoneRaw.match(/\((\d+)\)/);
+    const zone = zoneMatch ? zoneMatch[1] : "";
+
+    const subMatch = subRaw.match(/\((\d+)\)/);
+    const sousZone = subMatch ? convertFAO(subMatch[1]) : "";
 
     const fao = zone && sousZone ? `FAO${zone} ${sousZone}` : "";
 
-    // --- LOOKUP AF_MAP
+    // AF_MAP lookup
     const key = `${FOUR_CODE}__${ref}`.toUpperCase();
-    const map = afMap[key];
+    const M = afMap[key] || null;
 
-    const plu = map?.plu || "";
-    const designationInterne = map?.designationInterne || designation;
-    const allergenes = map?.allergenes || "";
+    let plu = M?.plu ? String(M.plu) : "";
+    plu = plu.replace(/\.0$/, ""); // Excel floats → string
+    const designationInterne = M?.designationInterne || designation;
+    const allergenes = M?.allergenes || "";
 
-    // ----- Totaux
-    totalHT += montantHT;
-    totalKg += poidsTotalKg;
+    totalHT  += montantHT;
+    totalTTC += montantHT;     // TVA non gérée ici
+    totalKg  += poidsTotalKg;
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: ref,
       fournisseurRef: ref,
 
+      // 👍 noms attendus par achat-detail.js
       plu,
       designation,
       designationInterne,
       nomLatin,
 
-      zone,
-      sousZone,
-      engin,
-      allergenes,
-      fao,
+      zone, sousZone, engin, allergenes, fao,
 
-      colis: 0,
-      poidsColisKg: 0,
+      // set CRIÉE fields dans les bons noms:
       poidsTotalKg,
       prixKg,
       montantHT,
       montantTTC: montantHT,
 
-      received: false,
+      // champs manuels non utilisés ici
+      colis: 0,
+      poidsColisKg: 0,
 
+      received: false,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
 
-    console.log("✅ LIGNE:", ref, "→ PLU:", plu, prixKg, poidsTotalKg, montantHT);
+    console.log("LIGNE", ref, "→ PLU:", plu, "|", designation, "| kg:", poidsTotalKg, "| €/kg:", prixKg, "| HT:", montantHT);
   }
 
+  // maj header
   await updateDoc(doc(db, "achats", achatId), {
     montantHT: totalHT,
-    montantTTC: totalHT,
+    montantTTC: totalTTC,
     totalKg,
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   });
 }
 
-/**************************************************
- * MAIN API (appelée depuis achats.html)
- **************************************************/
+/******** Exportée pour la page Achats (menu déroulant) */
 export async function importCrieeStGilles(file) {
-
-  const afMap = await loadAFMap();
-  const supplier = await loadSupplierInfo();
-
+  // lecture + import
+  const [afMap, supplier] = await Promise.all([loadAFMap(), loadSupplierInfo()]);
   const wb = await readWorkbookAsync(file);
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
   const achatId = await createAchatHeader(supplier);
-
   await saveCrieeToFirestore(achatId, rows, afMap);
-
-  return achatId;
 }
+
