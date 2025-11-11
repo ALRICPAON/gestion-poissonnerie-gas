@@ -96,9 +96,54 @@
   </table>
 
   <script type="module">
-    import { requireAuth } from '../js/auth.js';
-    requireAuth();
-  </script>
+  import { requireAuth } from "../js/auth.js";
+
+  import { importCrieeStGilles } from "../js/import-criee-stgilles.js";
+  import { importCrieeSables } from "../js/import-criee-sables.js";
+  import { importScapmaree } from "../js/import-scapmaree.js";
+
+  requireAuth();
+
+  const btn        = document.getElementById("btnProviderImport");
+  const fileInput  = document.getElementById("providerFile");
+  const select     = document.getElementById("providerSelect");
+  const status     = document.getElementById("importStatus");
+
+  btn.addEventListener("click", async () => {
+
+    status.textContent = "";
+
+    const file = fileInput.files[0];
+    if (!file) return alert("📁 Sélectionner un fichier");
+
+    const provider = select.value;
+    if (!provider) return alert("❗ Choisir un fournisseur");
+
+    try {
+      if (provider === "CRIEE_STGILLES") {
+        await importCrieeStGilles(file);
+      }
+      else if (provider === "CRIEE_LES_SABLES") {
+        await importCrieeSables(file);
+      }
+      else if (provider === "SCAPMAREE") {
+        await importScapmaree(file);
+      }
+      else {
+        alert("❌ Import non implémenté pour : " + provider);
+        return;
+      }
+
+      status.textContent = "✅ Import terminé !";
+    }
+    catch (e) {
+      console.error(e);
+      alert("❌ Erreur import : " + e.message);
+      status.textContent = "❌ Erreur";
+    }
+  });
+</script>
+
 
 </body>
 </html>
