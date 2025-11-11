@@ -531,13 +531,251 @@ Outil dédié poissonnerie / marée
 → Traçabilité béton
 → Adapté GMS ou indépendant
 → Conçu pour évoluer
+📁 STRUCTURE FIREBASE – RÉFÉRENCE OFFICIELLE
+/af_map/{fournisseurCode__refFournisseur}
+    fournisseurCode: string
+    fournisseurNom: string
+    refFournisseur: string
+    plu: string
+    designationInterne: string
+    aliasFournisseur: string
+    nomLatin: string
+    zone: string
+    sousZone: string
+    methode: string
+    allergenes: string
+    engin: string
+    updatedAt: Timestamp
 
-🔥 Prêt à déployer en production
+/articles/{plu}
+    plu: string
+    designation: string
+    nomLatin: string
+    zone: string
+    sousZone: string
+    engin: string
+    allergenes: string
+    categorie: string
+    … autre metadata
 
-✅ PRÊT À COLLER DANS CANVA
-Si tu veux je peux te générer une version :
-✅ en 1 page
-✅ en plusieurs pages (1 module = 1 page)
-✅ + visuels / icônes / couleurs
+/achats/{achatId}
+    date: Timestamp
+    fournisseurCode: string
+    fournisseurNom: string
+    designationFournisseur: string
+    type: string    ("commande" | "BL")
+    statut: string  ("new" | "received")
+    montantHT: number
+    montantTTC: number
+    totalKg: number
+    createdAt: Timestamp
+    updatedAt: Timestamp
 
-Dis-moi laquelle tu veux !
+/achats/{achatId}/lignes/{lineId}
+    refFournisseur: string
+    plu: string
+    designation: string
+    designationInterne: string
+    nomLatin: string
+    zone: string
+    sousZone: string
+    engin: string
+    allergenes: string
+
+    poidsKg: number          (criee)
+    colis: number            (manuelle)
+    poidsColisKg: number     (manuelle)
+    poidsTotalKg: number     (manuelle)
+    prixHTKg: number
+    prixKg: number           (manuelle)
+    montantHT: number
+    montantTTC: number
+
+    fao: string              (ex: "FAO27 VIII")
+    lot: string              (ex: "20251110120503-03")
+    qr_url: base64 or string
+    qr_scanned: bool
+    qr_scan_date: Timestamp
+    photo_url: string
+
+    received: bool
+    createdAt: Timestamp
+    updatedAt: Timestamp
+
+/stock_movements/{docId}
+    date: Timestamp
+    type: "in" | "out"
+    achatId: string
+    ligneId: string
+    plu: string
+    lot: string
+    poidsKg: number
+    prixKg: number
+    montantHT: number
+✅ RÈGLE D’IMPORT – MAPPING CRIÉE
+
+Lors d’un import CRIÉE :
+→ On place les données dans /achats/{id}/lignes
+
+Champs obligatoires à écrire :
+
+Champ	Source
+refFournisseur	colonne CRIÉE
+plu	lookup AF_MAP
+designation	CRIÉE
+designationInterne	AF_MAP ou CRIÉE
+nomLatin	CRIÉE
+zone	CRIÉE
+sousZone	CRIÉE
+engin	CRIÉE
+poidsKg	CRIÉE
+prixHTKg	CRIÉE
+totalHT	CRIÉE
+fao	format : FAO{zone} {sousZone}
+
+Champs non encore assignés (remplis plus tard) :
+
+colis
+
+poidsColisKg
+
+poidsTotalKg
+
+prixKg
+
+montantHT (si conversion prix × poids)
+
+Champs gérés automatiquement (plus tard) :
+
+lot
+
+qr_url
+
+received (lors conversion en BL)
+
+✅ AF_MAP — STANDARD
+🔑 ID DOC
+{fournisseurCode}__{refFournisseur}
+Pas d’espace, pas de slash → déjà normalisé
+Exemple
+81268__33090
+Structure
+{
+  fournisseurCode: "81268",
+  fournisseurNom: "criee st gilles croix de vie",
+  refFournisseur: "33090",
+  plu: "3591",
+  designationInterne: "MAIGRE COMMUN",
+  nomLatin: "Argyrosomus regius",
+  zone: "27",
+  sousZone: "VIII",
+  methode: "",
+  allergenes: "",
+  engin: "...",
+  updatedAt: timestamp
+}
+✅ On conserve les lignes même si plu="" pour mappage futur
+
+✅ PROCESS GLOBAL
+1️⃣ Import AF_MAP
+
+Convertir Excel → JSON
+
+Import via :id = `${fournisseurCode}__${refFournisseur}`
+2️⃣ Import CRIÉE
+
+Lire tableau
+
+Calcul clé AF_MAP
+
+Hydrate :
+
+plu
+
+designationInterne
+
+nomLatin
+
+zone / sousZone / engin
+
+Stock → /achats/{id}/lignes
+
+3️⃣ Consultation Achat
+
+Page display → OK
+
+AF bouton → re-mappage manuel si besoin
+
+4️⃣ Conversion → BL
+
+Ajout :
+
+lot auto
+
+QR
+
+stock_movements
+
+✅ BONNES PRATIQUES
+
+✅ AF_MAP minimal
+plu
+designationInterne
+nomLatin
+zone
+sousZone
+engin
+✅ CRIÉE = source traça
+
+nomLatin
+
+zone
+
+sousZone
+
+engin
+
+prix HT/kg
+
+kg total
+
+✅ Lots générés uniquement en BL
+
+✅ Totaux mis à jour côté achat (header + lignes)
+
+✅ POUR LES FUTURS IMPORTS
+Structuration identique :
+
+SCAPMARÉE
+
+ANGELO
+
+SOGELMER
+
+→ On respecte :
+
+En tête :
+/achats
+Lignes sous-doc
+/achats/{id}/lignes/{lineId}
+Avec le même schéma.
+
+✅ GARANTI COMPATIBILITÉ avec tout le workflow :
+AFFICHAGE → LECTURE → MODIFICATION → STOCK
+
+✅ CHAMPS MINIMUM POUR UNE LIGNE VALIDÉE
+plu
+designation
+nomLatin
+zone
+sousZone
+engin
+prixHTKg
+poidsKg
+totalHT
+Optionnels :
+allergenes
+designationInterne
+fao
+On reconstruira toujours :
+fao = `FAO${zone} ${sousZone}`
