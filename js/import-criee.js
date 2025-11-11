@@ -10,6 +10,7 @@ import {
   getDocs,
   doc,
   serverTimestamp,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 const FOUR_CODE = "81269"; // ✅ CRIÉE DES SABLES
@@ -53,7 +54,7 @@ async function loadSupplierInfo() {
 }
 
 /**************************************************
- * Handler bouton
+ * Button handler
  **************************************************/
 document
   .getElementById("importCrieeBtn")
@@ -70,25 +71,21 @@ async function handleImportCriee() {
 
     const file = fileInput.files[0];
 
-    // Charge le mapping + infos fournisseur
     const afMap = await loadAFMap();
     const supplier = await loadSupplierInfo();
 
     divStatus.textContent = "Lecture fichier…";
 
-    /*********************************************
-     * Parse du fichier (SheetJS)
-     *********************************************/
+    // Parse XLSX
     const wb = await readWorkbookAsync(file);
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-    // en tête achat
+    // Create entête
     const achatId = await createAchatHeader(supplier);
 
     divStatus.textContent = "Import des lignes…";
 
-    // lignes XLSX -> Firestore sous-collection items
     await saveCrieeToFirestore(achatId, json, afMap);
 
     divStatus.textContent = "✅ Terminé";
@@ -143,7 +140,7 @@ async function createAchatHeader(supplier) {
 }
 
 /**************************************************
- * Sauvegarde lignes CRIÉE -> subcollection items
+ * Sauvegarde lignes CRIÉE -> subcollection lignes
  **************************************************/
 async function saveCrieeToFirestore(achatId, sheetData, afMap) {
 
@@ -151,7 +148,6 @@ async function saveCrieeToFirestore(achatId, sheetData, afMap) {
   let totalTTC = 0;
   let totalKg = 0;
 
-  // boucle lignes
   for (let i = 1; i < sheetData.length; i++) {
     const r = sheetData[i];
     if (!r || !r.length) continue;
@@ -159,46 +155,42 @@ async function saveCrieeToFirestore(achatId, sheetData, afMap) {
     /*****************************
      * MAPPING COLONNES
      *****************************/
-    let codeArt = (r[0] ?? "").toString().trim(); // ✅ col A
+    let codeArt = (r[0] ?? "").toString().trim();
     codeArt = codeArt.replace(/^0+/, "");
 
-    const designation = r[1] ?? "";            // col B
-    const nomLatin = r[2] ?? "";               // col C
+    const designation = r[1] ?? "";
+    const nomLatin = r[2] ?? "";
+    const prixHTKg = parseFloat(r[6] ?? 0);
+    const poidsKg  = parseFloat(r[7] ?? 0);
+    const totalLigne = parseFloat(r[8] ?? 0);
 
-    const prixHTKg = parseFloat(r[6] ?? 0);    // col G
-    const poidsKg  = parseFloat(r[7] ?? 0);    // col H
-    const totalLigne = parseFloat(r[8] ?? 0);  // col I
-
-    // zone/sous zone / engin
     const zoneRaw     = (r[10] ?? "").toString();
     const sousZoneRaw = (r[11] ?? "").toString();
     const engin       = (r[12] ?? "").toString();
 
-    // Nettoyage zone → ex "atlantique nord est (27)" -> "27"
+    // Zone
     const zoneMatch = zoneRaw.match(/\((\d+)\)/);
     const zone = zoneMatch ? zoneMatch[1] : "";
 
-    // Sous zone → ex "(080)" -> "VIII"
+    // Sous-zone
     const subMatch = sousZoneRaw.match(/\((\d+)\)/);
     let sousZone = "";
     if (subMatch) {
-      sousZone = convertFAO(subMatch[1]); // 080 → VIII
+      sousZone = convertFAO(subMatch[1]);
     }
 
     const fao = zone && sousZone ? `FAO${zone} ${sousZone}` : "";
 
-    // Mapping PLU
+    // mapping PLU
     const map = afMap[codeArt];
     const plu = map?.plu ?? null;
     const designationInterne = map?.designationInterne ?? designation;
 
-    // cumul totals
     totalHT += totalLigne;
-    totalTTC += totalLigne * 1.1; // règle générale ?
+    totalTTC += totalLigne * 1.1;
     totalKg += poidsKg;
 
-    // push ligne
-    await addDoc(collection(db, "achats", achatId, "items"), {
+    await addDoc(collection(db, "achats", achatId, "lignes"), {
       codeArticle: codeArt,
       plu,
       designation,
@@ -215,10 +207,10 @@ async function saveCrieeToFirestore(achatId, sheetData, afMap) {
       updatedAt: serverTimestamp(),
     });
 
-    console.log("✅ ITEM:", codeArt, "-> PLU=", plu);
+    console.log("✅ LIGNE:", codeArt, "-> PLU=", plu);
   }
 
-  // maj header achat
+  // update header
   const refA = doc(db, "achats", achatId);
   await updateDoc(refA, {
     montantHT: totalHT,
@@ -233,7 +225,7 @@ async function saveCrieeToFirestore(achatId, sheetData, afMap) {
  **************************************************/
 function convertFAO(n) {
   const map = {
-    "27": "VIII", // Golfe
+    "27": "VIII",
     "080": "VIII",
     "081": "VIII",
   };
