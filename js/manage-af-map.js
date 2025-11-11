@@ -40,15 +40,26 @@ async function loadArticles() {
     const x = d.data();
     out.push({
       id: d.id,
-      plu: x.plu ?? "",
-      designation: x.designation ?? "",
-      nomLatin: x.nomLatin ?? "",
+      plu: x.PLU ?? x.plu ?? "",
+      designation:
+        x.Designation ??       // <-- ✅ bonne clé Firestore
+        x.designation ?? 
+        x.designationInterne ??
+        x.nom ??
+        "",
+      nomLatin: x.NomLatin ?? x.nomLatin ?? "",
+      zone: x.Zone ?? "",
+      sousZone: x.SousZone ?? "",
+      engin: x.Engin ?? "",
+      categorie: x.Categorie ?? "",
+      allergenes: x.Allergenes ?? "",
     });
   });
 
   console.log("✅ Articles loaded:", out.length);
   return out;
 }
+
 
 
 /**************************************************
