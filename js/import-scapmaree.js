@@ -198,6 +198,8 @@ async function saveScapToFirestore(achatId, rows, afMap) {
     updatedAt: serverTimestamp()
   });
 
+  console.log("🔎 Missing refs:", missingRefs);
+
   // ✅ UI mappage si refs non trouvées
   await manageAFMap(missingRefs);
 }
