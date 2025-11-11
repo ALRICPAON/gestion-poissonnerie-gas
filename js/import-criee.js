@@ -87,11 +87,12 @@ async function loadAFMap(fournisseurCode) {
     if (f !== fournisseurCode) return;
 
     const data = d.data();
-    map[codeArticle] = {
-      plu: data.plu || null,
-      designationInterne: data.designationInterne || "",
-      aliasFournisseur: data.aliasFournisseur || ""
-    };
+    const refF = (data.refFournisseur || "").trim().replace(/^0+/, "");
+map[refF] = {
+  plu: data.plu ?? null,
+  designationInterne: data.designationInterne ?? "",
+  aliasFournisseur: data.aliasFournisseur ?? ""
+};
   });
   console.log("AF MAP = ", map);   // ✅ AJOUT ICI
 
