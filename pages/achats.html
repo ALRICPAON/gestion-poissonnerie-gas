@@ -19,6 +19,11 @@
   <script type="module" src="../js/submit-achat.js"></script>
   <script type="module" src="../js/import-criee.js"></script>
 
+  <!-- ✅ MODULES D’IMPORT FOURNISSEURS -->
+<script type="module" src="../js/import-criee-stgilles.js"></script>
+<script type="module" src="../js/import-criee-sables.js"></script>
+<script type="module" src="../js/import-scapmaree.js"></script>
+
 </head>
 
 <body>
@@ -46,9 +51,26 @@
       <button class="btn" id="btnNewCommande">➕ Créer Commande</button>
       <button class="btn btn-accent" id="btnNewBL">➕ Créer BL</button>
     </div>
-    <input type="file" id="crieeFile" accept=".xlsx,.csv" />
-<button id="importCrieeBtn">Importer CRIÉE</button>
-<div id="importStatus"></div>
+
+    <div style="display:flex; gap:.5rem; align-items:center;">
+  
+  <!-- fichier source -->
+  <input type="file" id="providerFile" accept=".xlsx,.csv" />
+
+  <!-- fournisseur -->
+  <select id="providerSelect">
+    <option value="">-- Import fournisseur --</option>
+    <option value="CRIEE_STGILLES">Criée St-Gilles (81268)</option>
+    <option value="CRIEE_LES_SABLES">Criée Les Sables (81269)</option>
+    <option value="SCAPMAREE">Scapmarée (10001)</option>
+    <option value="DISTRIMER">Distrimer</option>
+    <option value="ROYALEMAREE">Royale Marée</option>
+    <option value="SOGELMER">Sogelmer</option>
+  </select>
+
+  <button id="btnProviderImport">Importer</button>
+  <div id="importStatus" style="margin-left:1rem;"></div>
+</div>
 
   </div>
 
