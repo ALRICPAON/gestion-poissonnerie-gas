@@ -93,6 +93,7 @@ async function loadAFMap(fournisseurCode) {
       aliasFournisseur: data.aliasFournisseur || ""
     };
   });
+  console.log("AF MAP = ", map);   // ✅ AJOUT ICI
 
   console.log("AF MAP =", map);
   return map;
