@@ -39,6 +39,8 @@ async function loadAFMap() {
   });
 
   console.log("✅ AF MAP =", map);
+  console.log("MAP KEYS =", Object.keys(map));
+
   return map;
 }
 
