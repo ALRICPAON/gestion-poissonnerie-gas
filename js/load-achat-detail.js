@@ -73,12 +73,19 @@ function renderLines(){
   tbody.innerHTML = lines.map((r, idx) => {
     const lot = nz(r.lot);
     const ok = r.received ? "✅" : "";
-    const traca = [
-      nz(r.nomLatin),
-      [nz(r.zone), nz(r.sousZone)].filter(Boolean).join(" "),
-      nz(r.engin),
-      r.allergenes ? `Allergènes: ${r.allergenes}` : ""
-    ].filter(Boolean).join(" — ");
+    // Trace simplifiée : priorité aux infos du BL
+const faoDisplay =
+  r.fao ||
+  (r.zone && r.sousZone ? `FAO${r.zone.replace(/\D+/g, '')} ${r.sousZone}` :
+   r.zone ? `FAO${r.zone.replace(/\D+/g, '')}` :
+   r.sousZone ? `FAO ${r.sousZone}` : "");
+
+const traca = [
+  nz(r.nomLatin),
+  faoDisplay || "—",
+  nz(r.engin),
+  r.allergenes ? `Allergènes: ${r.allergenes}` : ""
+].filter(Boolean).join(" — ");
 
     return `
       <tr data-id="${r.id}">
@@ -408,14 +415,15 @@ async function autofillTraceFromPLU(lineId){
   if (!artSnap.exists()) return;
   const A = artSnap.data();
 
-  const patch = {
-    nomLatin: A.NomLatin || A.nomLatin || L.nomLatin || "",
-    zone: A.Zone || A.zone || L.zone || "",
-    sousZone: A.SousZone || A.sousZone || L.sousZone || "",
-    engin: A.Engin || A.engin || L.engin || "",
-    allergenes: A.Allergenes || A.allergenes || L.allergenes || "",
-    designation: L.designation || A.Designation || A.designation || ""
-  };
+ const patch = {
+  nomLatin: L.nomLatin || A.NomLatin || A.nomLatin || "",
+  zone: L.zone || A.Zone || A.zone || "",
+  sousZone: L.sousZone || A.SousZone || A.sousZone || "",
+  engin: L.engin || A.Engin || A.engin || "",
+  allergenes: L.allergenes || A.Allergenes || A.allergenes || "",
+  designation: L.designation || A.Designation || A.designation || ""
+};
+
 
   await setDoc(doc(linesCol,lineId), { ...patch, updatedAt: Timestamp.fromDate(new Date()) }, { merge:true });
   lines[idx] = { ...lines[idx], ...patch };
