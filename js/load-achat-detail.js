@@ -92,13 +92,14 @@ const traca = [
         <td><input class="inp plu" value="${nz(r.plu)}" placeholder="PLU" /></td>
         <td>
           <input class="inp designation" value="${nz(r.designation)}" placeholder="Désignation" />
-          <div class="subline">
-            <span class="pill" data-edit="nomLatin" title="Nom latin">${nz(r.nomLatin) || "—"}</span>
-            <span class="pill" data-edit="zone" title="Zone">${nz(r.zone) || "—"}</span>
-            <span class="pill" data-edit="sousZone" title="Sous-zone">${nz(r.sousZone) || "—"}</span>
-            <span class="pill" data-edit="engin" title="Engin">${nz(r.engin) || "—"}</span>
-            <span class="pill" data-edit="allergenes" title="Allergènes">${nz(r.allergenes) || "—"}</span>
-          </div>
+         <div class="subline">
+  <span class="pill" data-edit="nomLatin" title="Nom latin">${nz(r.nomLatin) || "—"}</span>
+  <span class="pill" data-edit="fao" title="FAO">${nz(r.fao) || "—"}</span>
+  <span class="pill" data-edit="zone" title="Zone">${nz(r.zone) || "—"}</span>
+  <span class="pill" data-edit="sousZone" title="Sous-zone">${nz(r.sousZone) || "—"}</span>
+  <span class="pill" data-edit="engin" title="Engin">${nz(r.engin) || "—"}</span>
+  <span class="pill" data-edit="allergenes" title="Allergènes">${nz(r.allergenes) || "—"}</span>
+</div>
         </td>
         <td><input class="inp colis" type="number" step="1" min="0" value="${nz(r.colis)}" /></td>
         <td><input class="inp pcolis" type="number" step="0.001" min="0" value="${nz(r.poidsColisKg)}" /></td>
