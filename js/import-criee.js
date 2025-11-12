@@ -25,7 +25,6 @@ async function loadAFMap() {
   snap.forEach(d => {
     const data = d.data();
     const id = d.id.toUpperCase();
-
     // On garde les deux codes criée ensemble
     if (id.startsWith("81268__") || id.startsWith("81269__")) {
       map[id] = data;
@@ -34,7 +33,6 @@ async function loadAFMap() {
 
   return map;
 }
-
 
 async function loadArticlesMap() {
   const snap = await getDocs(collection(db, "articles"));
@@ -256,9 +254,8 @@ async function saveLines(opts) {
 /**************************************************
  * ENTRY — PLU en colonne A
  **************************************************/
-export async function importCrieePLUcolA(file) {
-
-  const FOUR_CODE = prompt("Code Fournisseur (ex: 81268) ?", "81268");
+export async function importCrieePLUcolA(file, supplierCode) {
+  const FOUR_CODE = supplierCode;
 
   const afMap    = await loadAFMap();
   const artMap   = await loadArticlesMap();
@@ -294,11 +291,8 @@ export async function importCrieePLUcolA(file) {
 /**************************************************
  * ENTRY — PLU en colonne B
  **************************************************/
-export async function importCrieePLUcolA(file, supplierCode) {
-  const FOUR_CODE = supplierCode;
 export async function importCrieePLUcolB(file, supplierCode) {
   const FOUR_CODE = supplierCode;
-
 
   const afMap    = await loadAFMap();
   const artMap   = await loadArticlesMap();
