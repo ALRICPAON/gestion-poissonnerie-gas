@@ -133,7 +133,7 @@ async function saveLines(opts) {
   let totalKg = 0;
   const missingRefs = [];
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     if (!r?.length) continue;
 
