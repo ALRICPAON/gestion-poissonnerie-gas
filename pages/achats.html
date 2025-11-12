@@ -17,8 +17,10 @@
   <script type="module" src="../js/load-achats.js"></script>
   <script type="module" src="../js/submit-achat.js"></script>
 
-  <!-- DEPENDANCES MAP -->
+  <!-- ✅ IMPORTS FOURNISSEURS -->
   <script type="module" src="../js/manage-af-map.js"></script>
+  <script type="module" src="../js/import-scapmaree.js"></script>
+  <script type="module" src="../js/import-criee.js"></script>
 </head>
 
 <body>
@@ -91,9 +93,10 @@
   </table>
 
 
-  <!-- SCRIPT D’IMPORT DYNAMIQUE -->
+  <!-- ✅ SCRIPT D’IMPORT -->
   <script type="module">
     import { requireAuth } from "../js/auth.js";
+
     import { importScapmaree } from "../js/import-scapmaree.js";
     import { importCriee } from "../js/import-criee.js";
 
@@ -115,8 +118,9 @@
       if (!provider) return alert("❗ Choisir un fournisseur");
 
       try {
+
         if (provider === "CRIEE_STGILLES" || provider === "CRIEE_LES_SABLES") {
-          await importCriee(file);     // ✅ détecte ST Gilles / Sables automatiquement
+          await importCriee(file);     // ✅ détection auto St-Gilles / Sables
         }
         else if (provider === "SCAPMAREE") {
           await importScapmaree(file);
@@ -138,3 +142,4 @@
 
 </body>
 </html>
+
