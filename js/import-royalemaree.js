@@ -34,15 +34,14 @@ async function extractTextFromPdf(file) {
 function parseRoyaleMareeLines(text) {
   const lines = [];
 
-  // On découpe chaque ligne produit en se basant sur le code article
   const blocks = text
     .split(/(?=\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g)
     .filter(b => /\d{4,5}/.test(b));
 
   for (const block of blocks) {
-    // Nouvelle regex tolérante (gère sauts de ligne entre blocs et avant les "|")
+    // Expression ultra souple : gère Ean13, PAF, Pavillon, retours, etc.
     const regex =
-      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\s\S]+?)\n?\s*([A-Z][a-zéèàêïîç]+(?:\s+[A-Za-zéèàêïîç]+){0,3})[\s\n]*\|?\s*(Pêché|Elevé)\s*en\s*:?\s*([^|]+)\|?([^|]*?)\|?\s*N°\s*Lot\s*:\s*(\S+)/i;
+      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\s\S]+?)\n?\s*([A-Z][a-zéèàêïîç]+(?:\s+[A-Za-zéèàêïîç]+){0,3})[\s\S]*?(?:Ean13:\s*\d+)?[\s\S]*?\|\s*(Pêché|Elevé)\s*en\s*:?\s*([^|]+)\|([^|]*?)\|\s*N°\s*Lot\s*:\s*(\S+)/i;
 
     const m = block.match(regex);
     if (!m) continue;
@@ -52,12 +51,10 @@ function parseRoyaleMareeLines(text) {
       designation, nomLatin, pecheOuElev, blocZone, blocEngin, lot
     ] = m;
 
-    // Extraction FAO
     const mFAO = blocZone.match(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/i);
     let zone = mFAO ? `FAO${mFAO[1]}` : "";
     let sousZone = mFAO && mFAO[2] ? mFAO[2].toUpperCase().replace(/\./g, "") : "";
 
-    // Cas élevage
     if (/Elevé/i.test(pecheOuElev)) {
       zone = "Élevage";
       sousZone = blocZone.replace(/.*Elevé\s+en\s*/i, "").trim();
@@ -84,7 +81,6 @@ function parseRoyaleMareeLines(text) {
   console.log("🧾 Lignes extraites:", lines);
   return lines;
 }
-
 
 
 /**************************************************
