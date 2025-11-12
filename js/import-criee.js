@@ -105,7 +105,27 @@ async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
     let sousZone        = r[colMap.sousZone] ?? "";
     const engin         = r[colMap.engin] ?? "";
 
-    const fao = (zone && sousZone) ? `FAO${zone} ${sousZone}` : "";
+    /**************************************************
+ * Convertit les chiffres arabes → chiffres romains
+ **************************************************/
+function toRoman(num) {
+  num = parseInt(num, 10);
+  if (isNaN(num) || num <= 0) return "";
+  const map = [
+    [1000,"M"], [900,"CM"], [500,"D"], [400,"CD"],
+    [100,"C"], [90,"XC"], [50,"L"], [40,"XL"],
+    [10,"X"], [9,"IX"], [5,"V"], [4,"IV"], [1,"I"]
+  ];
+  let out = "";
+  for (const [value, numeral] of map) {
+    while (num >= value) {
+      out += numeral;
+      num -= value;
+    }
+  }
+  return out;
+}
+
 
     /** AF MAP **/
     const key = `${fourCode}__${ref}`.toUpperCase();
