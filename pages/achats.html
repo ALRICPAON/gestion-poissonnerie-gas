@@ -138,10 +138,10 @@
         if (!format)   return alert("❗ Choisir un format (PLU Col A / B)");
 
         if (format === "COLA") {
-          await importCrieePLUcolA(file);
-        } else if (format === "COLB") {
-          await importCrieePLUcolB(file);
-        } else {
+  await importCrieePLUcolA(file, supplier);
+} else if (format === "COLB") {
+  await importCrieePLUcolB(file, supplier);
+} else {
           return alert("❌ Format non reconnu");
         }
 
