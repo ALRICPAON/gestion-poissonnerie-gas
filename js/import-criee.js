@@ -151,32 +151,68 @@ async function saveLines(opts) {
     let sousZone    = (r[colSousZone] ?? "").toString().trim();
     let engin       = (r[colEngin]    ?? "").toString().trim();
 
-  /**************************************************
- * FAO — fusion + conversion roman(sous-zone)
+ /**************************************************
+ * FAO — robust parsing (zone + sous-zone)
  **************************************************/
-let _zone = zone || "";
-let _sousZone = sousZone || "";
-
-// extraire le chiffre de zone (ex: "(27)" → "27")
-const zoneNumMatch = _zone.match(/([0-9]{1,3})/);
-const zoneNum = zoneNumMatch ? zoneNumMatch[1] : "";
-
-// sous-zone → chiffres romains si numérique
-if (_sousZone && /^[0-9]+$/.test(_sousZone)) {
-  _sousZone = toRoman(_sousZone);
+function extractZoneNum(s) {
+  const t = (s || "").toString();
+  // grab first 1–3 digit sequence (e.g., (27), FAO 27, 27)
+  const m = t.match(/(?:FAO\s*)?(\d{1,3})/i);
+  return m ? m[1] : "";
 }
 
-// nettoyer
-_zone = zoneNum;
-_sousZone = _sousZone.toString().trim();
+function extractSousZoneRomanOrNum(s) {
+  const t = (s || "").toString().trim();
 
-// fusion
+  // 1) Roman anywhere? (I..XII)
+  const mRoman = t.match(/\b(M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{1,3}))\b/i);
+  if (mRoman && mRoman[1]) return mRoman[1].toUpperCase();
+
+  // 2) Number inside parentheses e.g. (080), (08), (8)
+  const mParen = t.match(/\((\d{1,3})\)/);
+  if (mParen) {
+    let n = mParen[1];
+
+    // normalize special 3-digit codes like 080 → 8
+    if (n.length === 3 && n[0] === '0') {
+      // strip leading zeros → "080" -> "80" -> if ends with '0', divide by 10
+      n = n.replace(/^0+/, ''); // "080" -> "80"
+      if (/^\d+$/.test(n) && parseInt(n,10) > 12 && parseInt(n,10) % 10 === 0) {
+        n = String(parseInt(n,10) / 10); // "80" -> "8"
+      }
+    }
+
+    // also handle "08" -> "8"
+    if (/^0\d$/.test(n)) n = n.slice(1);
+
+    const ni = parseInt(n, 10);
+    if (!isNaN(ni) && ni > 0) return toRoman(ni);
+  }
+
+  // 3) Plain small number anywhere (e.g. "sous zone 8")
+  const mNum = t.match(/\b([1-9]|1[0-2])\b/);
+  if (mNum) return toRoman(parseInt(mNum[1],10));
+
+  return ""; // not found
+}
+
+let zoneNum   = extractZoneNum(zone);
+let romanSZ   = extractSousZoneRomanOrNum(sousZone);
+
+// If sousZone was empty but zone carried a parenthetical code like "... (080)", try from zone too.
+if (!romanSZ) romanSZ = extractSousZoneRomanOrNum(zone);
+
 let fao = "";
-if (_zone && _sousZone) {
-  fao = `FAO${_zone} ${_sousZone}`;
-} else if (_zone) {
-  fao = `FAO${_zone}`;
+if (zoneNum && romanSZ) {
+  fao = `FAO${zoneNum} ${romanSZ}`;
+} else if (zoneNum) {
+  fao = `FAO${zoneNum}`;
 }
+
+// Normalize what we store
+zone = zone;                // keep original text for trace
+sousZone = romanSZ || sousZone; // store roman if we found it
+
 
 
 
