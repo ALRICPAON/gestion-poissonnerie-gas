@@ -274,7 +274,7 @@ let M = afMap[keyMain] || (keyAlt ? afMap[keyAlt] : null);
       nomLatin,
 
       zone,
-      sousZone: _sousZone,
+      sousZone: sousZone,
       fao,
       engin,
       allergenes,
