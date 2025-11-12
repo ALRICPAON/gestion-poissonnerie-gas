@@ -33,7 +33,10 @@ async function extractTextFromPdf(file) {
  **************************************************/
 function parseRoyaleMareeLines(text) {
   const lines = [];
-  const regex = /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([A-ZÉÈA-Z0-9 \+\.\-\/]+?)\s+([A-Z][a-z]+ [a-z]+)\s+\|([^|]+)\|([^|]+)\|N° Lot: (\S+)/g;
+
+  // 🧠 Nouveau regex plus permissif : capture les deux formes "Pêché en:" ou "Élevé en:"
+  const regex =
+    /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([A-Z0-9ÀÂÉÈÙÛÇ\+\-\.\/' ]+?)\s+([A-Z][a-z]+(?:\s+[a-z]+){0,2})\s+\|(?:Pêché|Elevé)\s+en\s*:\s*([^|]+)\|([^|]+)?\|N° Lot:\s*(\S+)/gi;
 
   let match;
   while ((match = regex.exec(text)) !== null) {
@@ -42,12 +45,19 @@ function parseRoyaleMareeLines(text) {
       designation, nomLatin, blocZone, blocEngin, lot
     ] = match;
 
-    // Cherche FAO zone
-    const mFAO = blocZone.match(/FAO\s*([0-9]{1,3})\.?([IVX]*)/i);
+    // Cherche FAO zone (peut être dans blocZone)
+    const mFAO = blocZone.match(/FAO\s*([0-9]{1,3})\.?\s*([IVX]*)/i);
     let zone = mFAO ? `FAO${mFAO[1]}` : "";
     let sousZone = mFAO && mFAO[2] ? mFAO[2].toUpperCase() : "";
 
-    const engin = blocEngin.replace(/Engin\s*:\s*/i, "").trim();
+    // Si aquaculture (Elevé en ...), on le note
+    const isAqua = /Elevé/i.test(blocZone);
+    if (isAqua && !zone) {
+      zone = "Élevage";
+      sousZone = blocZone.replace(/.*Elevé en\s*/i, "").trim();
+    }
+
+    const engin = blocEngin ? blocEngin.replace(/Engin\s*:\s*/i, "").trim() : "";
 
     lines.push({
       refFournisseur: refFourn,
@@ -58,10 +68,14 @@ function parseRoyaleMareeLines(text) {
       poidsTotalKg: parseFloat(poidsTotal.replace(",", ".")),
       prixKg: parseFloat(prixKg.replace(",", ".")),
       montantHT: parseFloat(montant.replace(",", ".")),
-      zone, sousZone, engin, lot
+      zone,
+      sousZone,
+      engin,
+      lot
     });
   }
 
+  console.log("🧾 Lignes extraites:", lines);
   return lines;
 }
 
