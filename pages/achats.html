@@ -20,8 +20,7 @@
   
 
 <!-- ✅ MODULES D’IMPORT FOURNISSEURS -->
-<script type="module" src="../js/import-criee-stgilles.js"></script>
-<script type="module" src="../js/import-criee-sables.js"></script>
+<script type="module" src="../js/import-criee.js"></script>
 <script type="module" src="../js/import-scapmaree.js"></script>
 <script type="module" src="../js/manage-af-map.js"></script>
 
@@ -100,9 +99,8 @@
   <script type="module">
   import { requireAuth } from "../js/auth.js";
 
-  import { importCrieeStGilles } from "../js/import-criee-stgilles.js";
-  import { importCrieeSables } from "../js/import-criee-sables.js";
-  import { importScapmaree } from "../js/import-scapmaree.js";
+  import { importCriee } from "../js/import-criee.js";
+import { importScapmaree } from "../js/import-scapmaree.js";
 
   requireAuth();
 
@@ -122,22 +120,20 @@
     if (!provider) return alert("❗ Choisir un fournisseur");
 
     try {
-      if (provider === "CRIEE_STGILLES") {
-        await importCrieeStGilles(file);
-      }
-      else if (provider === "CRIEE_LES_SABLES") {
-        await importCrieeSables(file);
-      }
-      else if (provider === "SCAPMAREE") {
-        await importScapmaree(file);
-      }
-      else {
-        alert("❌ Import non implémenté pour : " + provider);
-        return;
-      }
+  if (provider === "CRIEE_STGILLES" || provider === "CRIEE_LES_SABLES") {
+    await importCriee(file);
+  }
+  else if (provider === "SCAPMAREE") {
+    await importScapmaree(file);
+  }
+  else {
+    alert("❌ Import non implémenté pour : " + provider);
+    return;
+  }
 
-      status.textContent = "✅ Import terminé !";
-    }
+  status.textContent = "✅ Import terminé !";
+}
+
     catch (e) {
       console.error(e);
       alert("❌ Erreur import : " + e.message);
