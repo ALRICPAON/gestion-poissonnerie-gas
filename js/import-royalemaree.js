@@ -200,6 +200,8 @@ export async function importRoyaleMaree(file) {
   const artMap = await loadArticlesMap();
 
   const text = await extractTextFromPdf(file);
+  console.log("🔎 PDF brut:", text.slice(0, 3000));
+
   const rows = parseRoyaleMareeText(text);
   console.log("📄 Lignes détectées :", rows.length);
 
