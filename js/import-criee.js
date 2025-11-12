@@ -169,8 +169,15 @@ async function saveLines(opts) {
     /**************************************************
      * AF_MAP
      **************************************************/
-    const key = `${FOUR_CODE}__${ref}`.toUpperCase();
-    const M = afMap[key];
+    let keyMain = `${FOUR_CODE}__${ref}`.toUpperCase();
+let keyAlt  = (FOUR_CODE === "81268")
+  ? `81269__${ref}`.toUpperCase()
+  : (FOUR_CODE === "81269")
+    ? `81268__${ref}`.toUpperCase()
+    : null;
+
+let M = afMap[keyMain] || (keyAlt ? afMap[keyAlt] : null);
+
 
     let plu = (M?.plu ?? "").toString().trim();
     if (plu.endsWith(".0")) plu = plu.slice(0, -2);
