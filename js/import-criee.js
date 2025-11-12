@@ -151,29 +151,33 @@ async function saveLines(opts) {
     let sousZone    = (r[colSousZone] ?? "").toString().trim();
     let engin       = (r[colEngin]    ?? "").toString().trim();
 
-   /**************************************************
+  /**************************************************
  * FAO — fusion + conversion roman(sous-zone)
  **************************************************/
-let _zone = (zone || "").replace(/\D+/g, ""); // garde chiffres (ex: 27)
-let _sousZone = (sousZone || "").toString().trim();
+let _zone = zone || "";
+let _sousZone = sousZone || "";
 
+// extraire le chiffre de zone (ex: "(27)" → "27")
+const zoneNumMatch = _zone.match(/([0-9]{1,3})/);
+const zoneNum = zoneNumMatch ? zoneNumMatch[1] : "";
+
+// sous-zone → chiffres romains si numérique
 if (_sousZone && /^[0-9]+$/.test(_sousZone)) {
   _sousZone = toRoman(_sousZone);
 }
 
-// nettoie espaces/fausses valeurs
-_zone = _zone.trim();
-_sousZone = _sousZone.trim();
+// nettoyer
+_zone = zoneNum;
+_sousZone = _sousZone.toString().trim();
 
-// Fusion FAO
+// fusion
 let fao = "";
 if (_zone && _sousZone) {
   fao = `FAO${_zone} ${_sousZone}`;
-} else if (_zone && !_sousZone) {
+} else if (_zone) {
   fao = `FAO${_zone}`;
-} else if (!_zone && _sousZone) {
-  fao = `FAO ${_sousZone}`;
 }
+
 
 
     /**************************************************
