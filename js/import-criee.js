@@ -151,20 +151,30 @@ async function saveLines(opts) {
     let sousZone    = (r[colSousZone] ?? "").toString().trim();
     let engin       = (r[colEngin]    ?? "").toString().trim();
 
-    /**************************************************
-     * FAO — fusion + conversion roman(sous-zone)
-     **************************************************/
-    let _zone = zone;
-    let _sousZone = sousZone;
+   /**************************************************
+ * FAO — fusion + conversion roman(sous-zone)
+ **************************************************/
+let _zone = (zone || "").replace(/\D+/g, ""); // garde chiffres (ex: 27)
+let _sousZone = (sousZone || "").toString().trim();
 
-    if (_sousZone && /^[0-9]+$/.test(_sousZone)) {
-      _sousZone = toRoman(_sousZone);
-    }
+if (_sousZone && /^[0-9]+$/.test(_sousZone)) {
+  _sousZone = toRoman(_sousZone);
+}
 
-    let fao = "";
-    if (_zone && _sousZone) {
-      fao = `FAO${_zone} ${_sousZone}`;
-    }
+// nettoie espaces/fausses valeurs
+_zone = _zone.trim();
+_sousZone = _sousZone.trim();
+
+// Fusion FAO
+let fao = "";
+if (_zone && _sousZone) {
+  fao = `FAO${_zone} ${_sousZone}`;
+} else if (_zone && !_sousZone) {
+  fao = `FAO${_zone}`;
+} else if (!_zone && _sousZone) {
+  fao = `FAO ${_sousZone}`;
+}
+
 
     /**************************************************
      * AF_MAP
