@@ -34,15 +34,15 @@ async function extractTextFromPdf(file) {
 function parseRoyaleMareeLines(text) {
   const lines = [];
 
-  // Sépare chaque bloc produit par le code article
+  // Découpe par code article (5 chiffres en début de bloc)
   const blocks = text
     .split(/(?=\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g)
     .filter(b => /\d{4,5}/.test(b));
 
   for (const block of blocks) {
-    // 🧩 regex ultra flexible — gère Ean13, Pavillon, PAF, etc.
+    // Expression régulière super tolérante : gère PAF, Pavillon, /Ean13, etc.
     const regex =
-      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\s\S]+?)\n?\s*([A-Z][a-zéèàêïîç]+(?:\s+[A-Za-zéèàêïîç]+){0,3})[\s\S]*?(?:\/\s*Ean13:\s*\d+)?[\s\S]*?\|\s*(Pêché|Elevé)\s*en\s*:?\s*([^|]+)\|([^|]*?)\|\s*N°\s*Lot\s*:\s*(\S+)/i;
+      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\s\S]+?)\s+([A-Z][a-zéèàêïîç]+(?:\s+[A-Za-zéèàêïîç]+){0,3})[\s\S]*?(?:\/\s*Ean13:\s*\d+)?[\s\S]*?\|\s*(Pêché|Elevé)\s*en\s*:?\s*([^|]+)\|([^|]*?)\|\s*N°\s*Lot\s*:\s*(\S+)/i;
 
     const m = block.match(regex);
     if (!m) continue;
