@@ -1,5 +1,7 @@
 /**************************************************
- * IMPORT CRIÉE ST-GILLES (81268)
+ * IMPORT CRIÉE — 2 variantes
+ *  - MODELE 1 → PLU col A → FOUR_CODE = 81269
+ *  - MODELE 2 → PLU col B → FOUR_CODE = 81268
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -14,10 +16,8 @@ import {
 
 import { manageAFMap } from "./manage-af-map.js";
 
-const FOUR_CODE = "81268";   // CRIÉE ST-GILLES
-
 /**************************************************
- * AF MAP
+ * LOADERS
  **************************************************/
 async function loadAFMap() {
   const snap = await getDocs(collection(db, "af_map"));
@@ -26,9 +26,6 @@ async function loadAFMap() {
   return map;
 }
 
-/**************************************************
- * Articles (fallback)
- **************************************************/
 async function loadArticlesMap() {
   const snap = await getDocs(collection(db, "articles"));
   const map = {};
@@ -36,18 +33,15 @@ async function loadArticlesMap() {
   return map;
 }
 
-/**************************************************
- * Fournisseur
- **************************************************/
-async function loadSupplierInfo() {
-  const snap = await getDoc(doc(db, "fournisseurs", FOUR_CODE));
+async function loadSupplierInfo(fourCode, fallbackNom) {
+  const snap = await getDoc(doc(db, "fournisseurs", fourCode));
   return snap.exists()
     ? snap.data()
-    : { code: FOUR_CODE, nom: "CRIÉE ST-GILLES" };
+    : { code: fourCode, nom: fallbackNom };
 }
 
 /**************************************************
- * XLSX → workbook
+ * XLSX → JS rows
  **************************************************/
 function readWorkbookAsync(file) {
   return new Promise((resolve, reject) => {
@@ -66,31 +60,7 @@ function readWorkbookAsync(file) {
 }
 
 /**************************************************
- * Heuristique — Détecter la colonne Désignation
- **************************************************/
-function isDesignation(str) {
-  if (!str) return false;
-  const t = str.toString().trim();
-  if (t.length < 4) return false;
-  if (t.includes(" ")) return true;
-  return t.length > 6;
-}
-
-function detectFormat(rows) {
-  const row = rows[1] || [];
-
-  const colB = row[1];
-  const colC = row[2];
-
-  const scoreB = isDesignation(colB) ? colB.toString().length : 0;
-  const scoreC = isDesignation(colC) ? colC.toString().length : 0;
-
-  if (scoreC > scoreB) return "FORMAT_B";
-  return "FORMAT_A";
-}
-
-/**************************************************
- * HEADER ACHAT
+ * Create achat header
  **************************************************/
 async function createAchatHeader(supplier) {
   const ref = await addDoc(collection(db, "achats"), {
@@ -109,115 +79,70 @@ async function createAchatHeader(supplier) {
 }
 
 /**************************************************
- * SAVE LIGNES
+ * GENERIC SAVE
  **************************************************/
-async function saveCrieeToFirestore(achatId, rows, afMap, artMap) {
+async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
 
   let totalHT = 0;
   let totalKg = 0;
-
-  // détecter format
-  const format = detectFormat(rows);
-  console.log("📐 Format détecté:", format);
-
   const missingRefs = [];
 
+  // skip header row 0
   for (let i = 1; i < rows.length; i++) {
 
-    const r = rows[i];
-    if (!r?.length) continue;
+    const r = rows[i] || [];
+    if (!r.length) continue;
 
-    // REF FOURN
-    let ref = (
-      format === "FORMAT_B"
-        ? r[1]    // col B
-        : r[0]    // col A
-    ) ?? "";
+    let ref = r[colMap.plu] ?? "";
+    ref = ref.toString().trim().replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
-    ref = ref.toString().trim()
-      .replace(/^0+/, "")
-      .replace(/\s+/g, "")
-      .replace(/\//g, "_");
+    const designation   = r[colMap.designation] ?? "";
+    const nomLatin      = r[colMap.latin]      ?? "";
+    const prixHTKg      = parseFloat(r[colMap.prixHTKg]   ?? 0);
+    const poidsKg       = parseFloat(r[colMap.poidsKg]    ?? 0);
+    const montantHT     = parseFloat(r[colMap.montantHT]  ?? 0);
+    
+    let zone            = r[colMap.zone]       ?? "";
+    let sousZone        = r[colMap.sousZone]   ?? "";
+    const engin         = r[colMap.engin]      ?? "";
 
-    // LOCK désignation
-    const designation = format === "FORMAT_B"
-      ? (r[2] ?? "")   // col C
-      : (r[1] ?? "");  // col B
+    const fao = (zone && sousZone) ? `FAO${zone} ${sousZone}` : "";
 
-    const nomLatin =
-      format === "FORMAT_B"
-        ? (r[3] ?? "")     // col D
-        : (r[2] ?? "");    // col C
-
-    // colonnes poids/prix/total selon format
-    const prixHTKg =
-      format === "FORMAT_B"
-        ? parseFloat(r[7] ?? 0)   // H
-        : parseFloat(r[6] ?? 0);  // G
-
-    const poidsKg =
-      format === "FORMAT_B"
-        ? parseFloat(r[8] ?? 0)   // I
-        : parseFloat(r[7] ?? 0);  // H
-
-    const montantHT =
-      format === "FORMAT_B"
-        ? parseFloat(r[9] ?? 0)   // J
-        : parseFloat(r[8] ?? 0);  // I
-
-    // Zone / sous-zone (fusion)
-    const zone     = format === "FORMAT_B" ? (r[12] ?? "") : (r[12] ?? "");
-    const sousZone = format === "FORMAT_B" ? (r[13] ?? "") : (r[13] ?? "");
-    const fao      = (zone && sousZone) ? `FAO${zone}${sousZone}` : "";
-
-    const engin =
-      format === "FORMAT_B"
-        ? (r[14] ?? "")    // O
-        : (r[14] ?? "");
-
-    // =============================
-    //  AF MAP
-    // =============================
-    const key = `${FOUR_CODE}__${ref}`.toUpperCase();
+    /************************************
+     *  AF MAP
+     ************************************/
+    const key = `${fourCode}__${ref}`.toUpperCase();
     const M = afMap[key];
 
     let plu = (M?.plu ?? "").toString().trim();
-
-    // fix .0
     if (plu.endsWith(".0")) plu = plu.slice(0, -2);
 
     let designationInterne = M?.designationInterne || designation;
-    let allergenes = M?.allergenes || "";
+    let allergenes         = M?.allergenes || "";
 
-    // =============================
-    //  fallback fiche Article
-    // =============================
+    /************************************
+     * fallback article
+     ************************************/
     if (!plu) {
       const art = Object.values(artMap).find(a =>
         a.designation?.toUpperCase() === designation.toUpperCase()
       );
       if (art) {
         plu = art.id || plu;
-        if (art.zone) zone = art.zone;
+        if (art.zone)     zone = art.zone;
         if (art.sousZone) sousZone = art.sousZone;
-        if (art.engin) engin = art.engin;
       }
     }
 
-    // collecte missing map
     if (!M?.plu) {
-      missingRefs.push({
-        fournisseurCode: FOUR_CODE,
-        refFournisseur: ref,
-        designation,
-        achatId,
-      });
+      missingRefs.push({ fournisseurCode: fourCode, refFournisseur: ref, designation, achatId });
     }
 
     totalHT += montantHT;
     totalKg += poidsKg;
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
+
       refFournisseur: ref,
       fournisseurRef: ref,
 
@@ -255,7 +180,6 @@ async function saveCrieeToFirestore(achatId, rows, afMap, artMap) {
     updatedAt: serverTimestamp(),
   });
 
-  // popup mapping manquant
   if (missingRefs.length > 0) {
     console.log("🔎 Missing refs:", missingRefs);
     await manageAFMap(missingRefs);
@@ -263,21 +187,69 @@ async function saveCrieeToFirestore(achatId, rows, afMap, artMap) {
 }
 
 /**************************************************
- * ENTRY
+ * IMPORT MODELE 1 (PLU col A → FOUR_CODE = 81269)
  **************************************************/
-export async function importCrieeStGilles(file) {
+export async function importCrieePLUcolA(file) {
 
-  const afMap = await loadAFMap();
-  const artMap = await loadArticlesMap();
-  const supplier = await loadSupplierInfo();
+  const fourCode = "81269";
+  const fourName = "Criée Les Sables";
+
+  const afMap    = await loadAFMap();
+  const artMap   = await loadArticlesMap();
+  const supplier = await loadSupplierInfo(fourCode, fourName);
 
   const wb = await readWorkbookAsync(file);
   const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
   const achatId = await createAchatHeader(supplier);
-  await saveCrieeToFirestore(achatId, rows, afMap, artMap);
 
-  alert("✅ Import Criée ST-GILLES OK");
+  await saveLines(achatId, rows, afMap, artMap, fourCode, {
+    plu:        0,  // A
+    designation:1,  // B
+    latin:      2,  // C
+    prixHTKg:   6,  // G
+    poidsKg:    7,  // H
+    montantHT:  8,  // I
+    zone:      10,  // K
+    sousZone:  11,  // L
+    engin:     12   // M
+  });
+
+  alert("✅ Import CRIÉE PLU Col A OK");
+  location.reload();
+}
+
+/**************************************************
+ * IMPORT MODELE 2 (PLU col B → FOUR_CODE = 81268)
+ **************************************************/
+export async function importCrieePLUcolB(file) {
+
+  const fourCode = "81268";
+  const fourName = "Criée St-Gilles";
+
+  const afMap    = await loadAFMap();
+  const artMap   = await loadArticlesMap();
+  const supplier = await loadSupplierInfo(fourCode, fourName);
+
+  const wb = await readWorkbookAsync(file);
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+  const achatId = await createAchatHeader(supplier);
+
+  await saveLines(achatId, rows, afMap, artMap, fourCode, {
+    plu:        1,  // B
+    designation:2,  // C
+    latin:      3,  // D
+    prixHTKg:   7,  // H
+    poidsKg:    8,  // I
+    montantHT:  9,  // J
+    zone:      11,  // L
+    sousZone:  12,  // M
+    engin:     13   // N
+  });
+
+  alert("✅ Import CRIÉE PLU Col B OK");
   location.reload();
 }
