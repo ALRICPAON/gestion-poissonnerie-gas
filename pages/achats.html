@@ -104,63 +104,70 @@
   </table>
 
   <!-- ✅ SCRIPT D’IMPORT -->
-  <script type="module">
-    import { requireAuth } from "../js/auth.js";
-    import { importScapmaree } from "../js/import-scapmaree.js";
-    import { importCriee } from "../js/import-criee.js";
+<script type="module">
+  import { requireAuth } from "../js/auth.js";
+  import { importScapmaree } from "../js/import-scapmaree.js";
+  import { importCrieePLUcolA, importCrieePLUcolB } from "../js/import-criee.js";
 
-    requireAuth();
+  requireAuth();
 
-    const btn        = document.getElementById("btnProviderImport");
-    const fileInput  = document.getElementById("providerFile");
-    const status     = document.getElementById("importStatus");
+  const btn        = document.getElementById("btnProviderImport");
+  const fileInput  = document.getElementById("providerFile");
+  const status     = document.getElementById("importStatus");
 
-    // Sélecteurs CRIÉE (nouvelle logique)
-    const crieeSupplier = document.getElementById("crieeSupplier");
-    const crieeFormat   = document.getElementById("crieeFormat");
+  // Sélecteurs CRIÉE (nouvelle logique)
+  const crieeSupplier = document.getElementById("crieeSupplier");
+  const crieeFormat   = document.getElementById("crieeFormat");
 
-    // Autres imports
-    const providerSelect = document.getElementById("providerSelect");
+  // Autres imports
+  const providerSelect = document.getElementById("providerSelect");
 
-    btn.addEventListener("click", async () => {
-      status.textContent = "";
+  btn.addEventListener("click", async () => {
+    status.textContent = "";
 
-      const file = fileInput.files[0];
-      if (!file) return alert("📁 Sélectionner un fichier");
+    const file = fileInput.files[0];
+    if (!file) return alert("📁 Sélectionner un fichier");
 
-      try {
-        // ✅ Si un format CRIÉE est choisi, on passe par importCriee()
-        if (crieeFormat.value) {
-          const supplier = crieeSupplier.value;
-          const format   = crieeFormat.value;
+    try {
+      // ✅ Si un format CRIÉE est choisi
+      if (crieeFormat.value) {
+        const supplier = crieeSupplier.value;
+        const format   = crieeFormat.value;
 
-          if (!supplier) return alert("❗ Choisir la criée (81268 ou 81269)");
-          if (!format)   return alert("❗ Choisir un format (PLU Col A / B)");
+        if (!supplier) return alert("❗ Choisir la criée (81268 ou 81269)");
+        if (!format)   return alert("❗ Choisir un format (PLU Col A / B)");
 
-          await importCriee(file, supplier, format);
-          status.textContent = "✅ Import Criée terminé !";
-          return;
-        }
-
-        // ✅ Sinon, on traite l'autre select (Scapmarée etc.)
-        const provider = providerSelect.value;
-        if (!provider) return alert("❗ Choisir un fournisseur ou un format CRIÉE");
-
-        if (provider === "SCAPMAREE") {
-          await importScapmaree(file);
-          status.textContent = "✅ Import Scapmarée terminé !";
+        if (format === "COLA") {
+          await importCrieePLUcolA(file);
+        } else if (format === "COLB") {
+          await importCrieePLUcolB(file);
         } else {
-          alert("❌ Import non implémenté pour : " + provider);
-          return;
+          return alert("❌ Format non reconnu");
         }
+
+        status.textContent = "✅ Import Criée terminé !";
+        return;
       }
-      catch (e) {
-        console.error(e);
-        alert("❌ Erreur import : " + e.message);
-        status.textContent = "❌ Erreur";
+
+      // ✅ Sinon, on traite les autres imports (Scapmarée, etc.)
+      const provider = providerSelect.value;
+      if (!provider) return alert("❗ Choisir un fournisseur ou un format CRIÉE");
+
+      if (provider === "SCAPMAREE") {
+        await importScapmaree(file);
+        status.textContent = "✅ Import Scapmarée terminé !";
+      } else {
+        alert("❌ Import non implémenté pour : " + provider);
+        return;
       }
-    });
-  </script>
+    }
+    catch (e) {
+      console.error(e);
+      alert("❌ Erreur import : " + e.message);
+      status.textContent = "❌ Erreur";
+    }
+  });
+</script>
 
 </body>
 </html>
