@@ -33,42 +33,76 @@ async function extractTextFromPdf(file) {
  **************************************************/
 function parseRoyaleMareeLines(text) {
   const lines = [];
+  const rows = [];
 
-  // Découpe par code article (5 chiffres en début de bloc)
-  const blocks = text
-    .split(/(?=\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g)
-    .filter(b => /\d{4,5}/.test(b));
+  // 1️⃣ Nettoyage du texte brut
+  let clean = text
+    .replace(/\s+/g, " ")        // espaces multiples → simple
+    .replace(/[,;]/g, ",")       // normalisation virgules
+    .replace(/€/g, "")           // supprime €
+    .replace(/\(pour Facture\)/gi, "")
+    .replace(/\s+\|\s+/g, "|")   // supprime espaces avant/après |
+    .replace(/\s*Page\s*\d+\/\d+\s*/gi, " ")
+    .replace(/Transp\..+?Départ\s*:/gi, " "); // coupe l'en-tête parasite
 
-  for (const block of blocks) {
-    // Expression régulière super tolérante : gère PAF, Pavillon, /Ean13, etc.
-    const regex =
-      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\s\S]+?)\s+([A-Z][a-zéèàêïîç]+(?:\s+[A-Za-zéèàêïîç]+){0,3})[\s\S]*?(?:\/\s*Ean13:\s*\d+)?[\s\S]*?\|\s*(Pêché|Elevé)\s*en\s*:?\s*([^|]+)\|([^|]*?)\|\s*N°\s*Lot\s*:\s*(\S+)/i;
+  // 2️⃣ Découpage des blocs par code article (4 à 5 chiffres)
+  const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g);
 
-    const m = block.match(regex);
-    if (!m) continue;
+  for (let part of parts) {
+    const matchHead = part.match(
+      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([A-Z0-9éèàç+\-\s/]+?)(?=\s+[A-Z][a-z])/i
+    );
+    if (!matchHead) continue;
 
     const [
-      _, refFourn, colis, poidsColis, montant, prixKg, poidsTotal,
-      designation, nomLatin, pecheOuElev, blocZone, blocEngin, lot
-    ] = m;
+      _,
+      refFourn,
+      colis,
+      poidsColis,
+      montant,
+      prixKg,
+      poidsTotal,
+      designation
+    ] = matchHead;
 
-    // Extraction FAO
-    const mFAO = blocZone.match(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/i);
-    let zone = mFAO ? `FAO${mFAO[1]}` : "";
-    let sousZone = mFAO && mFAO[2] ? mFAO[2].toUpperCase().replace(/\./g, "") : "";
+    // 3️⃣ Extraction du reste : nom latin, FAO, engin, lot, etc.
+    const tail = part.slice(matchHead.index + matchHead[0].length);
+    const nomLatin = (tail.match(/[A-Z][a-z]+\s+[a-z]+\s*[A-Z]?[a-z]*/i)?.[0] || "").trim();
 
-    // Cas élevage
-    if (/Elevé/i.test(pecheOuElev)) {
-      zone = "Élevage";
-      sousZone = blocZone.replace(/.*Elevé\s+en\s*/i, "").trim();
+    // Bloc de traçabilité (FAO, Engin…)
+    const blocTrace = tail.match(/(Pêché|Elevé).+?Lot\s*:\s*\S+/i);
+    const traceTxt = blocTrace ? blocTrace[0] : "";
+
+    let zone = "";
+    let sousZone = "";
+    let engin = "";
+    let lot = "";
+
+    // FAO
+    const mFAO = traceTxt.match(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/i);
+    if (mFAO) {
+      zone = `FAO${mFAO[1]}`;
+      sousZone = mFAO[2] ? mFAO[2].toUpperCase().replace(/\./g, "") : "";
     }
 
-    const engin = (blocEngin || "").replace(/Engin\s*:\s*/i, "").trim();
+    // Élevage
+    if (/Elevé/i.test(traceTxt)) {
+      zone = "Élevage";
+      sousZone = (traceTxt.match(/en\s*:?([A-Za-z\s]+)/i)?.[1] || "").trim();
+    }
 
-    lines.push({
+    // Engin
+    const mEngin = traceTxt.match(/Engin\s*:\s*([^|]+)/i);
+    if (mEngin) engin = mEngin[1].trim();
+
+    // Lot
+    const mLot = traceTxt.match(/Lot\s*:\s*(\S+)/i);
+    if (mLot) lot = mLot[1].trim();
+
+    rows.push({
       refFournisseur: refFourn.trim(),
       designation: designation.replace(/\s{2,}/g, " ").trim(),
-      nomLatin: nomLatin.trim(),
+      nomLatin,
       colis: parseInt(colis),
       poidsColisKg: parseFloat(poidsColis.replace(",", ".")),
       poidsTotalKg: parseFloat(poidsTotal.replace(",", ".")),
@@ -81,8 +115,8 @@ function parseRoyaleMareeLines(text) {
     });
   }
 
-  console.log("🧾 Lignes extraites:", lines);
-  return lines;
+  console.log("🧾 Lignes extraites:", rows);
+  return rows;
 }
 
 /**************************************************
