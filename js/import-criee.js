@@ -1,5 +1,5 @@
 /**************************************************
- * IMPORT CRIÉE AUTO (Détecte Format A / B)
+ * IMPORT CRIÉE ST-GILLES (81268)
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -9,13 +9,12 @@ import {
   getDocs,
   doc,
   serverTimestamp,
-  updateDoc,
-  setDoc
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 import { manageAFMap } from "./manage-af-map.js";
 
-const FOUR_CODE = "81268";
+const FOUR_CODE = "81268";   // CRIÉE ST-GILLES
 
 /**************************************************
  * AF MAP
@@ -23,7 +22,17 @@ const FOUR_CODE = "81268";
 async function loadAFMap() {
   const snap = await getDocs(collection(db, "af_map"));
   const map = {};
-  snap.forEach((d) => (map[d.id] = d.data()));
+  snap.forEach(d => map[d.id] = d.data());
+  return map;
+}
+
+/**************************************************
+ * Articles (fallback)
+ **************************************************/
+async function loadArticlesMap() {
+  const snap = await getDocs(collection(db, "articles"));
+  const map = {};
+  snap.forEach(d => map[d.id] = d.data());
   return map;
 }
 
@@ -45,9 +54,7 @@ function readWorkbookAsync(file) {
     const fr = new FileReader();
     fr.onload = (e) => {
       try {
-        const wb = XLSX.read(new Uint8Array(e.target.result), {
-          type: "array",
-        });
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
         resolve(wb);
       } catch (e) {
         reject(e);
@@ -56,6 +63,30 @@ function readWorkbookAsync(file) {
     fr.onerror = reject;
     fr.readAsArrayBuffer(file);
   });
+}
+
+/**************************************************
+ * Heuristique — Détecter la colonne Désignation
+ **************************************************/
+function isDesignation(str) {
+  if (!str) return false;
+  const t = str.toString().trim();
+  if (t.length < 4) return false;
+  if (t.includes(" ")) return true;
+  return t.length > 6;
+}
+
+function detectFormat(rows) {
+  const row = rows[1] || [];
+
+  const colB = row[1];
+  const colC = row[2];
+
+  const scoreB = isDesignation(colB) ? colB.toString().length : 0;
+  const scoreC = isDesignation(colC) ? colC.toString().length : 0;
+
+  if (scoreC > scoreB) return "FORMAT_B";
+  return "FORMAT_A";
 }
 
 /**************************************************
@@ -78,100 +109,115 @@ async function createAchatHeader(supplier) {
 }
 
 /**************************************************
- * PARSE FORMAT A
- * (L’ancien que tu avais)
+ * SAVE LIGNES
  **************************************************/
-function parseFormatA(row) {
-  return {
-    ref: row[0] ?? "",
-    designation: row[1] ?? "",
-    nomLatin: row[2] ?? "",
-    prix: parseFloat(row[6] ?? 0),
-    poids: parseFloat(row[7] ?? 0),
-    total: parseFloat(row[8] ?? 0),
-    zone_raw: row[10] ?? "",
-    sous_raw: row[11] ?? "",
-    engin: row[12] ?? "",
-  };
-}
+async function saveCrieeToFirestore(achatId, rows, afMap, artMap) {
 
-/**************************************************
- * PARSE FORMAT B  ✅
- **************************************************/
-function parseFormatB(row) {
-  return {
-    ref: row[1] ?? "",
-    designation: row[2] ?? "",
-    nomLatin: row[3] ?? "",
-    prix: parseFloat(row[7] ?? 0),
-    poids: parseFloat(row[8] ?? 0),
-    total: parseFloat(row[9] ?? 0),
-    zone_raw: row[12] ?? "",
-    sous_raw: row[13] ?? "",
-    engin: row[14] ?? "",
-  };
-}
-
-/**************************************************
- * AUTO DETECT FORMAT
- **************************************************/
-function detectFormat(rows) {
-  const header = rows[0];
-  if (!header) return "A";
-
-  // Format B → nom latin colonne D = row[3]
-  const hasNomLatinAtD = header[3] && header[3].toString().toLowerCase().includes("latin");
-
-  if (hasNomLatinAtD) return "B";
-  return "A";
-}
-
-/**************************************************
- * SAVE
- **************************************************/
-async function saveCrieeToFirestore(achatId, rows, afMap) {
   let totalHT = 0;
   let totalKg = 0;
 
-  let missingRefs = [];
-
+  // détecter format
   const format = detectFormat(rows);
-  console.log("📁 Détection format CRIÉE =", format);
+  console.log("📐 Format détecté:", format);
+
+  const missingRefs = [];
 
   for (let i = 1; i < rows.length; i++) {
+
     const r = rows[i];
     if (!r?.length) continue;
 
-    const raw = format === "B" ? parseFormatB(r) : parseFormatA(r);
+    // REF FOURN
+    let ref = (
+      format === "FORMAT_B"
+        ? r[1]    // col B
+        : r[0]    // col A
+    ) ?? "";
 
-    let ref = raw.ref.toString().trim().replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
+    ref = ref.toString().trim()
+      .replace(/^0+/, "")
+      .replace(/\s+/g, "")
+      .replace(/\//g, "_");
 
-    let { designation, nomLatin, prix, poids, total, zone_raw, sous_raw, engin } = raw;
+    // LOCK désignation
+    const designation = format === "FORMAT_B"
+      ? (r[2] ?? "")   // col C
+      : (r[1] ?? "");  // col B
 
-    /* FAO */
-    const zone = zone_raw?.toString().trim();
-    const sousZone = sous_raw?.toString().trim();
-    const fao = (zone && sousZone) ? `FAO ${zone} ${sousZone}` : "";
+    const nomLatin =
+      format === "FORMAT_B"
+        ? (r[3] ?? "")     // col D
+        : (r[2] ?? "");    // col C
 
-    /* MAP */
+    // colonnes poids/prix/total selon format
+    const prixHTKg =
+      format === "FORMAT_B"
+        ? parseFloat(r[7] ?? 0)   // H
+        : parseFloat(r[6] ?? 0);  // G
+
+    const poidsKg =
+      format === "FORMAT_B"
+        ? parseFloat(r[8] ?? 0)   // I
+        : parseFloat(r[7] ?? 0);  // H
+
+    const montantHT =
+      format === "FORMAT_B"
+        ? parseFloat(r[9] ?? 0)   // J
+        : parseFloat(r[8] ?? 0);  // I
+
+    // Zone / sous-zone (fusion)
+    const zone     = format === "FORMAT_B" ? (r[12] ?? "") : (r[12] ?? "");
+    const sousZone = format === "FORMAT_B" ? (r[13] ?? "") : (r[13] ?? "");
+    const fao      = (zone && sousZone) ? `FAO${zone}${sousZone}` : "";
+
+    const engin =
+      format === "FORMAT_B"
+        ? (r[14] ?? "")    // O
+        : (r[14] ?? "");
+
+    // =============================
+    //  AF MAP
+    // =============================
     const key = `${FOUR_CODE}__${ref}`.toUpperCase();
     const M = afMap[key];
 
-    let plu = M?.plu ?? "";
+    let plu = (M?.plu ?? "").toString().trim();
+
+    // fix .0
     if (plu.endsWith(".0")) plu = plu.slice(0, -2);
 
     let designationInterne = M?.designationInterne || designation;
     let allergenes = M?.allergenes || "";
-    let zoneF = M?.zone || zone;
-    let sousZoneF = M?.sousZone || sousZone;
-    let enginF = M?.engin || engin;
 
-    // Update totals
-    totalHT += total;
-    totalKg += poids;
+    // =============================
+    //  fallback fiche Article
+    // =============================
+    if (!plu) {
+      const art = Object.values(artMap).find(a =>
+        a.designation?.toUpperCase() === designation.toUpperCase()
+      );
+      if (art) {
+        plu = art.id || plu;
+        if (art.zone) zone = art.zone;
+        if (art.sousZone) sousZone = art.sousZone;
+        if (art.engin) engin = art.engin;
+      }
+    }
 
-    // D’abord on insère la ligne
-    const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
+    // collecte missing map
+    if (!M?.plu) {
+      missingRefs.push({
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: ref,
+        designation,
+        achatId,
+      });
+    }
+
+    totalHT += montantHT;
+    totalKg += poidsKg;
+
+    await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: ref,
       fournisseurRef: ref,
 
@@ -180,43 +226,28 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
       designationInterne,
       nomLatin,
 
-      zone: zoneF,
-      sousZone: sousZoneF,
-      engin: enginF,
-      allergenes,
+      zone,
+      sousZone,
       fao,
+      engin,
+      allergenes,
 
-      poidsKg: poids,
-      poidsTotalKg: poids,
-
-      prixHTKg: prix,
-      prixKg: prix,
-      montantHT: total,
-      montantTTC: total,
+      poidsKg,
+      prixHTKg,
+      prixKg: prixHTKg,
+      montantHT,
+      montantTTC: montantHT,
 
       colis: 0,
       poidsColisKg: 0,
+      poidsTotalKg: poidsKg,
 
       received: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-
-    const ligneId = lineRef.id;
-
-    // Manque MAP ?  → enregistrer
-    if (!M?.plu) {
-      missingRefs.push({
-        fournisseurCode: FOUR_CODE,
-        refFournisseur: ref,
-        designation,
-        achatId,
-        ligneId,
-      });
-    }
   }
 
-  /* update achat */
   await updateDoc(doc(db, "achats", achatId), {
     montantHT: totalHT,
     montantTTC: totalHT,
@@ -224,20 +255,20 @@ async function saveCrieeToFirestore(achatId, rows, afMap) {
     updatedAt: serverTimestamp(),
   });
 
-  /* Popup MAP */
+  // popup mapping manquant
   if (missingRefs.length > 0) {
+    console.log("🔎 Missing refs:", missingRefs);
     await manageAFMap(missingRefs);
-    return true;
   }
-
-  return false;
 }
 
 /**************************************************
- * ENTRY POINT
+ * ENTRY
  **************************************************/
-export async function importCriee(file) {
+export async function importCrieeStGilles(file) {
+
   const afMap = await loadAFMap();
+  const artMap = await loadArticlesMap();
   const supplier = await loadSupplierInfo();
 
   const wb = await readWorkbookAsync(file);
@@ -245,12 +276,8 @@ export async function importCriee(file) {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
   const achatId = await createAchatHeader(supplier);
-  const hasMissing = await saveCrieeToFirestore(achatId, rows, afMap);
+  await saveCrieeToFirestore(achatId, rows, afMap, artMap);
 
-  if (!hasMissing) {
-    alert("✅ Import CRIÉE OK");
-    location.reload();
-  } else {
-    alert("⚠️ Références à associer → voir popup");
-  }
+  alert("✅ Import Criée ST-GILLES OK");
+  location.reload();
 }
