@@ -82,7 +82,7 @@ const faoDisplay =
 
 const traca = [
   nz(r.nomLatin),
-  faoDisplay || "—",
+  nz(r.fao) || [nz(r.zone), nz(r.sousZone)].filter(Boolean).join(" "),
   nz(r.engin),
   r.allergenes ? `Allergènes: ${r.allergenes}` : ""
 ].filter(Boolean).join(" — ");
