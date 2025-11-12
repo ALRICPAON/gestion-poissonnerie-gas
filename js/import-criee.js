@@ -1,7 +1,8 @@
 /**************************************************
- * IMPORT CRIÉE — 2 variantes
- *  - MODELE 1 → PLU col A → FOUR_CODE = 81269
- *  - MODELE 2 → PLU col B → FOUR_CODE = 81268
+ * IMPORT CRIÉE — FORMAT PLU COL A ou COL B
+ * Fournisseurs possibles :
+ *   - 81268 : St-Gilles
+ *   - 81269 : Les Sables
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -33,15 +34,15 @@ async function loadArticlesMap() {
   return map;
 }
 
-async function loadSupplierInfo(fourCode, fallbackNom) {
+async function loadSupplierInfo(fourCode) {
   const snap = await getDoc(doc(db, "fournisseurs", fourCode));
   return snap.exists()
     ? snap.data()
-    : { code: fourCode, nom: fallbackNom };
+    : { code: fourCode, nom: `Fournisseur ${fourCode}` };
 }
 
 /**************************************************
- * XLSX → JS rows
+ * XLSX → rows
  **************************************************/
 function readWorkbookAsync(file) {
   return new Promise((resolve, reject) => {
@@ -79,7 +80,7 @@ async function createAchatHeader(supplier) {
 }
 
 /**************************************************
- * GENERIC SAVE
+ * SAVE LIGNES
  **************************************************/
 async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
 
@@ -87,9 +88,7 @@ async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
   let totalKg = 0;
   const missingRefs = [];
 
-  // skip header row 0
   for (let i = 1; i < rows.length; i++) {
-
     const r = rows[i] || [];
     if (!r.length) continue;
 
@@ -97,22 +96,20 @@ async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
     ref = ref.toString().trim().replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
     const designation   = r[colMap.designation] ?? "";
-    const nomLatin      = r[colMap.latin]      ?? "";
-    const prixHTKg      = parseFloat(r[colMap.prixHTKg]   ?? 0);
-    const poidsKg       = parseFloat(r[colMap.poidsKg]    ?? 0);
-    const montantHT     = parseFloat(r[colMap.montantHT]  ?? 0);
-    
-    let zone            = r[colMap.zone]       ?? "";
-    let sousZone        = r[colMap.sousZone]   ?? "";
-    const engin         = r[colMap.engin]      ?? "";
+    const nomLatin      = r[colMap.latin] ?? "";
+    const prixHTKg      = parseFloat(r[colMap.prixHTKg] ?? 0);
+    const poidsKg       = parseFloat(r[colMap.poidsKg] ?? 0);
+    const montantHT     = parseFloat(r[colMap.montantHT] ?? 0);
+
+    let zone            = r[colMap.zone] ?? "";
+    let sousZone        = r[colMap.sousZone] ?? "";
+    const engin         = r[colMap.engin] ?? "";
 
     const fao = (zone && sousZone) ? `FAO${zone} ${sousZone}` : "";
 
-    /************************************
-     *  AF MAP
-     ************************************/
+    /** AF MAP **/
     const key = `${fourCode}__${ref}`.toUpperCase();
-    const M = afMap[key];
+    const M   = afMap[key];
 
     let plu = (M?.plu ?? "").toString().trim();
     if (plu.endsWith(".0")) plu = plu.slice(0, -2);
@@ -120,29 +117,31 @@ async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
     let designationInterne = M?.designationInterne || designation;
     let allergenes         = M?.allergenes || "";
 
-    /************************************
-     * fallback article
-     ************************************/
+    /** fallback fiche Article **/
     if (!plu) {
       const art = Object.values(artMap).find(a =>
         a.designation?.toUpperCase() === designation.toUpperCase()
       );
       if (art) {
         plu = art.id || plu;
-        if (art.zone)     zone = art.zone;
+        if (art.zone)     zone     = art.zone;
         if (art.sousZone) sousZone = art.sousZone;
       }
     }
 
     if (!M?.plu) {
-      missingRefs.push({ fournisseurCode: fourCode, refFournisseur: ref, designation, achatId });
+      missingRefs.push({
+        fournisseurCode: fourCode,
+        refFournisseur: ref,
+        designation,
+        achatId,
+      });
     }
 
     totalHT += montantHT;
     totalKg += poidsKg;
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
-
       refFournisseur: ref,
       fournisseurRef: ref,
 
@@ -187,69 +186,59 @@ async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
 }
 
 /**************************************************
- * IMPORT MODELE 1 (PLU col A → FOUR_CODE = 81269)
+ * MAIN ENTRY
  **************************************************/
-export async function importCrieePLUcolA(file) {
+export async function importCriee(file, supplierCode, format) {
 
-  const fourCode = "81269";
-  const fourName = "Criée Les Sables";
+  if (!supplierCode) throw new Error("Code fournisseur manquant");
+  if (!format)       throw new Error("Format COLA / COLB manquant");
 
   const afMap    = await loadAFMap();
   const artMap   = await loadArticlesMap();
-  const supplier = await loadSupplierInfo(fourCode, fourName);
+  const supplier = await loadSupplierInfo(supplierCode);
 
-  const wb = await readWorkbookAsync(file);
+  const wb    = await readWorkbookAsync(file);
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
   const achatId = await createAchatHeader(supplier);
 
-  await saveLines(achatId, rows, afMap, artMap, fourCode, {
-    plu:        0,  // A
-    designation:1,  // B
-    latin:      2,  // C
-    prixHTKg:   6,  // G
-    poidsKg:    7,  // H
-    montantHT:  8,  // I
-    zone:      10,  // K
-    sousZone:  11,  // L
-    engin:     12   // M
-  });
+  let colMap;
 
-  alert("✅ Import CRIÉE PLU Col A OK");
-  location.reload();
-}
+  /** FORMAT = PLU colonne A **/
+  if (format === "COLA") {
+    colMap = {
+      plu:        0,   // A
+      designation:1,   // B
+      latin:      2,   // C
+      prixHTKg:   6,   // G
+      poidsKg:    7,   // H
+      montantHT:  8,   // I
+      zone:      10,   // K
+      sousZone:  11,   // L
+      engin:     12    // M
+    };
+  }
+  /** FORMAT = PLU colonne B **/
+  else if (format === "COLB") {
+    colMap = {
+      plu:        1,   // B
+      designation:2,   // C
+      latin:      3,   // D
+      prixHTKg:   7,   // H
+      poidsKg:    8,   // I
+      montantHT:  9,   // J
+      zone:      11,   // L
+      sousZone:  12,   // M
+      engin:     13    // N
+    };
+  }
+  else {
+    throw new Error("Format inconnu (COLA / COLB)");
+  }
 
-/**************************************************
- * IMPORT MODELE 2 (PLU col B → FOUR_CODE = 81268)
- **************************************************/
-export async function importCrieePLUcolB(file) {
+  await saveLines(achatId, rows, afMap, artMap, supplierCode, colMap);
 
-  const fourCode = "81268";
-  const fourName = "Criée St-Gilles";
-
-  const afMap    = await loadAFMap();
-  const artMap   = await loadArticlesMap();
-  const supplier = await loadSupplierInfo(fourCode, fourName);
-
-  const wb = await readWorkbookAsync(file);
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-  const achatId = await createAchatHeader(supplier);
-
-  await saveLines(achatId, rows, afMap, artMap, fourCode, {
-    plu:        1,  // B
-    designation:2,  // C
-    latin:      3,  // D
-    prixHTKg:   7,  // H
-    poidsKg:    8,  // I
-    montantHT:  9,  // J
-    zone:      11,  // L
-    sousZone:  12,  // M
-    engin:     13   // N
-  });
-
-  alert("✅ Import CRIÉE PLU Col B OK");
+  alert("✅ Import Criée OK");
   location.reload();
 }
