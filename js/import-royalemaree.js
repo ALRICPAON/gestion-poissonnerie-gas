@@ -7,6 +7,21 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
+ * 🔍 Recherche AF_MAP — tolère les zéros supprimés
+ **************************************************/
+function findAFMapEntry(afMap, fourCode, refFournisseur) {
+  if (!refFournisseur) return null;
+
+  const refStr = refFournisseur.toString().trim();
+  const keyExact = `${fourCode}__${refStr}`.toUpperCase();
+  const keyNoZero = `${fourCode}__${refStr.replace(/^0+/, "")}`.toUpperCase();
+  const keyAlt = `${fourCode}__${refStr.padStart(5, "0")}`.toUpperCase(); // au cas où
+
+  return afMap[keyExact] || afMap[keyNoZero] || afMap[keyAlt] || null;
+}
+
+
+/**************************************************
  * PDF TEXT EXTRACT
  **************************************************/
 async function extractTextFromPdf(file) {
@@ -120,15 +135,22 @@ function parseRoyaleMareeLines(text) {
 }
 
 /**************************************************
- * FIRESTORE SAVE
+ * FIRESTORE SAVE (avec mapping AF_MAP)
  **************************************************/
+import { getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
 async function saveRoyaleMaree(lines) {
   if (!lines.length) throw new Error("Aucune ligne trouvée dans le PDF.");
 
   const FOUR_CODE = "10004";
   const supplier = { code: FOUR_CODE, nom: "Royale Marée" };
 
-  // Crée un en-tête achat
+  // 🔹 Charge AF_MAP complet une seule fois
+  const snap = await getDocs(collection(db, "af_map"));
+  const afMap = {};
+  snap.forEach(d => { afMap[d.id.toUpperCase()] = d.data(); });
+
+  // 🔹 Crée un en-tête achat
   const achatRef = await addDoc(collection(db, "achats"), {
     date: new Date().toISOString().slice(0, 10),
     fournisseurCode: supplier.code,
@@ -144,16 +166,41 @@ async function saveRoyaleMaree(lines) {
   const achatId = achatRef.id;
 
   let totalHT = 0, totalKg = 0;
+  const missingRefs = [];
 
   for (const L of lines) {
     totalHT += L.montantHT;
     totalKg += L.poidsTotalKg;
 
+    // 🔍 Essaie de retrouver le mapping AF_MAP
+    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+
+    let plu = "";
+    let designationInterne = L.designation;
+    let allergenes = "";
+    let zone = L.zone;
+    let sousZone = L.sousZone;
+    let engin = L.engin;
+
+    if (M) {
+      plu = (M.plu || "").toString().trim();
+      if (plu.endsWith(".0")) plu = plu.slice(0, -2);
+      designationInterne = M.designationInterne || designationInterne;
+      allergenes = M.allergenes || "";
+      if (!zone && M.zone) zone = M.zone;
+      if (!sousZone && M.sousZone) sousZone = M.sousZone;
+      if (!engin && M.engin) engin = M.engin;
+    } else {
+      missingRefs.push(L.refFournisseur);
+    }
+
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       ...L,
-      plu: "",
+      plu,
+      designationInterne,
+      allergenes,
+      fao: `${zone} ${sousZone}`.trim(),
       fournisseurRef: L.refFournisseur,
-      fao: `${L.zone} ${L.sousZone}`.trim(),
       montantTTC: L.montantHT,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -166,6 +213,10 @@ async function saveRoyaleMaree(lines) {
     totalKg,
     updatedAt: serverTimestamp(),
   });
+
+  if (missingRefs.length > 0) {
+    console.warn("⚠️ Références non trouvées dans AF_MAP:", missingRefs);
+  }
 
   alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
 }
