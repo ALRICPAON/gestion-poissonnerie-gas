@@ -11,20 +11,14 @@
   <script type="module" src="../js/auth.js"></script>
 
   <!-- SheetJS (XLSX) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-
-  <!-- ✅ MODULES ACHATS -->
+  <!-- CHARGEMENT MODULES ACHATS -->
   <script type="module" src="../js/load-achats.js"></script>
   <script type="module" src="../js/submit-achat.js"></script>
-  
 
-<!-- ✅ MODULES D’IMPORT FOURNISSEURS -->
-<script type="module" src="../js/import-criee.js"></script>
-<script type="module" src="../js/import-scapmaree.js"></script>
-<script type="module" src="../js/manage-af-map.js"></script>
-
-
+  <!-- DEPENDANCES MAP -->
+  <script type="module" src="../js/manage-af-map.js"></script>
 </head>
 
 <body>
@@ -55,23 +49,23 @@
 
     <div style="display:flex; gap:.5rem; align-items:center;">
   
-  <!-- fichier source -->
-  <input type="file" id="providerFile" accept=".xlsx,.csv" />
+      <!-- fichier source -->
+      <input type="file" id="providerFile" accept=".xlsx,.csv" />
 
-  <!-- fournisseur -->
-  <select id="providerSelect">
-    <option value="">-- Import fournisseur --</option>
-    <option value="CRIEE_STGILLES">Criée St-Gilles (81268)</option>
-    <option value="CRIEE_LES_SABLES">Criée Les Sables (81269)</option>
-    <option value="SCAPMAREE">Scapmarée (10001)</option>
-    <option value="DISTRIMER">Distrimer</option>
-    <option value="ROYALEMAREE">Royale Marée</option>
-    <option value="SOGELMER">Sogelmer</option>
-  </select>
+      <!-- fournisseur -->
+      <select id="providerSelect">
+        <option value="">-- Import fournisseur --</option>
+        <option value="CRIEE_STGILLES">Criée St-Gilles (81268)</option>
+        <option value="CRIEE_LES_SABLES">Criée Les Sables (81269)</option>
+        <option value="SCAPMAREE">Scapmarée (10001)</option>
+        <option value="DISTRIMER">Distrimer</option>
+        <option value="ROYALEMAREE">Royale Marée</option>
+        <option value="SOGELMER">Sogelmer</option>
+      </select>
 
-  <button id="btnProviderImport">Importer</button>
-  <div id="importStatus" style="margin-left:1rem;"></div>
-</div>
+      <button id="btnProviderImport">Importer</button>
+      <div id="importStatus" style="margin-left:1rem;"></div>
+    </div>
 
   </div>
 
@@ -96,52 +90,51 @@
     </tbody>
   </table>
 
+
+  <!-- SCRIPT D’IMPORT DYNAMIQUE -->
   <script type="module">
-  import { requireAuth } from "../js/auth.js";
+    import { requireAuth } from "../js/auth.js";
+    import { importScapmaree } from "../js/import-scapmaree.js";
+    import { importCriee } from "../js/import-criee.js";
 
-  import { importCriee } from "../js/import-criee.js";
-import { importScapmaree } from "../js/import-scapmaree.js";
+    requireAuth();
 
-  requireAuth();
+    const btn        = document.getElementById("btnProviderImport");
+    const fileInput  = document.getElementById("providerFile");
+    const select     = document.getElementById("providerSelect");
+    const status     = document.getElementById("importStatus");
 
-  const btn        = document.getElementById("btnProviderImport");
-  const fileInput  = document.getElementById("providerFile");
-  const select     = document.getElementById("providerSelect");
-  const status     = document.getElementById("importStatus");
+    btn.addEventListener("click", async () => {
 
-  btn.addEventListener("click", async () => {
+      status.textContent = "";
 
-    status.textContent = "";
+      const file = fileInput.files[0];
+      if (!file) return alert("📁 Sélectionner un fichier");
 
-    const file = fileInput.files[0];
-    if (!file) return alert("📁 Sélectionner un fichier");
+      const provider = select.value;
+      if (!provider) return alert("❗ Choisir un fournisseur");
 
-    const provider = select.value;
-    if (!provider) return alert("❗ Choisir un fournisseur");
+      try {
+        if (provider === "CRIEE_STGILLES" || provider === "CRIEE_LES_SABLES") {
+          await importCriee(file);     // ✅ détecte ST Gilles / Sables automatiquement
+        }
+        else if (provider === "SCAPMAREE") {
+          await importScapmaree(file);
+        }
+        else {
+          alert("❌ Import non implémenté pour : " + provider);
+          return;
+        }
 
-    try {
-  if (provider === "CRIEE_STGILLES" || provider === "CRIEE_LES_SABLES") {
-    await importCriee(file);
-  }
-  else if (provider === "SCAPMAREE") {
-    await importScapmaree(file);
-  }
-  else {
-    alert("❌ Import non implémenté pour : " + provider);
-    return;
-  }
-
-  status.textContent = "✅ Import terminé !";
-}
-
-    catch (e) {
-      console.error(e);
-      alert("❌ Erreur import : " + e.message);
-      status.textContent = "❌ Erreur";
-    }
-  });
-</script>
-
+        status.textContent = "✅ Import terminé !";
+      }
+      catch (e) {
+        console.error(e);
+        alert("❌ Erreur import : " + e.message);
+        status.textContent = "❌ Erreur";
+      }
+    });
+  </script>
 
 </body>
 </html>
