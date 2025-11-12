@@ -1,8 +1,5 @@
 /**************************************************
- * IMPORT CRIÉE — FORMAT PLU COL A ou COL B
- * Fournisseurs possibles :
- *   - 81268 : St-Gilles
- *   - 81269 : Les Sables
+ * IMPORT CRIÉE — PLU en colonne A ou B
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -18,8 +15,9 @@ import {
 import { manageAFMap } from "./manage-af-map.js";
 
 /**************************************************
- * LOADERS
+ * FONCTIONS COMMUNES
  **************************************************/
+
 async function loadAFMap() {
   const snap = await getDocs(collection(db, "af_map"));
   const map = {};
@@ -34,15 +32,15 @@ async function loadArticlesMap() {
   return map;
 }
 
-async function loadSupplierInfo(fourCode) {
-  const snap = await getDoc(doc(db, "fournisseurs", fourCode));
+async function loadSupplierInfo(code) {
+  const snap = await getDoc(doc(db, "fournisseurs", code));
   return snap.exists()
     ? snap.data()
-    : { code: fourCode, nom: `Fournisseur ${fourCode}` };
+    : { code, nom: "CRIÉE" };
 }
 
 /**************************************************
- * XLSX → rows
+ * XLSX → workbook
  **************************************************/
 function readWorkbookAsync(file) {
   return new Promise((resolve, reject) => {
@@ -61,7 +59,28 @@ function readWorkbookAsync(file) {
 }
 
 /**************************************************
- * Create achat header
+ * Convertit sous-zone → chiffres romains
+ **************************************************/
+function toRoman(num) {
+  num = parseInt(num, 10);
+  if (isNaN(num) || num <= 0) return "";
+  const map = [
+    [1000,"M"], [900,"CM"], [500,"D"], [400,"CD"],
+    [100,"C"], [90,"XC"], [50,"L"], [40,"XL"],
+    [10,"X"], [9,"IX"], [5,"V"], [4,"IV"], [1,"I"]
+  ];
+  let out = "";
+  for (const [value, numeral] of map) {
+    while (num >= value) {
+      out += numeral;
+      num -= value;
+    }
+  }
+  return out;
+}
+
+/**************************************************
+ * HEADER ACHAT
  **************************************************/
 async function createAchatHeader(supplier) {
   const ref = await addDoc(collection(db, "achats"), {
@@ -82,76 +101,94 @@ async function createAchatHeader(supplier) {
 /**************************************************
  * SAVE LIGNES
  **************************************************/
-async function saveLines(achatId, rows, afMap, artMap, fourCode, colMap) {
+async function saveLines(opts) {
+
+  const {
+    achatId,
+    rows,
+    afMap,
+    artMap,
+    FOUR_CODE,
+    colPLU,
+    colDesignation,
+    colNomLatin,
+    colPrixKg,
+    colPoidsKg,
+    colMontantHT,
+    colZone,
+    colSousZone,
+    colEngin,
+  } = opts;
 
   let totalHT = 0;
   let totalKg = 0;
   const missingRefs = [];
 
   for (let i = 1; i < rows.length; i++) {
-    const r = rows[i] || [];
-    if (!r.length) continue;
+    const r = rows[i];
+    if (!r?.length) continue;
 
-    let ref = r[colMap.plu] ?? "";
-    ref = ref.toString().trim().replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
+    let ref = (r[colPLU] ?? "").toString().trim();
+    ref = ref.toString().replace(/^0+/, "").replace(/\s+/g, "").replace(/\//g, "_");
 
-    const designation   = r[colMap.designation] ?? "";
-    const nomLatin      = r[colMap.latin] ?? "";
-    const prixHTKg      = parseFloat(r[colMap.prixHTKg] ?? 0);
-    const poidsKg       = parseFloat(r[colMap.poidsKg] ?? 0);
-    const montantHT     = parseFloat(r[colMap.montantHT] ?? 0);
+    let designation = (r[colDesignation] ?? "").toString().trim();
+    let nomLatin    = (r[colNomLatin]   ?? "").toString().trim();
 
-    let zone            = r[colMap.zone] ?? "";
-    let sousZone        = r[colMap.sousZone] ?? "";
-    const engin         = r[colMap.engin] ?? "";
+    let prixHTKg    = parseFloat(r[colPrixKg]    ?? 0);
+    let poidsKg     = parseFloat(r[colPoidsKg]   ?? 0);
+    let montantHT   = parseFloat(r[colMontantHT] ?? 0);
+
+    let zone        = (r[colZone]     ?? "").toString().trim();
+    let sousZone    = (r[colSousZone] ?? "").toString().trim();
+    let engin       = (r[colEngin]    ?? "").toString().trim();
 
     /**************************************************
- * Convertit les chiffres arabes → chiffres romains
- **************************************************/
-function toRoman(num) {
-  num = parseInt(num, 10);
-  if (isNaN(num) || num <= 0) return "";
-  const map = [
-    [1000,"M"], [900,"CM"], [500,"D"], [400,"CD"],
-    [100,"C"], [90,"XC"], [50,"L"], [40,"XL"],
-    [10,"X"], [9,"IX"], [5,"V"], [4,"IV"], [1,"I"]
-  ];
-  let out = "";
-  for (const [value, numeral] of map) {
-    while (num >= value) {
-      out += numeral;
-      num -= value;
+     * FAO — fusion + conversion roman(sous-zone)
+     **************************************************/
+    let _zone = zone;
+    let _sousZone = sousZone;
+
+    if (_sousZone && /^[0-9]+$/.test(_sousZone)) {
+      _sousZone = toRoman(_sousZone);
     }
-  }
-  return out;
-}
 
+    let fao = "";
+    if (_zone && _sousZone) {
+      fao = `FAO${_zone} ${_sousZone}`;
+    }
 
-    /** AF MAP **/
-    const key = `${fourCode}__${ref}`.toUpperCase();
-    const M   = afMap[key];
+    /**************************************************
+     * AF_MAP
+     **************************************************/
+    const key = `${FOUR_CODE}__${ref}`.toUpperCase();
+    const M = afMap[key];
 
     let plu = (M?.plu ?? "").toString().trim();
     if (plu.endsWith(".0")) plu = plu.slice(0, -2);
 
     let designationInterne = M?.designationInterne || designation;
-    let allergenes         = M?.allergenes || "";
+    let allergenes = M?.allergenes || "";
 
-    /** fallback fiche Article **/
+    /**************************************************
+     * fallback Article
+     **************************************************/
     if (!plu) {
+      const designationStr = designation.toString().trim().toUpperCase();
       const art = Object.values(artMap).find(a =>
-        a.designation?.toUpperCase() === designation.toUpperCase()
+        (a.designation ?? "").toString().trim().toUpperCase() === designationStr
       );
+
       if (art) {
         plu = art.id || plu;
-        if (art.zone)     zone     = art.zone;
+        if (art.zone) zone = art.zone;
         if (art.sousZone) sousZone = art.sousZone;
+        if (art.engin) engin = art.engin;
       }
     }
 
     if (!M?.plu) {
       missingRefs.push({
-        fournisseurCode: fourCode,
+        fournisseurCode: FOUR_CODE,
         refFournisseur: ref,
         designation,
         achatId,
@@ -171,7 +208,7 @@ function toRoman(num) {
       nomLatin,
 
       zone,
-      sousZone,
+      sousZone: _sousZone,
       fao,
       engin,
       allergenes,
@@ -206,59 +243,77 @@ function toRoman(num) {
 }
 
 /**************************************************
- * MAIN ENTRY
+ * ENTRY — PLU en colonne A
  **************************************************/
-export async function importCriee(file, supplierCode, format) {
+export async function importCrieePLUcolA(file) {
 
-  if (!supplierCode) throw new Error("Code fournisseur manquant");
-  if (!format)       throw new Error("Format COLA / COLB manquant");
+  const FOUR_CODE = prompt("Code Fournisseur (ex: 81268) ?", "81268");
 
   const afMap    = await loadAFMap();
   const artMap   = await loadArticlesMap();
-  const supplier = await loadSupplierInfo(supplierCode);
+  const supplier = await loadSupplierInfo(FOUR_CODE);
 
-  const wb    = await readWorkbookAsync(file);
+  const wb = await readWorkbookAsync(file);
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
   const achatId = await createAchatHeader(supplier);
 
-  let colMap;
+  await saveLines({
+    achatId,
+    rows,
+    afMap,
+    artMap,
+    FOUR_CODE,
+    colPLU:        0,
+    colDesignation:1,
+    colNomLatin:   2,
+    colPrixKg:     6,
+    colPoidsKg:    7,
+    colMontantHT:  8,
+    colZone:       10,
+    colSousZone:   11,
+    colEngin:      12,
+  });
 
-  /** FORMAT = PLU colonne A **/
-  if (format === "COLA") {
-    colMap = {
-      plu:        0,   // A
-      designation:1,   // B
-      latin:      2,   // C
-      prixHTKg:   6,   // G
-      poidsKg:    7,   // H
-      montantHT:  8,   // I
-      zone:      10,   // K
-      sousZone:  11,   // L
-      engin:     12    // M
-    };
-  }
-  /** FORMAT = PLU colonne B **/
-  else if (format === "COLB") {
-    colMap = {
-      plu:        1,   // B
-      designation:2,   // C
-      latin:      3,   // D
-      prixHTKg:   7,   // H
-      poidsKg:    8,   // I
-      montantHT:  9,   // J
-      zone:      11,   // L
-      sousZone:  12,   // M
-      engin:     13    // N
-    };
-  }
-  else {
-    throw new Error("Format inconnu (COLA / COLB)");
-  }
+  alert("✅ Import Criée PLU colonne A — OK");
+  location.reload();
+}
 
-  await saveLines(achatId, rows, afMap, artMap, supplierCode, colMap);
+/**************************************************
+ * ENTRY — PLU en colonne B
+ **************************************************/
+export async function importCrieePLUcolB(file) {
 
-  alert("✅ Import Criée OK");
+  const FOUR_CODE = prompt("Code Fournisseur (ex: 81269) ?", "81269");
+
+  const afMap    = await loadAFMap();
+  const artMap   = await loadArticlesMap();
+  const supplier = await loadSupplierInfo(FOUR_CODE);
+
+  const wb = await readWorkbookAsync(file);
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+  const achatId = await createAchatHeader(supplier);
+
+  await saveLines({
+    achatId,
+    rows,
+    afMap,
+    artMap,
+    FOUR_CODE,
+    colPLU:        1,
+    colDesignation:2,
+    colNomLatin:   3,
+    colPrixKg:     7,
+    colPoidsKg:    8,
+    colMontantHT:  9,
+    colZone:       12,
+    colSousZone:   13,
+    colEngin:      14,
+  });
+
+  alert("✅ Import Criée PLU colonne B — OK");
   location.reload();
 }
