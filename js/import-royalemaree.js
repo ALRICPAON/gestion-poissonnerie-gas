@@ -34,14 +34,15 @@ async function extractTextFromPdf(file) {
 function parseRoyaleMareeLines(text) {
   const lines = [];
 
-  // Découpe en blocs produits (chaque code article commence une ligne)
-  const rawBlocks = text
+  // Découpage par code article (4–5 chiffres + chiffres suivants)
+  const blocks = text
     .split(/(?=\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g)
     .filter(b => /\d{4,5}/.test(b));
 
-  for (const block of rawBlocks) {
+  for (const block of blocks) {
+    // Expression plus tolérante (accept accents, maj/min, espaces variables)
     const regex =
-      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\s\S]+?)([A-Z][a-z]+(?:\s+[a-zA-Z]+){0,3})\s*\|(Pêché|Elevé)\s*en\s*:?\s*([^|]+)\|([^|]+)?\|N°\s*Lot\s*:\s*(\S+)/i;
+      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\s\S]+?)\s+([A-Z][a-zéèàêïîç]+(?:\s+[A-Za-zéèàêïîç]+){0,3})\s*\|\s*(Pêché|Elevé)\s*en\s*:?\s*([^|]+)\|([^|]*?)\|\s*N°\s*Lot\s*:\s*(\S+)/i;
 
     const m = block.match(regex);
     if (!m) continue;
@@ -51,12 +52,11 @@ function parseRoyaleMareeLines(text) {
       designation, nomLatin, pecheOuElev, blocZone, blocEngin, lot
     ] = m;
 
-    // Zone FAO
+    // Zone FAO ou élevage
     const mFAO = blocZone.match(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/i);
     let zone = mFAO ? `FAO${mFAO[1]}` : "";
     let sousZone = mFAO && mFAO[2] ? mFAO[2].toUpperCase().replace(/\./g, "") : "";
 
-    // Cas élevage
     if (/Elevé/i.test(pecheOuElev)) {
       zone = "Élevage";
       sousZone = blocZone.replace(/.*Elevé\s+en\s*/i, "").trim();
@@ -83,6 +83,7 @@ function parseRoyaleMareeLines(text) {
   console.log("🧾 Lignes extraites:", lines);
   return lines;
 }
+
 
 
 /**************************************************
