@@ -21,6 +21,7 @@
   <script type="module" src="../js/manage-af-map.js"></script>
   <script type="module" src="../js/import-scapmaree.js"></script>
   <script type="module" src="../js/import-criee.js"></script>
+
 </head>
 
 <body>
@@ -57,8 +58,11 @@
       <!-- fournisseur -->
       <select id="providerSelect">
         <option value="">-- Import fournisseur --</option>
-        <option value="CRIEE_STGILLES">Criée St-Gilles (81268)</option>
-        <option value="CRIEE_LES_SABLES">Criée Les Sables (81269)</option>
+
+        <!-- ✅ NEW -->
+        <option value="CRIEE_COLA">Criée (PLU colonne A) — Les Sables</option>
+        <option value="CRIEE_COLB">Criée (PLU colonne B) — St-Gilles</option>
+
         <option value="SCAPMAREE">Scapmarée (10001)</option>
         <option value="DISTRIMER">Distrimer</option>
         <option value="ROYALEMAREE">Royale Marée</option>
@@ -98,7 +102,9 @@
     import { requireAuth } from "../js/auth.js";
 
     import { importScapmaree } from "../js/import-scapmaree.js";
-    import { importCriee } from "../js/import-criee.js";
+
+    /* ✅ FIX — importer les bonnes fonctions */
+    import { importCrieePLUcolA, importCrieePLUcolB } from "../js/import-criee.js";
 
     requireAuth();
 
@@ -119,8 +125,11 @@
 
       try {
 
-        if (provider === "CRIEE_STGILLES" || provider === "CRIEE_LES_SABLES") {
-          await importCriee(file);     // ✅ détection auto St-Gilles / Sables
+        if (provider === "CRIEE_COLA") {
+          await importCrieePLUcolA(file);
+        }
+        else if (provider === "CRIEE_COLB") {
+          await importCrieePLUcolB(file);
         }
         else if (provider === "SCAPMAREE") {
           await importScapmaree(file);
@@ -142,4 +151,3 @@
 
 </body>
 </html>
-
