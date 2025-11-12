@@ -21,9 +21,20 @@ import { manageAFMap } from "./manage-af-map.js";
 async function loadAFMap() {
   const snap = await getDocs(collection(db, "af_map"));
   const map = {};
-  snap.forEach(d => map[d.id] = d.data());
+
+  snap.forEach(d => {
+    const data = d.data();
+    const id = d.id.toUpperCase();
+
+    // On garde les deux codes criée ensemble
+    if (id.startsWith("81268__") || id.startsWith("81269__")) {
+      map[id] = data;
+    }
+  });
+
   return map;
 }
+
 
 async function loadArticlesMap() {
   const snap = await getDocs(collection(db, "articles"));
@@ -283,9 +294,11 @@ export async function importCrieePLUcolA(file) {
 /**************************************************
  * ENTRY — PLU en colonne B
  **************************************************/
-export async function importCrieePLUcolB(file) {
+export async function importCrieePLUcolA(file, supplierCode) {
+  const FOUR_CODE = supplierCode;
+export async function importCrieePLUcolB(file, supplierCode) {
+  const FOUR_CODE = supplierCode;
 
-  const FOUR_CODE = prompt("Code Fournisseur (ex: 81269) ?", "81269");
 
   const afMap    = await loadAFMap();
   const artMap   = await loadArticlesMap();
