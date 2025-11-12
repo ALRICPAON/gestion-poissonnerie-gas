@@ -21,7 +21,6 @@
   <script type="module" src="../js/manage-af-map.js"></script>
   <script type="module" src="../js/import-scapmaree.js"></script>
   <script type="module" src="../js/import-criee.js"></script>
-
 </head>
 
 <body>
@@ -50,19 +49,27 @@
       <button class="btn btn-accent" id="btnNewBL">➕ Créer BL</button>
     </div>
 
-    <div style="display:flex; gap:.5rem; align-items:center;">
-  
+    <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
       <!-- fichier source -->
       <input type="file" id="providerFile" accept=".xlsx,.csv" />
 
-      <!-- fournisseur -->
-      <select id="providerSelect">
-        <option value="">-- Import fournisseur --</option>
+      <!-- ✅ Fournisseur (dissocié du format) -->
+      <select id="crieeSupplier" title="Choisir la criée">
+        <option value="">-- Choisir fournisseur --</option>
+        <option value="81268">Criée St-Gilles (81268)</option>
+        <option value="81269">Criée Les Sables (81269)</option>
+      </select>
 
-        <!-- ✅ NEW -->
-        <option value="CRIEE_COLA">Criée (PLU colonne A) — Les Sables</option>
-        <option value="CRIEE_COLB">Criée (PLU colonne B) — St-Gilles</option>
+      <!-- ✅ Format (où se trouve le PLU dans le fichier) -->
+      <select id="crieeFormat" title="Où est le PLU dans votre fichier ?">
+        <option value="">-- Format du fichier --</option>
+        <option value="COLA">PLU en colonne A</option>
+        <option value="COLB">PLU en colonne B</option>
+      </select>
 
+      <!-- Autres fournisseurs déjà gérés -->
+      <select id="providerSelect" title="Autres imports">
+        <option value="">-- Autres imports --</option>
         <option value="SCAPMAREE">Scapmarée (10001)</option>
         <option value="DISTRIMER">Distrimer</option>
         <option value="ROYALEMAREE">Royale Marée</option>
@@ -96,50 +103,56 @@
     </tbody>
   </table>
 
-
   <!-- ✅ SCRIPT D’IMPORT -->
   <script type="module">
     import { requireAuth } from "../js/auth.js";
-
     import { importScapmaree } from "../js/import-scapmaree.js";
-
-    /* ✅ FIX — importer les bonnes fonctions */
-    import { importCrieePLUcolA, importCrieePLUcolB } from "../js/import-criee.js";
+    import { importCriee } from "../js/import-criee.js";
 
     requireAuth();
 
     const btn        = document.getElementById("btnProviderImport");
     const fileInput  = document.getElementById("providerFile");
-    const select     = document.getElementById("providerSelect");
     const status     = document.getElementById("importStatus");
 
-    btn.addEventListener("click", async () => {
+    // Sélecteurs CRIÉE (nouvelle logique)
+    const crieeSupplier = document.getElementById("crieeSupplier");
+    const crieeFormat   = document.getElementById("crieeFormat");
 
+    // Autres imports
+    const providerSelect = document.getElementById("providerSelect");
+
+    btn.addEventListener("click", async () => {
       status.textContent = "";
 
       const file = fileInput.files[0];
       if (!file) return alert("📁 Sélectionner un fichier");
 
-      const provider = select.value;
-      if (!provider) return alert("❗ Choisir un fournisseur");
-
       try {
+        // ✅ Si un format CRIÉE est choisi, on passe par importCriee()
+        if (crieeFormat.value) {
+          const supplier = crieeSupplier.value;
+          const format   = crieeFormat.value;
 
-        if (provider === "CRIEE_COLA") {
-          await importCrieePLUcolA(file);
-        }
-        else if (provider === "CRIEE_COLB") {
-          await importCrieePLUcolB(file);
-        }
-        else if (provider === "SCAPMAREE") {
-          await importScapmaree(file);
-        }
-        else {
-          alert("❌ Import non implémenté pour : " + provider);
+          if (!supplier) return alert("❗ Choisir la criée (81268 ou 81269)");
+          if (!format)   return alert("❗ Choisir un format (PLU Col A / B)");
+
+          await importCriee(file, supplier, format);
+          status.textContent = "✅ Import Criée terminé !";
           return;
         }
 
-        status.textContent = "✅ Import terminé !";
+        // ✅ Sinon, on traite l'autre select (Scapmarée etc.)
+        const provider = providerSelect.value;
+        if (!provider) return alert("❗ Choisir un fournisseur ou un format CRIÉE");
+
+        if (provider === "SCAPMAREE") {
+          await importScapmaree(file);
+          status.textContent = "✅ Import Scapmarée terminé !";
+        } else {
+          alert("❌ Import non implémenté pour : " + provider);
+          return;
+        }
       }
       catch (e) {
         console.error(e);
