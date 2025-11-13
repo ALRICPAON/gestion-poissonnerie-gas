@@ -36,16 +36,20 @@ async function parseRoyaleMareePDF(pdfData) {
  **************************************************/
 function parseRoyaleMareeLines(text) {
   const rows = [];
-  const lines = text.split(/\n|(?=\d{5}\s)/).map(l => l.trim()).filter(Boolean);
-
   let current = null;
 
-  for (const raw of lines) {
-    // 👉 Nouvelle ligne de produit si code article détecté (5 chiffres)
-    if (/^\d{5}$/.test(raw)) {
+  // 1️⃣ Nettoyage du texte brut
+  const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+
+  for (const line of lines) {
+    const l = line.replace(/\s+/g, " ").trim();
+
+    // 🆕 Détecter une nouvelle ligne produit (5 chiffres en début de ligne)
+    const codeMatch = l.match(/^(\d{5})\b/);
+    if (codeMatch) {
       if (current) rows.push(current);
       current = {
-        refFournisseur: raw,
+        refFournisseur: codeMatch[1],
         designation: "",
         nomLatin: "",
         engin: "",
@@ -63,47 +67,33 @@ function parseRoyaleMareeLines(text) {
     }
 
     if (!current) continue;
-    const l = raw.replace(/\s+/g, " ").trim();
 
-    // 🧠 Lecture champs typiques
+    // 🧠 Extraction de données
     if (/FAO\s*27/i.test(l)) current.zone = "FAO27";
-    if (/FAO\s*37/i.test(l)) current.zone = "FAO37";
     if (/VIII|IX|IV|V|VI|VII|II/i.test(l) && !current.sousZone)
       current.sousZone = l.match(/VIII|IX|IV|V|VI|VII|II/i)?.[0] || "";
-
-    if (/ÉLEVAGE|ELEVAGE/i.test(l)) {
-      current.zone = "ÉLEVAGE";
-      current.fao = "ÉLEVAGE";
-    }
-
-    if (/Engin\s*:/i.test(l))
-      current.engin = l.replace(/.*Engin\s*:\s*/i, "").trim();
-
-    if (/N°\s*Lot\s*:/i.test(l))
-      current.lot = l.replace(/.*N°\s*Lot\s*:\s*/i, "").trim();
-
-    if (/Gadus|Lophius|Pegusa|Salmo|Solea|Pleuronectes|Merluccius/i.test(l))
-      current.nomLatin = l;
-
-    // désignation
-    if (/^[A-Z].*\d/.test(l) && !/FAO|Engin|Lot|ELEVAGE/i.test(l))
+    if (/ELEVAGE|ÉLEVAGE/i.test(l)) current.zone = "ÉLEVAGE";
+    if (/Engin\s*:/i.test(l)) current.engin = l.replace(/.*Engin\s*:\s*/i, "").trim();
+    if (/Lot\s*:/i.test(l)) current.lot = l.replace(/.*Lot\s*:\s*/i, "").trim();
+    if (/Gadus|Salmo|Pegusa|Lophius|Solea|Pleuronectes/i.test(l))
+      current.nomLatin = l.trim();
+    if (/^[A-Z].*/.test(l) && !/FAO|Engin|Lot|ELEVAGE|ÉLEVAGE/i.test(l))
       current.designation += (current.designation ? " " : "") + l;
 
-    // poids et prix
-    if (/[,\.]\d{2,}/.test(l)) {
-      const nums = l.match(/[\d,\.]+/g);
-      if (nums?.length >= 3) {
-        current.colis = parseFloat(nums[0].replace(",", ".")) || 0;
-        current.poidsColisKg = parseFloat(nums[1].replace(",", ".")) || 0;
-        current.montantHT = parseFloat(nums[2].replace(",", ".")) || 0;
-      }
+    // Poids, prix, montant
+    const poids = l.match(/(\d+,\d+).+?(\d+,\d+).+?(\d+,\d+)/);
+    if (poids) {
+      const [_, a, b, c] = poids;
+      current.colis = parseFloat(a.replace(",", ".")) || 0;
+      current.poidsColisKg = parseFloat(b.replace(",", ".")) || 0;
+      current.montantHT = parseFloat(c.replace(",", ".")) || 0;
     }
   }
 
-  // 🧩 Pousser le dernier produit
+  // 2️⃣ Pousser le dernier bloc
   if (current) rows.push(current);
 
-  // 🧹 Nettoyage
+  // 3️⃣ Nettoyage : supprimer en-têtes et lignes vides
   const cleaned = rows.filter(
     r =>
       r.refFournisseur &&
@@ -112,16 +102,8 @@ function parseRoyaleMareeLines(text) {
       !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
   );
 
-  // 🧽 Nettoyage fin (EAN / Pavillon France / Total)
-  for (const r of cleaned) {
-    const idx = r.designation.search(/total|ean13|pavillon/i);
-    if (idx > 0) r.designation = r.designation.slice(0, idx).trim();
-    if (/total/i.test(r.nomLatin)) r.nomLatin = "";
-  }
-
   console.log("📦 Nombre d'articles trouvés (après nettoyage):", cleaned.length);
   console.log("🧾 Lignes extraites:", cleaned);
-
   return cleaned;
 }
 
