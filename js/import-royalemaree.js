@@ -69,7 +69,11 @@ function parseRoyaleMareeLines(text) {
     .trim();
 
   // Chaque article: code (4-5) + 6 nombres (colis, poidsColis, montant, prixKg, poidsTotal) + désignation
-  const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)\s+/g);
+  // Un article = code (4-5 chiffres) suivi d’au moins 5 valeurs numériques (colis, poids, montant, prix, poidsT…)
+const parts = clean.split(/(?=\b\d{4,5}\s+\d+(?:[\s,]+\d+|\s+[\d,]+){4,6}\s*[A-Z])/g);
+
+  console.log("📦 Nombre de blocs trouvés :", parts.length);
+
 
   for (let part of parts) {
     const head = part.match(
