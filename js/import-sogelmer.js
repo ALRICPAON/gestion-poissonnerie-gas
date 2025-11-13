@@ -1,16 +1,14 @@
 /**************************************************
  * IMPORT SOGELMER (10003)
- * Version finale — AF_MAP + Popup + lineId
+ * Version finale, propre & patchée — 14/11/2025
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
   collection, addDoc, doc, serverTimestamp, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-import { manageAFMap } from "./manage-af-map.js";
-
 /**************************************************
- * PDF TEXT EXTRACT
+ * PDF → texte
  **************************************************/
 async function extractTextFromPdf(file) {
   const pdfjsLib = window["pdfjs-dist/build/pdf"];
@@ -28,19 +26,34 @@ async function extractTextFromPdf(file) {
     const content = await page.getTextContent();
     text += content.items.map(i => i.str).join("\n") + "\n";
   }
-
   return text;
 }
 
 /**************************************************
- * Code article SOGELMER
+ * Détection code article
  **************************************************/
 const isArticleCode = s =>
   /^[A-Z]{3,6}[A-Z0-9/]{1,6}$/.test(s) &&
   !/CLIENT|SOGELMER|PAGE|DATE|FR|CE|TARIF|POIDS|STEF|BL|FACTURE|LIVRE/i.test(s);
 
 /**************************************************
- * PARSE PDF
+ * Normalisation des références SOGELMER
+ * EMISP/6 → EMISP_06
+ * RAI121F/6 → RAI121F_06
+ **************************************************/
+function normalizeRef(ref) {
+  if (!ref) return "";
+  let r = ref.trim().replace("/", "_");
+
+  // Cas général : lettres + chiffre final → pad 0 devant
+  // EMISP_6 → EMISP_06
+  r = r.replace(/(\D+)(\d)$/, "$10$2");
+
+  return r.toUpperCase();
+}
+
+/**************************************************
+ * Parse PDF → lignes SOGELMER
  **************************************************/
 export function parseSogelmer(text) {
 
@@ -57,7 +70,9 @@ export function parseSogelmer(text) {
       continue;
     }
 
-    const ref = line;
+    const rawRef = line;
+    const refFournisseur = normalizeRef(rawRef);
+
     const designation = (lines[i + 1] || "").trim();
     const colis        = parseFloat((lines[i + 2] || "").replace(",", "."));
     const poidsColisKg = parseFloat((lines[i + 3] || "").replace(",", "."));
@@ -97,7 +112,7 @@ export function parseSogelmer(text) {
     if (/FILTS/i.test(engin))    engin = "FILET TOURNANT";
 
     rows.push({
-      refFournisseur: ref,
+      refFournisseur,
       designation,
       colis,
       poidsColisKg,
@@ -120,33 +135,42 @@ export function parseSogelmer(text) {
 }
 
 /**************************************************
- * AF_MAP strict
+ * AF_MAP smart matching
  **************************************************/
-function findAFMapEntry(afMap, fourCode, refF) {
-  const clean = refF.toString().trim();
-  const keyExact  = `${fourCode}__${clean}`.toUpperCase();
-  const keyNoZero = `${fourCode}__${clean.replace(/^0+/, "")}`.toUpperCase();
-  return afMap[keyExact] || afMap[keyNoZero] || null;
+function findAFMapEntry(afMap, fourCode, ref) {
+
+  const clean = ref.toString().trim().toUpperCase();
+
+  // EXACT
+  const keyExact = `${fourCode}__${clean}`;
+
+  // SANS ZERO
+  const keyNoZero = `${fourCode}__${clean.replace(/^0+/, "")}`;
+
+  // AVEC ZERO AUTO
+  const keyPadded = `${fourCode}__${clean.replace(/(\D+)(\d)$/, "$10$2")}`;
+
+  return (
+    afMap[keyExact] ||
+    afMap[keyNoZero] ||
+    afMap[keyPadded] ||
+    null
+  );
 }
 
-/**************************************************
- * FAO builder
- **************************************************/
 function buildFAO(zone, sousZone) {
   if (!zone) return "";
   return `${zone} ${sousZone || ""}`.trim();
 }
 
 /**************************************************
- * SAVE SOGELMER — popup AF_MAP incluse
+ * SAVE SOGELMER
  **************************************************/
 async function saveSogelmer(lines) {
 
   const FOUR_CODE = "10003";
-
   if (!lines.length) throw new Error("Aucune ligne SOGELMER détectée");
 
-  // Charger AF_MAP + ARTICLES
   const [afSnap, artSnap] = await Promise.all([
     getDocs(collection(db, "af_map")),
     getDocs(collection(db, "articles"))
@@ -161,7 +185,6 @@ async function saveSogelmer(lines) {
     if (a.plu) artMap[a.plu.toString()] = a;
   });
 
-  // Créer achat
   const achatRef = await addDoc(collection(db, "achats"), {
     date: new Date().toISOString().slice(0,10),
     fournisseurCode: FOUR_CODE,
@@ -179,16 +202,15 @@ async function saveSogelmer(lines) {
 
   let totalHT = 0;
   let totalKg = 0;
-  let missingRefs = [];
 
-  /**************************************************
-   * BOUCLE LIGNES
-   **************************************************/
+  const missingRefs = [];
+
   for (const L of lines) {
 
     totalHT += Number(L.montantHT || 0);
     totalKg += Number(L.poidsTotalKg || 0);
 
+    // Préparation
     let plu = "";
     let designationInterne = (L.designation || "").trim();
     let allergenes = "";
@@ -199,11 +221,13 @@ async function saveSogelmer(lines) {
 
     let cleanFromAF = "";
 
-    // ---- AF_MAP ----
-    const refClean = L.refFournisseur.replace(/\//g, "_");
-    const M = findAFMapEntry(afMap, FOUR_CODE, refClean);
+    /**************************************************
+     * AF_MAP — priorité totale
+     **************************************************/
+    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
     if (M) {
+
       plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
 
       cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
@@ -212,80 +236,90 @@ async function saveSogelmer(lines) {
         designationInterne = cleanFromAF;
       }
 
-      if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin)
+      if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
         L.nomLatin = M.nomLatin;
+      }
 
       if (!zone && M.zone) zone = M.zone;
       if (!sousZone && M.sousZone) sousZone = M.sousZone;
       if (!engin && M.engin) engin = M.engin;
 
       if (!fao) fao = buildFAO(zone, sousZone);
-
-    } else {
-      // ❗ Ajouter à la liste pour la popup
-      missingRefs.push({
-        fournisseurCode: FOUR_CODE,
-        refFournisseur: refClean,
-        designation: L.designation,
-        achatId,
-        lineId: null // sera rempli juste après l'insert
-      });
     }
 
-    // ---- FALLBACK ARTICLES ----
-    const art = plu ? artMap[plu] : null;
+    /**************************************************
+     * Articles (fallback)
+     **************************************************/
+    if (!plu && artMap[plu]) {
+      const art = artMap[plu];
+      const artDesignation = (art.Designation || art.designation || "").trim();
 
-    if (art) {
-
-      if (!cleanFromAF) {
-        const artDesignation = (art.Designation || art.designation || "").trim();
-        if (artDesignation) {
-          L.designation = artDesignation;
-          designationInterne = artDesignation;
-        }
+      if (!cleanFromAF && artDesignation) {
+        L.designation = artDesignation;
+        designationInterne = artDesignation;
       }
 
-      if (!L.nomLatin)
-        L.nomLatin = (art.NomLatin || art.nomLatin || "").trim();
-
-      if (!zone && (art.Zone || art.zone)) zone = art.Zone || art.zone;
-      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = art.SousZone || art.sousZone;
-      if (!engin && (art.Engin || art.engin)) engin = art.Engin || art.engin;
+      if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
+      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
+      if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
 
       if (!fao) fao = buildFAO(zone, sousZone);
     }
 
+    // Normalisation
     if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
     if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
     /**************************************************
-     * 🔵 INSERER LIGNE + récupérer lineId
+     * SAVE LIGNE
      **************************************************/
     const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
-      ...L,
+      refFournisseur: L.refFournisseur,
+      fournisseurRef: L.refFournisseur,
+
       plu,
+      designation: L.designation,
       designationInterne,
-      allergenes,
-      fournisseurRef: refClean,
+      nomLatin: L.nomLatin,
+
       zone,
       sousZone,
-      engin,
       fao,
+      engin,
+      allergenes,
+
+      poidsKg: L.poidsTotalKg,
+      prixHTKg: L.prixKg,
+      prixKg: L.prixKg,
+      montantHT: L.montantHT,
       montantTTC: L.montantHT,
+
+      colis: L.colis,
+      poidsColisKg: L.poidsColisKg,
+      poidsTotalKg: L.poidsTotalKg,
+
+      received: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
 
     const lineId = lineRef.id;
 
-    // Ajouter lineId aux missingRefs concernés
-    const missObj = missingRefs.find(m => m.refFournisseur === refClean && m.lineId === null);
-    if (missObj) missObj.lineId = lineId;
+    /**************************************************
+     * MANQUANTS → popup AF_MAP
+     **************************************************/
+    if (!M) {
+      missingRefs.push({
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: L.refFournisseur,
+        designation: L.designation,
+        achatId,
+        lineId
+      });
+    }
   }
 
-  /**************************************************
-   * UPDATE TOTAL ACHAT
-   **************************************************/
+  // Update achat
   await updateDoc(doc(db, "achats", achatId), {
     montantHT: totalHT,
     montantTTC: totalHT,
@@ -293,20 +327,16 @@ async function saveSogelmer(lines) {
     updatedAt: serverTimestamp()
   });
 
-  /**************************************************
-   * 🔥 POPUP AF_MAP SI REF MANQUANTE
-   **************************************************/
+  // Show popup if needed
   if (missingRefs.length > 0) {
-    console.log("🔎 Réf SOGELMER manquantes :", missingRefs);
-    await manageAFMap(missingRefs);  // ✔ envoie lineId + achatId + refFournisseur
+    console.warn("🔎 Réf SOGELMER manquantes :", missingRefs);
+    const mod = await import("./manage-af-map.js");
+    mod.manageAFMap(missingRefs);
   }
-
-  alert(`✅ ${lines.length} lignes importées (SOGELMER)`);
-  location.reload();
 }
 
 /**************************************************
- * MAIN
+ * ENTRY
  **************************************************/
 export async function importSogelmer(file) {
   const text = await extractTextFromPdf(file);
