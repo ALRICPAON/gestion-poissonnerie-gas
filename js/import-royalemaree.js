@@ -250,26 +250,29 @@ async function saveRoyaleMaree(lines) {
       missingRefs.push(L.refFournisseur);
     }
 
-   const art = plu ? artMap[plu] : null;
+  const art = plu ? artMap[plu] : null;
 if (art) {
-  // 🏷️ Désignation propre depuis la base article
+  // 🏷️ On prend uniquement la désignation propre de la base
   const artDesignation = art.Designation || art.designation || "";
   if (artDesignation) {
     L.designation = artDesignation.trim();
     designationInterne = artDesignation.trim();
   }
 
-  // 🌍 Métadonnées traca (majuscule ou minuscule selon ton Firestore)
+  // 🧬 Nom latin : on ne remplace que si le BL n'en fournit pas ou contient "Total"
+  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
+    L.nomLatin = art.NomLatin || art.nomLatin || L.nomLatin || "";
+  }
+
+  // 🌍 Zone / SousZone / Engin → priorité au BL donc on ne touche PAS si déjà renseigné
   if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
   if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
   if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
-  if (!fao) fao = buildFAO(zone, sousZone);
 
-  // 🧬 Nom latin : prioritaire depuis article si vide ou pollué
-  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
-    L.nomLatin = art.NomLatin || art.nomLatin || "";
-  }
+  // 🧾 FAO reconstruit si manquant
+  if (!fao) fao = buildFAO(zone, sousZone);
 }
+
 
 
 
