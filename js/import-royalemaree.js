@@ -250,20 +250,27 @@ async function saveRoyaleMaree(lines) {
       missingRefs.push(L.refFournisseur);
     }
 
-    const art = plu ? artMap[plu] : null;
+   const art = plu ? artMap[plu] : null;
 if (art) {
-  // 💬 Utilise la désignation propre de la base article
-  if (art.Designation) {
-    designationInterne = art.Designation.trim();
-    // On écrase aussi la désignation brute pour uniformiser dans la fiche achat
-    L.designation = art.Designation.trim();
+  // 🏷️ Désignation propre depuis la base article
+  const artDesignation = art.Designation || art.designation || "";
+  if (artDesignation) {
+    L.designation = artDesignation.trim();
+    designationInterne = artDesignation.trim();
   }
 
-  if (!zone && art.Zone) zone = art.Zone;
-  if (!sousZone && art.SousZone) sousZone = art.SousZone;
-  if (!engin && art.Engin) engin = art.Engin;
+  // 🌍 Métadonnées traca (majuscule ou minuscule selon ton Firestore)
+  if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
+  if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
+  if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
   if (!fao) fao = buildFAO(zone, sousZone);
+
+  // 🧬 Nom latin : prioritaire depuis article si vide ou pollué
+  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
+    L.nomLatin = art.NomLatin || art.nomLatin || "";
+  }
 }
+
 
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
