@@ -225,6 +225,11 @@ function parseRoyaleMareeLines(text) {
       stage = 1;
     }
   }
+  // 🧩 pousse le dernier article si on a atteint la fin sans nouveau code
+if (current) {
+  rows.push(current);
+}
+
   // 🧹 Nettoyage final : supprime les lignes vides ou incohérentes
 const cleaned = rows.filter(r =>
   r.refFournisseur &&
