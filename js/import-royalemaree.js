@@ -72,26 +72,39 @@ function parseRoyaleMareeLines(text) {
     .filter(l => l.length > 0);
 
   let current = null;
+  let stage = 0; // 0: idle, 1:colis, 2:poidsColis, 3:montant, 4:prixKg, 5:poidsTotal, 6:designation
+
+  // helpers
+  const isCode = s => /^\d{4,5}$/.test(s);
+  const isInt = s => /^\d+$/.test(s);
+  const isNum = s => /^[\d]+(?:,\d+)?$/.test(s);
+  const isLatin = s => /^[A-Z][a-z]+(?:\s+[A-Za-z]+){1,2}(?:\s+[A-Z]{2,5})?$/.test(s);
+
+  const pushCurrent = () => {
+    if (current) {
+      // finalise FAO
+      if (!current.fao) {
+        current.fao = buildFAO(current.zone, current.sousZone);
+      }
+      rows.push(current);
+    }
+    current = null;
+    stage = 0;
+  };
 
   for (let raw of lines) {
-    // 🟢 Début d'un nouvel article : code 4–5 chiffres + 6 nombres + désignation
-    if (/^\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+/.test(raw)) {
-      // push le précédent si existant
-      if (current) rows.push(current);
-
-      const parts = raw.match(
-        /^(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s*(.+)$/i
-      );
-      if (!parts) { current = null; continue; }
-
+    // Début d'un nouvel article : une ligne contenant uniquement le code (4–5 chiffres)
+    if (isCode(raw)) {
+      // ferme l'article précédent
+      pushCurrent();
       current = {
-        refFournisseur: parts[1].trim(),
-        colis: parseInt(parts[2]),
-        poidsColisKg: parseFloat(parts[3].replace(",", ".")),
-        montantHT: parseFloat(parts[4].replace(",", ".")),
-        prixKg: parseFloat(parts[5].replace(",", ".")),
-        poidsTotalKg: parseFloat(parts[6].replace(",", ".")),
-        designation: (parts[7] || "").trim(),
+        refFournisseur: raw,
+        colis: 0,
+        poidsColisKg: 0,
+        montantHT: 0,
+        prixKg: 0,
+        poidsTotalKg: 0,
+        designation: "",
         nomLatin: "",
         zone: "",
         sousZone: "",
@@ -99,30 +112,64 @@ function parseRoyaleMareeLines(text) {
         lot: "",
         fao: ""
       };
+      stage = 1; // on attend colis
       continue;
     }
 
-    if (!current) continue;
-
-    // 🔹 Nom latin (2–3 mots + éventuel code suffixe) avant tout bloc "|"
-    if (!raw.startsWith("|") && /^[A-Z][a-z]+/.test(raw)) {
-      // Exemples: "Gadus morhua", "Gadus Morhua", "Salmo salar SAL", "Lophius piscatorius MON"
-      const latin = raw.match(/^([A-Z][a-z]+(?:\s+[A-Za-z]+){1,2}(?:\s+[A-Z]{2,5})?)$/i);
-      if (latin) {
-        current.nomLatin = latin[1].trim();
-        // On ajoute le nom latin en suffixe lisible (évite doublons si déjà présent)
-        if (!current.designation.toLowerCase().includes(current.nomLatin.toLowerCase())) {
-          current.designation = (current.designation + " " + current.nomLatin).trim();
-        }
-        continue;
-      }
+    if (!current) {
+      // ignore hors article (entêtes, adresses…)
+      continue;
     }
 
-    // 🔹 Bloc traçabilité
+    // Avancement étape par étape
+    if (stage === 1 && isInt(raw)) {
+      current.colis = parseInt(raw, 10);
+      stage = 2;
+      continue;
+    }
+    if (stage === 2 && isNum(raw)) {
+      current.poidsColisKg = parseFloat(raw.replace(",", "."));
+      stage = 3;
+      continue;
+    }
+    if (stage === 3 && isNum(raw)) {
+      current.montantHT = parseFloat(raw.replace(",", "."));
+      stage = 4;
+      continue;
+    }
+    if (stage === 4 && isNum(raw)) {
+      current.prixKg = parseFloat(raw.replace(",", "."));
+      stage = 5;
+      continue;
+    }
+    if (stage === 5 && isNum(raw)) {
+      current.poidsTotalKg = parseFloat(raw.replace(",", "."));
+      stage = 6; // prochaine: désignation (peut être sur 1 ou plusieurs lignes)
+      continue;
+    }
+
+    // Désignation : une ou plusieurs lignes jusqu’à latin ou bloc "|"
+    if (stage >= 6 && !raw.startsWith("|")) {
+      if (isLatin(raw)) {
+        // ligne nom latin
+        current.nomLatin = raw;
+        if (!current.designation.toLowerCase().includes(raw.toLowerCase())) {
+          current.designation = (current.designation + " " + raw).trim();
+        }
+        // on reste en stage >=6 (traçabilité peut suivre)
+        continue;
+      } else if (!isCode(raw)) {
+        // c’est de la désignation supplémentaire (ex: "+1.8", "TD ECOSSE")
+        current.designation = (current.designation + " " + raw).trim();
+        continue;
+      }
+      // si on retombe sur un code ici (rare), on poussera au prochain tour
+    }
+
+    // Bloc traçabilité
     if (raw.startsWith("|")) {
-      // FAO + Pêché/Elevé
       if (/Pêché/i.test(raw) || /FAO/i.test(raw) || /Elevé/i.test(raw)) {
-        // Cas FAO (prend le dernier FAO)
+        // FAO: prendre le dernier
         const allFAO = [...raw.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
         if (allFAO.length) {
           const last = allFAO[allFAO.length - 1];
@@ -130,8 +177,7 @@ function parseRoyaleMareeLines(text) {
           current.sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
           current.fao = buildFAO(current.zone, current.sousZone);
         }
-
-        // Cas Élevage "Elevé en : zone Eleve en Ecosse"
+        // Élevage: “Elevé en : …”
         if (/Elevé/i.test(raw)) {
           current.zone = "ÉLEVAGE";
           const elevLine = raw.match(/Elevé.+?en\s*:?\s*([^|]+)/i);
@@ -146,23 +192,42 @@ function parseRoyaleMareeLines(text) {
           current.fao = buildFAO(current.zone, current.sousZone);
         }
       }
-
-      // Engin
       if (/Engin/i.test(raw)) {
         const m = raw.match(/Engin\s*:\s*([^|]+)/i);
         if (m) current.engin = m[1].trim();
       }
-
-      // Lot
       if (/Lot/i.test(raw)) {
         const m = raw.match(/Lot\s*:\s*([A-Za-z0-9\-]+)/i);
         if (m) current.lot = m[1].trim();
       }
+      continue;
+    }
+
+    // Si une nouvelle ligne “code” arrive sans être passée par le if au début,
+    // on ferme l’article courant et on repart (le if début détectera au tour suivant).
+    if (isCode(raw)) {
+      pushCurrent();
+      current = {
+        refFournisseur: raw,
+        colis: 0,
+        poidsColisKg: 0,
+        montantHT: 0,
+        prixKg: 0,
+        poidsTotalKg: 0,
+        designation: "",
+        nomLatin: "",
+        zone: "",
+        sousZone: "",
+        engin: "",
+        lot: "",
+        fao: ""
+      };
+      stage = 1;
     }
   }
 
-  // Dernier bloc
-  if (current) rows.push(current);
+  // Pousse le dernier
+  pushCurrent();
 
   console.log("📦 Nombre d'articles trouvés:", rows.length);
   console.log("🧾 Lignes extraites:", rows);
