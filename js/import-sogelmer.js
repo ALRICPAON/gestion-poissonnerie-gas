@@ -1,6 +1,6 @@
 /**************************************************
  * IMPORT SOGELMER (10003)
- * Version stable — 14/11/2025
+ * Version stable — corrigée 14/11/2025
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -54,7 +54,6 @@ export function parseSogelmer(text) {
   while (i < lines.length) {
     const L = lines[i];
 
-    // 🔎 Détection d’un vrai code produit
     if (!isArticleCode(L)) {
       i++;
       continue;
@@ -79,12 +78,12 @@ export function parseSogelmer(text) {
 
     const bio = (lines[i + 10] || "").trim();
 
-    // 🐟 Nom latin
+    // Nom latin
     let nomLatin = "";
     const latin = bio.match(/^([A-Z][a-z]+(?: [a-z]+)*)/);
     if (latin) nomLatin = latin[1];
 
-    // 🌍 FAO
+    // FAO
     let zone = "";
     let sousZone = "";
     let fao = "";
@@ -93,19 +92,17 @@ export function parseSogelmer(text) {
     if (faoMatch) {
       zone = `FAO ${faoMatch[1]}`;
       sousZone = faoMatch[2] || "";
-      if (/autres ss zones/i.test(bio))
-        sousZone += " & AUTRES SS ZONES";
+      if (/autres ss zones/i.test(bio)) sousZone += " & AUTRES SS ZONES";
       fao = `${zone} ${sousZone}`.trim();
     }
 
-    // 🎣 Engin
+    // Engin
     let engin = "";
     const engMatch = bio.match(/Chalut|Ligne|Filet|Mail|FILTS/gi);
     if (engMatch) engin = engMatch[0];
 
-    // 🧽 Normalisation FILMAIL → Filet maillant / FILTS → Filet tournant
     if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-    if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
+    if (/FILTS/i.test(engin))    engin = "FILET TOURNANT";
 
     rows.push({
       refFournisseur: ref,
@@ -124,7 +121,7 @@ export function parseSogelmer(text) {
       fao
     });
 
-    i += 11; // On passe au bloc article suivant
+    i += 11;
   }
 
   console.log("📦 Lignes SOGELMER extraites:", rows);
@@ -140,7 +137,7 @@ function buildFAO(zone, sousZone) {
 }
 
 /**************************************************
- * 🔎 Recherche AF_MAP — tolère zéros supprimés
+ * AF_MAP lookup (zéros supprimés)
  **************************************************/
 function findAFMapEntry(afMap, fourCode, refF) {
   const clean = refF.toString().trim();
@@ -174,7 +171,7 @@ async function saveSogelmer(lines) {
     if (a?.plu) artMap[a.plu.toString()] = a;
   });
 
-  // Crée l'achat
+  // Crée achat
   const achatRef = await addDoc(collection(db, "achats"), {
     date: new Date().toISOString().slice(0,10),
     fournisseurCode: supplier.code,
@@ -194,124 +191,97 @@ async function saveSogelmer(lines) {
   const missingRefs = [];
 
   for (const L of lines) {
+
     totalHT += Number(L.montantHT || 0);
     totalKg += Number(L.poidsTotalKg || 0);
 
-    // AF_MAP
+    /**************************************************
+     * 🧩 Enrichissement AF_MAP + Articles
+     **************************************************/
     let plu = "";
-    let designationInterne = L.designation;
+    let designationInterne = (L.designation || "").trim();
     let allergenes = "";
     let zone = L.zone;
     let sousZone = L.sousZone;
     let engin = L.engin;
     let fao = L.fao;
 
+    // AF_MAP = priorité 1
     const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+
     if (M) {
-      plu = (M.plu || "").toString();
-      if (M.designationInterne) designationInterne = M.designationInterne;
-      if (!L.nomLatin && M.nomLatin) L.nomLatin = M.nomLatin;
+      plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+
+      if (M.designationInterne)
+        designationInterne = M.designationInterne.trim();
+
+      if (!L.nomLatin && M.nomLatin)
+        L.nomLatin = M.nomLatin;
+
       if (!zone && M.zone) zone = M.zone;
       if (!sousZone && M.sousZone) sousZone = M.sousZone;
       if (!engin && M.engin) engin = M.engin;
+
       if (!fao) fao = buildFAO(zone, sousZone);
     } else {
       missingRefs.push(L.refFournisseur);
     }
 
-    // Articles
+    // ARTICLES = priorité 2
     const art = plu ? artMap[plu] : null;
+
     if (art) {
-      if (art.designation) designationInterne = art.designation;
-      if (!zone && art.zone) zone = art.zone;
-      if (!sousZone && art.sousZone) sousZone = art.sousZone;
-      if (!engin && art.engin) engin = art.engin;
+      if (!M?.designationInterne) {
+        const d2 = (art.Designation || art.designation || "").trim();
+        if (d2) designationInterne = d2;
+      }
+
+      if (!L.nomLatin)
+        L.nomLatin = (art.NomLatin || art.nomLatin || "").trim();
+
+      if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
+      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
+      if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+
       if (!fao) fao = buildFAO(zone, sousZone);
-      if (!L.nomLatin && art.nomLatin) L.nomLatin = art.nomLatin;
     }
+
+    // Normalisations engins
+    if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
+    if (/FILTS/i.test(engin)) engin = "FILET TOURNANT";
+
     /**************************************************
- * 🧩 Enrichissement AF_MAP + Articles (clean)
- **************************************************/
-let plu = "";
-let designationInterne = (L.designation || "").trim();
-let allergenes = "";
-let zone = L.zone;
-let sousZone = L.sousZone;
-let engin = L.engin;
-let fao = L.fao;
-
-// Lookup AF_MAP
-const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
-
-if (M) {
-  // Nettoyage PLU (.0 → supprimé)
-  plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
-
-  // Désignation interne = priorité n°1
-  if (M.designationInterne) {
-    designationInterne = M.designationInterne.trim();
+     * Sauvegarde ligne Firestore
+     **************************************************/
+    await addDoc(collection(db, "achats", achatId, "lignes"), {
+      ...L,
+      plu,
+      designationInterne,
+      allergenes,
+      fournisseurRef: L.refFournisseur,
+      zone,
+      sousZone,
+      engin,
+      fao,
+      montantTTC: L.montantHT,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
   }
 
-  // Nom latin si BL vide ou bruit
-  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
-    if (M.nomLatin) L.nomLatin = M.nomLatin;
-  }
+  await updateDoc(doc(db, "achats", achatId), {
+    montantHT: totalHT,
+    montantTTC: totalHT,
+    totalKg: totalKg,
+    updatedAt: serverTimestamp()
+  });
 
-  // Traçabilité : AF_MAP si BL vide
-  if (!zone && M.zone) zone = M.zone;
-  if (!sousZone && M.sousZone) sousZone = M.sousZone;
-  if (!engin && M.engin) engin = M.engin;
+  if (missingRefs.length > 0)
+    console.warn("⚠️ Références SOGELMER manquantes dans AF_MAP:", missingRefs);
 
-  if (!fao) fao = buildFAO(zone, sousZone);
-} else {
-  missingRefs.push(L.refFournisseur);
+  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
+  location.reload();
 }
-
-// Lookup ARTICLES (priorité n°2)
-const art = plu ? artMap[plu] : null;
-
-if (art) {
-  // Désignation Articles si AF_MAP n’a rien fourni
-  if (!M?.designationInterne) {
-    const d2 = (art.Designation || art.designation || "").trim();
-    if (d2) designationInterne = d2;
-  }
-
-  // Nom latin
-  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
-    L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
-  }
-
-  // Zone / Sous-zone / Engin
-  if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
-  if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
-  if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
-
-  if (!fao) fao = buildFAO(zone, sousZone);
-}
-
-// Normalisation engins
-if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-if (/FILTS/i.test(engin)) engin = "FILET TOURNANT";
-
-/**************************************************
- * Sauvegarde ligne Firestore
- **************************************************/
-await addDoc(collection(db, "achats", achatId, "lignes"), {
-  ...L,
-  plu,
-  designationInterne,
-  allergenes,
-  fournisseurRef: L.refFournisseur,
-  zone,
-  sousZone,
-  engin,
-  fao,
-  montantTTC: L.montantHT,
-  createdAt: serverTimestamp(),
-  updatedAt: serverTimestamp()
-});
-
 
 /**************************************************
  * 🚀 Entrée principale
