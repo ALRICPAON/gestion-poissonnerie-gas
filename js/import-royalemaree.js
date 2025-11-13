@@ -59,28 +59,42 @@ async function extractTextFromPdf(file) {
 function parseRoyaleMareeLines(text) {
   const rows = [];
 
+  // Nettoyage de base
   let clean = text
     .replace(/\s+/g, " ")
-    .replace(/[,;]/g, ",")
     .replace(/€/g, "")
     .replace(/\(pour Facture\)/gi, "")
-    .replace(/\s+\|\s+/g, "|")
     .replace(/\s*Page\s*\d+\/\d+\s*/gi, " ")
-    .replace(/Transp\..+?Départ\s*:/gi, " ");
+    .replace(/Transp\..+?Départ\s*:/gi, " ")
+    .trim();
 
+  // Chaque article commence par 4 ou 5 chiffres suivis de quantités et d’un montant
   const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g);
 
   for (let part of parts) {
-    const matchHead = part.match(
-      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([A-Z0-9éèàç+\-\s/]+?)(?=\s+[A-Z][a-z])/i
+    const match = part.match(
+      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([A-Z0-9éèàç+\/\-\s]+)/i
     );
-    if (!matchHead) continue;
+    if (!match) continue;
 
-    const [_, refFourn, colis, poidsColis, montant, prixKg, poidsTotal, designation] = matchHead;
+    const [
+      _,
+      refFourn,
+      colis,
+      poidsColis,
+      montant,
+      prixKg,
+      poidsTotal,
+      designation
+    ] = match;
 
-    const tail = part.slice(matchHead.index + matchHead[0].length);
-    const nomLatin = (tail.match(/[A-Z][a-z]+\s+[a-z]+\s*[A-Z]?[a-z]*/i)?.[0] || "").trim();
-    const blocTrace = tail.match(/(Pêché|Elevé).+?Lot\s*:\s*\S+/i);
+    // Récupère la suite (nom latin + bloc traçabilité)
+    const tail = part.slice(match.index + match[0].length);
+
+    const nomLatin = (tail.match(/[A-Z][a-z]+\s+[a-z]+/i)?.[0] || "").trim();
+
+    // Recherche du bloc de traçabilité (multi-lignes)
+    const blocTrace = tail.match(/\|\s*(Pêché|Elevé).+?(?=\d{4,5}|$)/i);
     const traceTxt = blocTrace ? blocTrace[0] : "";
 
     let zone = "";
@@ -88,26 +102,31 @@ function parseRoyaleMareeLines(text) {
     let engin = "";
     let lot = "";
 
-    const mFAO = traceTxt.match(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/i);
-    if (mFAO) {
-      zone = `FAO${mFAO[1]}`;
-      sousZone = mFAO[2] ? mFAO[2].toUpperCase().replace(/\./g, "") : "";
+    // --- FAO ---
+    const mAllFAO = [...traceTxt.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
+    if (mAllFAO.length) {
+      const last = mAllFAO[mAllFAO.length - 1];
+      zone = `FAO${last[1]}`;
+      sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
     }
 
+    // --- Élevage ---
     if (/Elevé/i.test(traceTxt)) {
       zone = "Élevage";
       sousZone = (traceTxt.match(/en\s*:?([A-Za-z\s]+)/i)?.[1] || "").trim();
     }
 
+    // --- Engin ---
     const mEngin = traceTxt.match(/Engin\s*:\s*([^|]+)/i);
     if (mEngin) engin = mEngin[1].trim();
 
+    // --- Lot ---
     const mLot = traceTxt.match(/Lot\s*:\s*(\S+)/i);
     if (mLot) lot = mLot[1].trim();
 
     rows.push({
       refFournisseur: refFourn.trim(),
-      designation: designation.replace(/\s{2,}/g, " ").trim(),
+      designation: designation.trim(),
       nomLatin,
       colis: parseInt(colis),
       poidsColisKg: parseFloat(poidsColis.replace(",", ".")),
@@ -124,6 +143,7 @@ function parseRoyaleMareeLines(text) {
   console.log("🧾 Lignes extraites:", rows);
   return rows;
 }
+
 
 /**************************************************
  * FIRESTORE SAVE (avec mapping AF_MAP + Articles)
