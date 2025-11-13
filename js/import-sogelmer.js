@@ -230,40 +230,34 @@ async function saveSogelmer(lines) {
       if (!L.nomLatin && art.nomLatin) L.nomLatin = art.nomLatin;
     }
     /**************************************************
- * 🧩 Enrichissement AF_MAP + Articles (priorité RM)
+ * 🧩 Enrichissement AF_MAP + Articles (clean)
  **************************************************/
-const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
-
 let plu = "";
-let designationInterne = L.designation;
+let designationInterne = (L.designation || "").trim();
 let allergenes = "";
 let zone = L.zone;
 let sousZone = L.sousZone;
 let engin = L.engin;
 let fao = L.fao;
 
-// ---------------------------
-// 1) AF_MAP = PRIORITÉ N°1
-// ---------------------------
-let cleanFromAF = "";
+// Lookup AF_MAP
+const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
 if (M) {
-  // PLU propre
+  // Nettoyage PLU (.0 → supprimé)
   plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
 
-  // Désignation interne prioritaire
-  cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
-  if (cleanFromAF) {
-    L.designation = cleanFromAF;
-    designationInterne = cleanFromAF;
+  // Désignation interne = priorité n°1
+  if (M.designationInterne) {
+    designationInterne = M.designationInterne.trim();
   }
 
-  // Nom latin : si BL vide ou pollué (Total Bon, etc.)
-  if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
-    L.nomLatin = M.nomLatin;
+  // Nom latin si BL vide ou bruit
+  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
+    if (M.nomLatin) L.nomLatin = M.nomLatin;
   }
 
-  // Traca : BL prioritaire, AF_MAP fallback
+  // Traçabilité : AF_MAP si BL vide
   if (!zone && M.zone) zone = M.zone;
   if (!sousZone && M.sousZone) sousZone = M.sousZone;
   if (!engin && M.engin) engin = M.engin;
@@ -273,24 +267,22 @@ if (M) {
   missingRefs.push(L.refFournisseur);
 }
 
-// ---------------------------
-// 2) ARTICLES = PRIORITÉ N°2
-// ---------------------------
+// Lookup ARTICLES (priorité n°2)
 const art = plu ? artMap[plu] : null;
+
 if (art) {
-  // Si AF_MAP n'a pas donné de désignation propre
-  if (!cleanFromAF) {
-    const artDesignation = (art.Designation || art.designation || "").trim();
-    if (artDesignation) {
-      L.designation = artDesignation;
-      designationInterne = artDesignation;
-    }
+  // Désignation Articles si AF_MAP n’a rien fourni
+  if (!M?.designationInterne) {
+    const d2 = (art.Designation || art.designation || "").trim();
+    if (d2) designationInterne = d2;
   }
 
+  // Nom latin
   if (!L.nomLatin || /total/i.test(L.nomLatin)) {
     L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
   }
 
+  // Zone / Sous-zone / Engin
   if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
   if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
   if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
@@ -298,38 +290,28 @@ if (art) {
   if (!fao) fao = buildFAO(zone, sousZone);
 }
 
-// Filmail → Filet maillant
+// Normalisation engins
 if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-// FILTS → Filet tournant
 if (/FILTS/i.test(engin)) engin = "FILET TOURNANT";
 
+/**************************************************
+ * Sauvegarde ligne Firestore
+ **************************************************/
+await addDoc(collection(db, "achats", achatId, "lignes"), {
+  ...L,
+  plu,
+  designationInterne,
+  allergenes,
+  fournisseurRef: L.refFournisseur,
+  zone,
+  sousZone,
+  engin,
+  fao,
+  montantTTC: L.montantHT,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp()
+});
 
-    // Écriture Firestore
-    await addDoc(collection(db, "achats", achatId, "lignes"), {
-      ...L,
-      plu,
-      designationInterne,
-      allergenes,
-      fournisseurRef: L.refFournisseur,
-      montantTTC: L.montantHT,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-  }
-
-  await updateDoc(doc(db, "achats", achatId), {
-    montantHT: totalHT,
-    montantTTC: totalHT,
-    totalKg: totalKg,
-    updatedAt: serverTimestamp()
-  });
-
-  if (missingRefs.length > 0)
-    console.warn("⚠️ Références SOGELMER manquantes dans AF_MAP:", missingRefs);
-
-  alert(`✅ ${lines.length} lignes importées pour Sogelmer`);
-  location.reload();
-}
 
 /**************************************************
  * 🚀 Entrée principale
