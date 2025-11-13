@@ -114,18 +114,24 @@ function parseRoyaleMareeLines(text) {
     if (stage === 4 && isNum(raw)) { current.prixKg = parseFloat(raw.replace(",", ".")); stage = 5; continue; }
     if (stage === 5 && isNum(raw)) { current.poidsTotalKg = parseFloat(raw.replace(",", ".")); stage = 6; continue; }
 
-    if (stage >= 6 && !raw.startsWith("|")) {
-      if (isLatin(raw)) {
-        current.nomLatin = raw;
-        if (!current.designation.toLowerCase().includes(raw.toLowerCase())) {
-          current.designation = (current.designation + " " + raw).trim();
-        }
-        continue;
-      } else if (!isCode(raw)) {
-        current.designation = (current.designation + " " + raw).trim();
-        continue;
-      }
+   if (stage >= 6 && !raw.startsWith("|")) {
+  // 🚫 Ignore les lignes de fin comme "Total Bon", "Total Etablissement"
+  if (/total|bon|établissement|etablissement/i.test(raw)) continue;
+
+  if (isLatin(raw)) {
+    // ligne nom latin réelle
+    current.nomLatin = raw;
+    if (!current.designation.toLowerCase().includes(raw.toLowerCase())) {
+      current.designation = (current.designation + " " + raw).trim();
     }
+    continue;
+  } else if (!isCode(raw)) {
+    // ligne supplémentaire de désignation
+    current.designation = (current.designation + " " + raw).trim();
+    continue;
+  }
+}
+
 
     if (raw.startsWith("|")) {
       if (/FAO/i.test(raw) || /Pêché/i.test(raw) || /Elevé/i.test(raw)) {
