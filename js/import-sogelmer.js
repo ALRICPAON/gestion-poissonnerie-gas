@@ -1,6 +1,6 @@
 /**************************************************
  * IMPORT SOGELMER (10003)
- * Version propre et corrigée — 14/11/2025
+ * Version FINALISÉE — 14/11/2025
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -136,7 +136,7 @@ function buildFAO(zone, sousZone) {
 }
 
 /**************************************************
- * SAVE SOGELMER (corrigé)
+ * SAVE SOGELMER
  **************************************************/
 async function saveSogelmer(lines) {
 
@@ -176,86 +176,80 @@ async function saveSogelmer(lines) {
   let totalKg = 0;
   let missingRefs = [];
 
+  /**************************************************
+   * BOUCLE DES LIGNES
+   **************************************************/
   for (const L of lines) {
 
     totalHT += Number(L.montantHT || 0);
     totalKg += Number(L.poidsTotalKg || 0);
 
     /**************************************************
- * 🧩 ENRICHISSEMENT AF_MAP + ARTICLES
- * (version identique Royale Marée)
- **************************************************/
-let plu = "";
-let designationInterne = (L.designation || "").trim();
-let allergenes = "";
-let zone = L.zone;
-let sousZone = L.sousZone;
-let engin = L.engin;
-let fao = L.fao;
+     * 🧩 ENRICHISSEMENT AF_MAP + ARTICLES
+     **************************************************/
+    let plu = "";
+    let designationInterne = (L.designation || "").trim();
+    let allergenes = "";
+    let zone = L.zone;
+    let sousZone = L.sousZone;
+    let engin = L.engin;
+    let fao = L.fao;
 
-let cleanFromAF = ""; // ajouter comme Royale Marée
+    let cleanFromAF = "";
 
-// 1) AF_MAP = priorité totale
-const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+    // ---- AF_MAP = priorité totale
+    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
-if (M) {
+    if (M) {
+      plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
 
-  // PLU propre
-  plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+      cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
+      if (cleanFromAF) {
+        L.designation = cleanFromAF;
+        designationInterne = cleanFromAF;
+      }
 
-  // Désignation interne OU alias fournisseur
-  cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
-  if (cleanFromAF) {
-    // on écrase TOUT comme Royale Marée
-    L.designation = cleanFromAF;
-    designationInterne = cleanFromAF;
-  }
+      if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin)
+        L.nomLatin = M.nomLatin;
 
-  // Nom latin
-  if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
-    L.nomLatin = M.nomLatin;
-  }
+      if (!zone && M.zone) zone = M.zone;
+      if (!sousZone && M.sousZone) sousZone = M.sousZone;
+      if (!engin && M.engin) engin = M.engin;
 
-  // Traca depuis AF_MAP
-  if (!zone && M.zone) zone = M.zone;
-  if (!sousZone && M.sousZone) sousZone = M.sousZone;
-  if (!engin && M.engin) engin = M.engin;
+      if (!fao) fao = buildFAO(zone, sousZone);
 
-  if (!fao) fao = buildFAO(zone, sousZone);
-
-} else {
-  missingRefs.push(L.refFournisseur);
-}
-
-// 2) Articles (fallback uniquement si AF_MAP n’a rien donné)
-const art = plu ? artMap[plu] : null;
-
-if (art) {
-
-  if (!cleanFromAF) {
-    const artDesignation = (art.Designation || art.designation || "").trim();
-    if (artDesignation) {
-      L.designation = artDesignation;
-      designationInterne = artDesignation;
+    } else {
+      missingRefs.push(L.refFournisseur);
     }
-  }
 
-  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
-    L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
-  }
+    // ---- ARTICLES fallback
+    const art = plu ? artMap[plu] : null;
 
-  if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
-  if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
-  if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+    if (art) {
 
-  if (!fao) fao = buildFAO(zone, sousZone);
-}
+      if (!cleanFromAF) {
+        const artDesignation = (art.Designation || art.designation || "").trim();
+        if (artDesignation) {
+          L.designation = artDesignation;
+          designationInterne = artDesignation;
+        }
+      }
 
-// Normalisation engins
-if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
+      if (!L.nomLatin)
+        L.nomLatin = (art.NomLatin || art.nomLatin || "").trim();
 
-        /**************************************************
+      if (!zone && (art.Zone || art.zone)) zone = art.Zone || art.zone;
+      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = art.SousZone || art.sousZone;
+      if (!engin && (art.Engin || art.engin)) engin = art.Engin || art.engin;
+
+      if (!fao) fao = buildFAO(zone, sousZone);
+    }
+
+    // Normalisation engins
+    if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
+    if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
+
+    /**************************************************
      * Sauvegarde Firestore de la ligne
      **************************************************/
     await addDoc(collection(db, "achats", achatId, "lignes"), {
@@ -273,10 +267,10 @@ if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
       updatedAt: serverTimestamp()
     });
 
-  } // ←←← FERMETURE DU for (IMPORTANT !!)
+  } // ← fermeture du for
 
   /**************************************************
-   * Mise à jour du total achat
+   * Mise à jour du total
    **************************************************/
   await updateDoc(doc(db, "achats", achatId), {
     montantHT: totalHT,
@@ -290,19 +284,7 @@ if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
   alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
   location.reload();
-
-} // ←←← FERMETURE FONCTION saveSogelmer (MANQUAIT !!)
-
-
-/**************************************************
- * MAIN
- **************************************************/
-export async function importSogelmer(file) {
-  const text = await extractTextFromPdf(file);
-  const lines = parseSogelmer(text);
-  await saveSogelmer(lines);
 }
-
 
 /**************************************************
  * MAIN
