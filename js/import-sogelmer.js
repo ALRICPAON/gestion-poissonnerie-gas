@@ -6,6 +6,8 @@ import { db } from "../js/firebase-init.js";
 import {
   collection, addDoc, doc, serverTimestamp, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { manageAFMap } from "./manage-af-map.js";
+
 
 /**************************************************
  * PDF TEXT EXTRACT
@@ -281,6 +283,31 @@ async function saveSogelmer(lines) {
 
   if (missingRefs.length > 0)
     console.warn("⚠️ Références SOGELMER non trouvées dans AF_MAP:", missingRefs);
+
+    // Après updateDoc(...)
+  await updateDoc(doc(db, "achats", achatId), {
+    montantHT: totalHT,
+    montantTTC: totalHT,
+    totalKg,
+    updatedAt: serverTimestamp()
+  });
+
+  // 🆕🔔 OUVERTURE POPUP MANAGE AF_MAP SI RÉF MANQUANTE
+  if (missingRefs.length > 0) {
+    console.log("🔎 Références SOGELMER manquantes :", missingRefs);
+    await manageAFMap(
+      missingRefs.map(ref => ({
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: ref,
+        designation: "",   // tu peux mettre L.designation si tu veux
+        achatId: achatId
+      }))
+    );
+  }
+
+  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
+  location.reload();
+
 
   alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
   location.reload();
