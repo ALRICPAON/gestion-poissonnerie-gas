@@ -1,171 +1,303 @@
 /**************************************************
- * IMPORT ROYALE MARÉE (10004)
+ * IMPORT ROYALE MAREE (10004)
+ * ✅ Version stable – 13/11/2025
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
-  collection,
-  getDocs,
-  addDoc,
-  doc,
-  serverTimestamp
+  collection, addDoc, doc, serverTimestamp, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
- * 🔍 Lecture du PDF et extraction
+ * 🔎 Recherche AF_MAP — tolère zéros supprimés
  **************************************************/
-async function parseRoyaleMareePDF(pdfData) {
-  const pdfjsLib = window["pdfjs-dist/build/pdf"];
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
-
-  const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-  let textContent = "";
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    textContent += content.items.map(it => it.str).join(" ") + "\n";
-  }
-
-  console.log("🔍 PDF brut (aperçu avec \\n):", textContent.slice(0, 1000));
-  return parseRoyaleMareeLines(textContent);
+function findAFMapEntry(afMap, fourCode, refFournisseur) {
+  if (!refFournisseur) return null;
+  const refStr = refFournisseur.toString().trim();
+  const keyExact  = `${fourCode}__${refStr}`.toUpperCase();
+  const keyNoZero = `${fourCode}__${refStr.replace(/^0+/, "")}`.toUpperCase();
+  const keyPad    = `${fourCode}__${refStr.padStart(5, "0")}`.toUpperCase();
+  return afMap[keyExact] || afMap[keyNoZero] || afMap[keyPad] || null;
 }
 
 /**************************************************
- * 🧩 Extraction ligne par ligne
+ * 🧩 FAO normalisé (y compris élevage)
+ **************************************************/
+function buildFAO(zone, sousZone) {
+  if (!zone) return "";
+  const isElev = zone.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().startsWith("ELEV");
+  if (isElev) return ("ÉLEVAGE" + (sousZone ? " " + sousZone.toUpperCase() : "")).trim();
+
+  let z = zone.toUpperCase().replace(/^FAO\s*/, "FAO").replace(/^FAO(\d+)/, "FAO $1").trim();
+  let sz = (sousZone || "").toUpperCase().replace(/\./g, "").trim();
+  return (z + (sz ? " " + sz : "")).trim().replace(/\s{2,}/g, " ");
+}
+
+/**************************************************
+ * 📄 Extraction texte PDF
+ **************************************************/
+async function extractTextFromPdf(file) {
+  const pdfjsLib = window["pdfjs-dist/build/pdf"];
+  if (!pdfjsLib) {
+    throw new Error("PDF.js non chargé. Ajoute <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'>");
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let fullText = "";
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const strings = content.items.map(i => i.str);
+    fullText += strings.join("\n") + "\n";
+  }
+  console.log("🔍 PDF brut (aperçu avec \\n):", fullText.slice(0, 1000));
+  return fullText;
+}
+
+/**************************************************
+ * 🧠 Parse du PDF Royale Marée
  **************************************************/
 function parseRoyaleMareeLines(text) {
   const rows = [];
+  const lines = text
+    .split(/\n/)
+    .map(l => l.replace(/\s+/g, " ").trim())
+    .filter(l => l.length > 0);
+
   let current = null;
+  let stage = 0;
 
-  // 1️⃣ Nettoyage du texte brut
-  const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+  const isCode = s => /^\d{4,5}$/.test(s);
+  const isInt = s => /^\d+$/.test(s);
+  const isNum = s => /^[\d]+(?:,\d+)?$/.test(s);
+  const isLatin = s => /^[A-Z][a-z]+(?:\s+[A-Za-z]+){1,2}(?:\s+[A-Z]{2,5})?$/.test(s);
 
-  for (const line of lines) {
-    const l = line.replace(/\s+/g, " ").trim();
+  const pushCurrent = () => {
+    if (current) {
+      if (!current.fao) current.fao = buildFAO(current.zone, current.sousZone);
+      rows.push(current);
+    }
+    current = null;
+    stage = 0;
+  };
 
-    // 🆕 Détecter une nouvelle ligne produit (5 chiffres en début de ligne)
-    const codeMatch = l.match(/^(\d{5})\b/);
-    if (codeMatch) {
-      if (current) rows.push(current);
+  for (let raw of lines) {
+    if (isCode(raw)) {
+      pushCurrent();
       current = {
-        refFournisseur: codeMatch[1],
+        refFournisseur: raw,
+        colis: 0,
+        poidsColisKg: 0,
+        montantHT: 0,
+        prixKg: 0,
+        poidsTotalKg: 0,
         designation: "",
         nomLatin: "",
-        engin: "",
         zone: "",
         sousZone: "",
-        fao: "",
+        engin: "",
         lot: "",
-        poidsColisKg: 0,
-        poidsTotalKg: 0,
-        prixKg: 0,
-        montantHT: 0,
-        colis: 0
+        fao: ""
       };
+      stage = 1;
       continue;
     }
 
     if (!current) continue;
 
-    // 🧠 Extraction de données
-    if (/FAO\s*27/i.test(l)) current.zone = "FAO27";
-    if (/VIII|IX|IV|V|VI|VII|II/i.test(l) && !current.sousZone)
-      current.sousZone = l.match(/VIII|IX|IV|V|VI|VII|II/i)?.[0] || "";
-    if (/ELEVAGE|ÉLEVAGE/i.test(l)) current.zone = "ÉLEVAGE";
-    if (/Engin\s*:/i.test(l)) current.engin = l.replace(/.*Engin\s*:\s*/i, "").trim();
-    if (/Lot\s*:/i.test(l)) current.lot = l.replace(/.*Lot\s*:\s*/i, "").trim();
-    if (/Gadus|Salmo|Pegusa|Lophius|Solea|Pleuronectes/i.test(l))
-      current.nomLatin = l.trim();
-    if (/^[A-Z].*/.test(l) && !/FAO|Engin|Lot|ELEVAGE|ÉLEVAGE/i.test(l))
-      current.designation += (current.designation ? " " : "") + l;
+    if (stage === 1 && isInt(raw)) { current.colis = parseInt(raw, 10); stage = 2; continue; }
+    if (stage === 2 && isNum(raw)) { current.poidsColisKg = parseFloat(raw.replace(",", ".")); stage = 3; continue; }
+    if (stage === 3 && isNum(raw)) { current.montantHT = parseFloat(raw.replace(",", ".")); stage = 4; continue; }
+    if (stage === 4 && isNum(raw)) { current.prixKg = parseFloat(raw.replace(",", ".")); stage = 5; continue; }
+    if (stage === 5 && isNum(raw)) { current.poidsTotalKg = parseFloat(raw.replace(",", ".")); stage = 6; continue; }
 
-    // Poids, prix, montant
-    const poids = l.match(/(\d+,\d+).+?(\d+,\d+).+?(\d+,\d+)/);
-    if (poids) {
-      const [_, a, b, c] = poids;
-      current.colis = parseFloat(a.replace(",", ".")) || 0;
-      current.poidsColisKg = parseFloat(b.replace(",", ".")) || 0;
-      current.montantHT = parseFloat(c.replace(",", ".")) || 0;
+    if (stage >= 6 && !raw.startsWith("|")) {
+      if (isLatin(raw)) {
+        current.nomLatin = raw;
+        if (!current.designation.toLowerCase().includes(raw.toLowerCase())) {
+          current.designation = (current.designation + " " + raw).trim();
+        }
+        continue;
+      } else if (!isCode(raw)) {
+        current.designation = (current.designation + " " + raw).trim();
+        continue;
+      }
+    }
+
+    if (raw.startsWith("|")) {
+      if (/FAO/i.test(raw) || /Pêché/i.test(raw) || /Elevé/i.test(raw)) {
+        const allFAO = [...raw.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
+        if (allFAO.length) {
+          const last = allFAO[allFAO.length - 1];
+          current.zone = `FAO${last[1]}`;
+          current.sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
+          current.fao = buildFAO(current.zone, current.sousZone);
+        }
+        if (/Elevé/i.test(raw)) {
+          current.zone = "ÉLEVAGE";
+          const m = raw.match(/Elevé.+?en\s*:?\s*([^|]+)/i);
+          if (m) current.sousZone = (m[1] || "").trim().toUpperCase();
+          current.fao = buildFAO(current.zone, current.sousZone);
+        }
+      }
+      if (/Engin/i.test(raw)) {
+        const m = raw.match(/Engin\s*:\s*([^|]+)/i);
+        if (m) current.engin = m[1].trim();
+      }
+      if (/Lot/i.test(raw)) {
+        const m = raw.match(/Lot\s*:\s*([A-Za-z0-9\-]+)/i);
+        if (m) current.lot = m[1].trim();
+      }
+      continue;
     }
   }
 
-  // 2️⃣ Pousser le dernier bloc
+  // 🧩 Fix final : pousse le dernier article (ex: la sole)
   if (current) rows.push(current);
 
-  // 3️⃣ Nettoyage : supprimer en-têtes et lignes vides
-  const cleaned = rows.filter(
-    r =>
-      r.refFournisseur &&
-      r.designation &&
-      r.designation.length > 3 &&
-      !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
+  // 🧹 Nettoyage final
+  const cleaned = rows.filter(r =>
+    r.refFournisseur &&
+    r.designation &&
+    r.designation.length > 3 &&
+    !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
   );
+
+  // Supprime les fins type "Total Bon"
+  for (const r of cleaned) {
+    const idx = r.designation.search(/total/i);
+    if (idx > 0) r.designation = r.designation.slice(0, idx).trim();
+  }
 
   console.log("📦 Nombre d'articles trouvés (après nettoyage):", cleaned.length);
   console.log("🧾 Lignes extraites:", cleaned);
+
   return cleaned;
 }
 
 /**************************************************
- * 💾 Enregistrement Firestore
+ * 💾 Sauvegarde Firestore (avec AF_MAP + Articles)
  **************************************************/
-async function saveRoyaleMaree(lignes, user) {
-  const achatsRef = collection(db, "achats", user.uid, "lignes");
+async function saveRoyaleMaree(lines) {
+  if (!lines.length) throw new Error("Aucune ligne trouvée dans le PDF.");
+  const FOUR_CODE = "10004";
+  const supplier = { code: FOUR_CODE, nom: "Royale Marée" };
 
-  // 🔹 Charger la base articles pour compléter designation / nomLatin
-  const snap = await getDocs(collection(db, "articles"));
-  const articlesMap = {};
-  snap.forEach(d => {
-    const art = d.data();
-    if (art.plu) articlesMap[art.plu] = art;
+  const [afSnap, artSnap] = await Promise.all([
+    getDocs(collection(db, "af_map")),
+    getDocs(collection(db, "articles"))
+  ]);
+
+  const afMap = {};
+  afSnap.forEach(d => { afMap[d.id.toUpperCase()] = d.data(); });
+
+  const artMap = {};
+  artSnap.forEach(d => {
+    const a = d.data();
+    if (a?.plu) artMap[a.plu.toString().trim()] = a;
   });
 
-  let count = 0;
-  for (const l of lignes) {
-    try {
-      // 🧹 Nettoyage complémentaire
-      l.designation = l.designation
-        .replace(/\/?\s*Ean13.*$/i, "")
-        .replace(/total.*$/i, "")
-        .replace(/pavillon.*$/i, "")
-        .trim();
-      l.nomLatin = l.nomLatin.replace(/total.*$/i, "").trim();
+  const achatRef = await addDoc(collection(db, "achats"), {
+    date: new Date().toISOString().slice(0, 10),
+    fournisseurCode: supplier.code,
+    fournisseurNom: supplier.nom,
+    type: "BL",
+    statut: "new",
+    montantHT: 0,
+    montantTTC: 0,
+    totalKg: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
 
-      // 🔄 Compléter depuis la fiche article
-      const art = articlesMap[l.plu];
-      if (art) {
-        if (!l.designationInterne)
-          l.designationInterne = art.designationInterne || art.designation || "";
-        if (!l.designation || l.designation.length < 4)
-          l.designation = art.designation || l.designation;
-        if (!l.nomLatin) l.nomLatin = art.nomLatin || "";
-      }
+  const achatId = achatRef.id;
+  let totalHT = 0;
+  let totalKg = 0;
+  const missingRefs = [];
 
-      // 🚫 Supprimer qr_url
-      delete l.qr_url;
+  for (const L of lines) {
+    totalHT += Number(L.montantHT || 0);
+    totalKg  += Number(L.poidsTotalKg || 0);
 
-      // 🕒 Timestamps
-      l.createdAt = serverTimestamp();
-      l.updatedAt = serverTimestamp();
+    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
-      await addDoc(achatsRef, l);
-      count++;
-    } catch (err) {
-      console.error("Erreur Firestore pour", l, err);
+    let plu = "";
+    let designationInterne = L.designation;
+    let allergenes = "";
+    let zone = L.zone;
+    let sousZone = L.sousZone;
+    let engin = L.engin;
+    let fao = L.fao;
+
+    if (M) {
+      plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+      designationInterne = M.designationInterne || designationInterne;
+      allergenes = M.allergenes || "";
+      if (!zone && M.zone) zone = M.zone;
+      if (!sousZone && M.sousZone) sousZone = M.sousZone;
+      if (!engin && M.engin) engin = M.engin;
+      if (!fao) fao = buildFAO(zone, sousZone);
+    } else {
+      missingRefs.push(L.refFournisseur);
     }
+
+    const art = plu ? artMap[plu] : null;
+    if (art) {
+      if (!designationInterne || designationInterne.length < 3)
+        designationInterne = art.designation || designationInterne;
+      if (!zone && art.zone) zone = art.zone;
+      if (!sousZone && art.sousZone) sousZone = art.sousZone;
+      if (!engin && art.engin) engin = art.engin;
+      if (!fao) fao = buildFAO(zone, sousZone);
+    }
+
+    await addDoc(collection(db, "achats", achatId, "lignes"), {
+      refFournisseur: L.refFournisseur,
+      designation: L.designation,
+      nomLatin: L.nomLatin,
+      colis: L.colis,
+      poidsColisKg: L.poidsColisKg,
+      poidsTotalKg: L.poidsTotalKg,
+      prixKg: L.prixKg,
+      montantHT: L.montantHT,
+      zone,
+      sousZone,
+      engin,
+      lot: L.lot || "",
+      fao,
+      plu,
+      designationInterne,
+      allergenes,
+      fournisseurRef: L.refFournisseur,
+      montantTTC: L.montantHT,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
   }
 
-  console.log(`✅ Import terminé : ${count} lignes ajoutées.`);
+  await updateDoc(doc(db, "achats", achatId), {
+    montantHT: Number(totalHT.toFixed(2)),
+    montantTTC: Number(totalHT.toFixed(2)),
+    totalKg: Number(totalKg.toFixed(3)),
+    updatedAt: serverTimestamp(),
+  });
 
-  // 🔄 Rechargement automatique
-  setTimeout(() => window.location.reload(), 800);
+  if (missingRefs.length > 0) {
+    console.warn("⚠️ Références non trouvées dans AF_MAP:", missingRefs);
+  }
+
+  alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
+  location.reload(); // 🔁 recharge la page après import
 }
 
-export async function importRoyaleMaree(file, user) {
-  const arrayBuffer = await file.arrayBuffer();
-  const lignes = await parseRoyaleMareePDF(arrayBuffer);
-  if (!lignes.length) throw new Error("Aucune ligne trouvée dans le PDF.");
-  await saveRoyaleMaree(lignes, user);
+/**************************************************
+ * 🧾 Entrée principale
+ **************************************************/
+export async function importRoyaleMaree(file) {
+  const text = await extractTextFromPdf(file);
+  const lines = parseRoyaleMareeLines(text);
+  await saveRoyaleMaree(lines);
 }
-
