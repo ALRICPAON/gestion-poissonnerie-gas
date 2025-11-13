@@ -59,7 +59,7 @@ async function extractTextFromPdf(file) {
 function parseRoyaleMareeLines(text) {
   const rows = [];
 
-  // Nettoyage de base
+  // Nettoyage
   let clean = text
     .replace(/\s+/g, " ")
     .replace(/€/g, "")
@@ -68,7 +68,7 @@ function parseRoyaleMareeLines(text) {
     .replace(/Transp\..+?Départ\s*:/gi, " ")
     .trim();
 
-  // Chaque article commence par 4 ou 5 chiffres suivis de quantités et d’un montant
+  // Chaque ligne article commence par le code fournisseur (4-5 chiffres)
   const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g);
 
   for (let part of parts) {
@@ -88,12 +88,14 @@ function parseRoyaleMareeLines(text) {
       designation
     ] = match;
 
-    // Récupère la suite (nom latin + bloc traçabilité)
+    // ⬇️ Extraire la suite (nom latin + bloc traçabilité)
     const tail = part.slice(match.index + match[0].length);
 
-    const nomLatin = (tail.match(/[A-Z][a-z]+\s+[a-z]+/i)?.[0] || "").trim();
+    // 👉 Le nom latin est la 1ʳᵉ ligne après la désignation, formée de deux mots, l’un majuscule initiale
+    const nomLatinMatch = tail.match(/([A-Z][a-z]+(?:\s+[a-z]+){0,2})\s*(?=\|Pêché|\|Elevé|$)/i);
+    const nomLatin = nomLatinMatch ? nomLatinMatch[1].trim() : "";
 
-    // Recherche du bloc de traçabilité (multi-lignes)
+    // Bloc traçabilité multi-lignes
     const blocTrace = tail.match(/\|\s*(Pêché|Elevé).+?(?=\d{4,5}|$)/i);
     const traceTxt = blocTrace ? blocTrace[0] : "";
 
@@ -102,7 +104,7 @@ function parseRoyaleMareeLines(text) {
     let engin = "";
     let lot = "";
 
-    // --- FAO ---
+    // 🔹 FAO (on prend le dernier FAO trouvé)
     const mAllFAO = [...traceTxt.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
     if (mAllFAO.length) {
       const last = mAllFAO[mAllFAO.length - 1];
@@ -110,23 +112,32 @@ function parseRoyaleMareeLines(text) {
       sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
     }
 
-    // --- Élevage ---
+    // 🔹 ÉLEVAGE
     if (/Elevé/i.test(traceTxt)) {
-      zone = "Élevage";
-      sousZone = (traceTxt.match(/en\s*:?([A-Za-z\s]+)/i)?.[1] || "").trim();
+      // Exemple: "Elevé en : zone Eleve en Ecosse"
+      const elevMatch = traceTxt.match(/Elevé\s+en\s*:?[\sA-Za-z]*?([A-Za-zéèêàç]+)/i);
+      const pays = elevMatch ? elevMatch[1].trim() : "";
+      zone = "ÉLEVAGE";
+      sousZone = pays ? pays.toUpperCase() : "";
     }
 
-    // --- Engin ---
+    // 🔹 Engin
     const mEngin = traceTxt.match(/Engin\s*:\s*([^|]+)/i);
     if (mEngin) engin = mEngin[1].trim();
 
-    // --- Lot ---
+    // 🔹 Lot
     const mLot = traceTxt.match(/Lot\s*:\s*(\S+)/i);
     if (mLot) lot = mLot[1].trim();
 
+    // 🔹 Construction FAO propre, même pour élevage
+    let fao = "";
+    if (zone.startsWith("ÉLE")) fao = sousZone ? `${zone} ${sousZone}` : "ÉLEVAGE";
+    else if (zone.startsWith("FAO")) fao = `${zone}${sousZone ? " " + sousZone : ""}`;
+    fao = fao.trim().replace(/\s{2,}/g, " ");
+
     rows.push({
       refFournisseur: refFourn.trim(),
-      designation: designation.trim(),
+      designation: designation.trim() + (nomLatin ? " " + nomLatin : ""),
       nomLatin,
       colis: parseInt(colis),
       poidsColisKg: parseFloat(poidsColis.replace(",", ".")),
@@ -136,14 +147,14 @@ function parseRoyaleMareeLines(text) {
       zone,
       sousZone,
       engin,
-      lot
+      lot,
+      fao
     });
   }
 
   console.log("🧾 Lignes extraites:", rows);
   return rows;
 }
-
 
 /**************************************************
  * FIRESTORE SAVE (avec mapping AF_MAP + Articles)
