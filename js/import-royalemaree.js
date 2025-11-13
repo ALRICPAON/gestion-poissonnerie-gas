@@ -238,38 +238,66 @@ async function saveRoyaleMaree(lines) {
     let engin = L.engin;
     let fao = L.fao;
 
-    if (M) {
-      plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
-      designationInterne = M.designationInterne || designationInterne;
-      allergenes = M.allergenes || "";
-      if (!zone && M.zone) zone = M.zone;
-      if (!sousZone && M.sousZone) sousZone = M.sousZone;
-      if (!engin && M.engin) engin = M.engin;
-      if (!fao) fao = buildFAO(zone, sousZone);
-    } else {
-      missingRefs.push(L.refFournisseur);
-    }
+    // 1) Mapping AF_MAP (PRIORITAIRE pour PLU + désignation propre)
+const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
-  const art = plu ? artMap[plu] : null;
+let plu = "";
+let designationInterne = L.designation; // sera écrasée si AF_MAP fournit mieux
+let allergenes = "";
+let zone = L.zone;
+let sousZone = L.sousZone;
+let engin = L.engin;
+let fao = L.fao;
+
+if (M) {
+  // PLU propre
+  plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+
+  // ✅ Désignation propre depuis AF_MAP
+  const cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
+  if (cleanFromAF) {
+    L.designation = cleanFromAF;         // ce qu'on stocke dans la ligne achat
+    designationInterne = cleanFromAF;    // interne idem
+  }
+
+  // Nom latin: si BL vide/pollué, on prend AF_MAP
+  if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
+    L.nomLatin = M.nomLatin;
+  }
+
+  // Traca: AF_MAP uniquement en **fallback** (on garde priorité au BL)
+  if (!zone && M.zone) zone = M.zone;
+  if (!sousZone && M.sousZone) sousZone = M.sousZone;
+  if (!engin && M.engin) engin = M.engin;
+
+  if (!fao) fao = buildFAO(zone, sousZone);
+
+} else {
+  missingRefs.push(L.refFournisseur);
+}
+
+// 2) Enrichissement Articles (SECONDAIRE – seulement si on n'a rien via AF_MAP)
+const art = plu ? artMap[plu] : null;
 if (art) {
-  // 🏷️ On prend uniquement la désignation propre de la base
-  const artDesignation = art.Designation || art.designation || "";
-  if (artDesignation) {
-    L.designation = artDesignation.trim();
-    designationInterne = artDesignation.trim();
+  // Ne remplace la désignation que si AF_MAP n'en a pas donné
+  if (!cleanFromAF) {
+    const artDesignation = (art.Designation || art.designation || "").trim();
+    if (artDesignation) {
+      L.designation = artDesignation;
+      designationInterne = artDesignation;
+    }
   }
 
-  // 🧬 Nom latin : on ne remplace que si le BL n'en fournit pas ou contient "Total"
+  // Nom latin: si toujours vide/pollué
   if (!L.nomLatin || /total/i.test(L.nomLatin)) {
-    L.nomLatin = art.NomLatin || art.nomLatin || L.nomLatin || "";
+    L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
   }
 
-  // 🌍 Zone / SousZone / Engin → priorité au BL donc on ne touche PAS si déjà renseigné
+  // Traca (toujours BL prioritaire)
   if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
   if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
   if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
 
-  // 🧾 FAO reconstruit si manquant
   if (!fao) fao = buildFAO(zone, sousZone);
 }
 
