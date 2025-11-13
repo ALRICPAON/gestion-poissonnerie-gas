@@ -273,6 +273,16 @@ async function saveRoyaleMaree(lines) {
       if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
       if (!fao) fao = buildFAO(zone, sousZone);
     }
+    // 🪝 Normalisation automatique des engins de pêche
+if (engin) {
+  const e = engin.toUpperCase().trim();
+  if (e.includes("FILMAIL")) engin = "FILET MAILLANT";
+  else if (e.includes("FILTS")) engin = "FILET TOURNANT";
+  else if (e.includes("LIGNE")) engin = "LIGNE";
+  else if (e.includes("CHALUT")) engin = "CHALUT";
+  // tu peux ajouter d’autres règles ici si besoin
+}
+
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: L.refFournisseur,
