@@ -26,6 +26,8 @@
   <script type="module" src="../js/import-scapmaree.js"></script>
   <script type="module" src="../js/import-criee.js"></script>
   <script type="module" src="../js/import-royalemaree.js"></script>
+  <script type="module" src="../js/import-sogelmer.js"></script>
+
 
 </head>
 
@@ -115,6 +117,8 @@
   import { importScapmaree } from "../js/import-scapmaree.js";
   import { importCrieePLUcolA, importCrieePLUcolB } from "../js/import-criee.js";
   import { importRoyaleMaree } from "../js/import-royalemaree.js";
+  import { importSogelmer } from "../js/import-sogelmer.js";
+
 
 
   requireAuth();
@@ -161,7 +165,7 @@
       const provider = providerSelect.value;
       if (!provider) return alert("❗ Choisir un fournisseur ou un format CRIÉE");
 
-     if (provider === "SCAPMAREE") {
+    if (provider === "SCAPMAREE") {
   await importScapmaree(file);
   status.textContent = "✅ Import Scapmarée terminé !";
 
@@ -169,10 +173,15 @@
   await importRoyaleMaree(file);
   status.textContent = "✅ Import Royale Marée terminé !";
 
+} else if (provider === "SOGELMER") {
+  await importSogelmer(file);
+  status.textContent = "✅ Import Sogelmer terminé !";
+
 } else {
   alert("❌ Import non implémenté pour : " + provider);
   return;
 }
+
     }
     catch (e) {
       console.error(e);
