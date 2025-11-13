@@ -95,8 +95,6 @@ function parseRoyaleMareeLines(text) {
   for (let raw of lines) {
     // Début d'un nouvel article : une ligne contenant uniquement le code (4–5 chiffres)
     if (isCode(raw)) {
-        // 🧹 Ignore les codes d'entête (inférieurs à 10000)
-  if (parseInt(raw, 10) < 10000) continue;
       // ferme l'article précédent
       pushCurrent();
       current = {
@@ -227,6 +225,18 @@ function parseRoyaleMareeLines(text) {
       stage = 1;
     }
   }
+  // 🧹 Nettoyage final : supprime les lignes vides ou incohérentes
+const cleaned = rows.filter(r =>
+  r.refFournisseur &&
+  r.designation &&
+  r.designation.length > 3 &&
+  !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
+);
+
+console.log("📦 Nombre d'articles trouvés (après nettoyage):", cleaned.length);
+console.log("🧾 Lignes extraites:", cleaned);
+return cleaned;
+
 
   // Pousse le dernier
   pushCurrent();
