@@ -68,14 +68,14 @@ function parseRoyaleMareeLines(text) {
     .replace(/Transp\..+?Départ\s*:/gi, " ")
     .trim();
 
-  // Chaque ligne article commence par un code fournisseur (4-5 chiffres)
-  const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g);
+  // Chaque article: code (4-5) + 6 nombres (colis, poidsColis, montant, prixKg, poidsTotal) + désignation
+  const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)\s+/g);
 
   for (let part of parts) {
-    const match = part.match(
+    const head = part.match(
       /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([A-Z0-9éèàç+\/\-\s]+)/i
     );
-    if (!match) continue;
+    if (!head) continue;
 
     const [
       _,
@@ -86,37 +86,50 @@ function parseRoyaleMareeLines(text) {
       prixKg,
       poidsTotal,
       designation
-    ] = match;
+    ] = head;
 
-    const tail = part.slice(match.index + match[0].length);
+    // Suite après l’en-tête: contient (ligne nom latin) puis bloc traçabilité avec "|"
+    const tail = part.slice(head.index + head[0].length);
 
-    // 🔹 Nom latin = 2 à 3 mots, commence par majuscule, avant le 1er "|"
-    const nomLatinMatch = tail.match(/([A-Z][a-z]+(?:\s+[a-z]+){0,2})\s*(?=\|Pêché|\|Elevé|$)/i);
+    // 🔹 Nom latin: 2–3 mots (Camel ou lower), + option suffixe code (ex: "SAL") avant le premier "|"
+    // exemples valides: "Gadus morhua", "Gadus Morhua", "Salmo salar SAL"
+    const nomLatinMatch = tail.match(
+      /([A-Z][a-z]+(?:\s+[A-Za-z]+){1,2}(?:\s+[A-Z]{2,5})?)\s*(?=\|Pêché|\|Elevé|$)/i
+    );
     const nomLatin = nomLatinMatch ? nomLatinMatch[1].trim() : "";
 
-    // 🔹 Bloc traçabilité
-    const blocTrace = tail.match(/\|\s*(Pêché|Elevé).+?(?=\d{4,5}|$)/i);
+    // 🔹 Bloc traçabilité (de |Pêché … / |Elevé … jusqu'au prochain code article ou fin)
+    const blocTrace = tail.match(/\|\s*(Pêché|Elevé).+?(?=\d{4,5}\s+\d+\s+[\d,]+|$)/i);
     const traceTxt = blocTrace ? blocTrace[0] : "";
 
     let zone = "";
     let sousZone = "";
     let engin = "";
     let lot = "";
+    let fao = "";
 
-    // 🔸 Cas FAO
-    const mAllFAO = [...traceTxt.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
-    if (mAllFAO.length) {
-      const last = mAllFAO[mAllFAO.length - 1];
-      zone = `FAO${last[1]}`;
+    // 🔸 FAO (dernier FAO du bloc si plusieurs)
+    const allFAO = [...traceTxt.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
+    if (allFAO.length) {
+      const last = allFAO[allFAO.length - 1];
+      zone = `FAO27`.replace(/27$/, last[1]); // au cas où
       sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
     }
 
-    // 🔸 Cas ÉLEVAGE
+    // 🔸 ÉLEVAGE (ex: "Elevé en : zone Eleve en Ecosse")
     if (/Elevé/i.test(traceTxt)) {
-      const elevMatch = traceTxt.match(/Elevé\s+en\s*:?[\sA-Za-z]*?([A-Za-zéèêàç]+)/i);
-      const pays = elevMatch ? elevMatch[1].trim() : "";
       zone = "ÉLEVAGE";
-      sousZone = pays ? pays.toUpperCase() : "";
+      // on prend la ligne "Elevé en : ..." et on capture le dernier mot comme pays/région
+      const elevLine = traceTxt.match(/Elevé\s+en\s*:?\s*([^|]+)/i);
+      if (elevLine) {
+        // nettoie les mots parasites ("zone", "Eleve en") et prend le dernier mot significatif
+        const tokens = elevLine[1]
+          .replace(/\b(zone|éleve|eleve|en)\b/gi, " ")
+          .trim()
+          .split(/\s+/);
+        const lastWord = tokens.length ? tokens[tokens.length - 1] : "";
+        if (lastWord) sousZone = lastWord.toUpperCase();
+      }
     }
 
     // 🔸 Engin
@@ -127,18 +140,21 @@ function parseRoyaleMareeLines(text) {
     const mLot = traceTxt.match(/Lot\s*:\s*(\S+)/i);
     if (mLot) lot = mLot[1].trim();
 
-    // 🔸 Construction FAO propre
-    let fao = "";
-    if (zone.startsWith("ÉLE")) fao = sousZone ? `${zone} ${sousZone}` : "ÉLEVAGE";
-    else if (zone.startsWith("FAO")) fao = `${zone}${sousZone ? " " + sousZone : ""}`;
-    fao = fao.trim().replace(/\s{2,}/g, " ");
+    // 🔸 Normalisation FAO final
+    if (zone.startsWith("ÉLE")) {
+      fao = sousZone ? `ÉLEVAGE ${sousZone}` : "ÉLEVAGE";
+    } else if (zone.toUpperCase().startsWith("FAO")) {
+      // variantes "FAO27" ou "FAO 27"
+      const z = zone.replace(/^FAO\s*/, "FAO").replace(/^FAO(\d+)/, "FAO $1");
+      fao = `${z}${sousZone ? " " + sousZone : ""}`.trim();
+    }
 
-    // 🔹 Nettoyage du mot "ZONE" qui pollue parfois sousZone
+    // 🔸 Nettoyage "ZONE" parasite
     if (/^ZONE/i.test(sousZone)) sousZone = sousZone.replace(/^ZONE\s*/i, "").trim();
 
     rows.push({
       refFournisseur: refFourn.trim(),
-      designation: designation.trim() + (nomLatin ? " " + nomLatin : ""),
+      designation: (designation.trim() + (nomLatin ? " " + nomLatin : "")).trim(),
       nomLatin,
       colis: parseInt(colis),
       poidsColisKg: parseFloat(poidsColis.replace(",", ".")),
