@@ -182,87 +182,78 @@ async function saveSogelmer(lines) {
     totalKg += Number(L.poidsTotalKg || 0);
 
     /**************************************************
-     * 🧩 ENRICHISSEMENT (version Royale Marée)
-     **************************************************/
-    let plu = "";
-    let designationInterne = (L.designation || "").trim();
-    let zone = L.zone;
-    let sousZone = L.sousZone;
-    let engin = L.engin;
-    let fao = L.fao;
-    let cleanFromAF = "";
+ * 🧩 ENRICHISSEMENT AF_MAP + ARTICLES
+ * (version identique Royale Marée)
+ **************************************************/
+let plu = "";
+let designationInterne = (L.designation || "").trim();
+let allergenes = "";
+let zone = L.zone;
+let sousZone = L.sousZone;
+let engin = L.engin;
+let fao = L.fao;
 
-    // AF_MAP
-    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+let cleanFromAF = ""; // ajouter comme Royale Marée
 
-    if (M) {
-      plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+// 1) AF_MAP = priorité totale
+const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
-      cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
-      if (cleanFromAF) designationInterne = cleanFromAF;
+if (M) {
 
-      if (!L.nomLatin && M.nomLatin) L.nomLatin = M.nomLatin;
+  // PLU propre
+  plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
 
-      if (!zone && M.zone) zone = M.zone;
-      if (!sousZone && M.sousZone) sousZone = M.sousZone;
-      if (!engin && M.engin) engin = M.engin;
-
-      if (!fao) fao = buildFAO(zone, sousZone);
-
-    } else {
-      missingRefs.push(L.refFournisseur);
-    }
-
-    // ARTICLES fallback
-    const art = plu ? artMap[plu] : null;
-    if (art) {
-
-      if (!cleanFromAF) {
-        const artDesignation = (art.Designation || art.designation || "").trim();
-        if (artDesignation) designationInterne = artDesignation;
-      }
-
-      if (!L.nomLatin)
-        L.nomLatin = (art.NomLatin || art.nomLatin || "").trim();
-
-      if (!zone && (art.zone || art.Zone)) zone = art.zone || art.Zone;
-      if (!sousZone && (art.sousZone || art.SousZone)) sousZone = art.sousZone || art.SousZone;
-      if (!engin && (art.engin || art.Engin)) engin = art.engin || art.Engin;
-
-      if (!fao) fao = buildFAO(zone, sousZone);
-    }
-
-    if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-    if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
-
-    /**************************************************
-     * SAVE LINE
-     **************************************************/
-    await addDoc(collection(db, "achats", achatId, "lignes"), {
-      ...L,
-      plu,
-      designationInterne,
-      zone,
-      sousZone,
-      engin,
-      fao,
-      fournisseurRef: L.refFournisseur,
-      montantTTC: L.montantHT,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+  // Désignation interne OU alias fournisseur
+  cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
+  if (cleanFromAF) {
+    // on écrase TOUT comme Royale Marée
+    L.designation = cleanFromAF;
+    designationInterne = cleanFromAF;
   }
 
-  await updateDoc(doc(db, "achats", achatId), {
-    montantHT: totalHT,
-    montantTTC: totalHT,
-    totalKg,
-    updatedAt: serverTimestamp()
-  });
+  // Nom latin
+  if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
+    L.nomLatin = M.nomLatin;
+  }
 
-  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
-  location.reload();
+  // Traca depuis AF_MAP
+  if (!zone && M.zone) zone = M.zone;
+  if (!sousZone && M.sousZone) sousZone = M.sousZone;
+  if (!engin && M.engin) engin = M.engin;
+
+  if (!fao) fao = buildFAO(zone, sousZone);
+
+} else {
+  missingRefs.push(L.refFournisseur);
 }
+
+// 2) Articles (fallback uniquement si AF_MAP n’a rien donné)
+const art = plu ? artMap[plu] : null;
+
+if (art) {
+
+  if (!cleanFromAF) {
+    const artDesignation = (art.Designation || art.designation || "").trim();
+    if (artDesignation) {
+      L.designation = artDesignation;
+      designationInterne = artDesignation;
+    }
+  }
+
+  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
+    L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
+  }
+
+  if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
+  if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
+  if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+
+  if (!fao) fao = buildFAO(zone, sousZone);
+}
+
+// Normalisation engins
+if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
+if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
 /**************************************************
  * MAIN
