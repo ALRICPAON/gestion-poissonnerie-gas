@@ -32,6 +32,32 @@ async function extractTextFromPdf(file) {
   console.log("🔍 PDF SOGELMER brut:", txt.slice(0,2000));
   return txt;
 }
+function isSogelmerCode(raw) {
+  const s = raw.trim();
+
+  if (!s) return false;
+
+  // pas d'espace
+  if (/\s/.test(s)) return false;
+
+  // exclure les numéros purs
+  if (/^\d+$/.test(s)) return false;
+
+  // exclure ref type C5100022
+  if (/^[A-Z]\d+$/.test(s)) return false;
+
+  // exclure lots : 05131102998
+  if (/^\d{8,}$/.test(s)) return false;
+
+  // doit contenir au moins 3 lettres
+  if ((s.match(/[A-Z]/gi) || []).length < 3) return false;
+
+  // longueur correcte
+  if (s.length < 5 || s.length > 12) return false;
+
+  return true;
+}
+
 
 /**************************************************
  * 🔍 Détecteur de vrai code produit SOGELMER
@@ -103,112 +129,121 @@ export function parseSogelmer(text) {
     .filter(l => l.length > 0);
 
   let current = null;
-  let stage = 0; // 1=colis, 2=poids unit, 3=quantité, 4=UV, 5=lot, 6=prix, 7=montant
+  let step = 0;
 
-  const pushCurrent = () => {
-    if (current && current.designation.length > 2) {
-      rows.push(current);
-    }
+  const push = () => {
+    if (current && current.designation.length > 2) rows.push(current);
     current = null;
-    stage = 0;
+    step = 0;
   };
 
   for (let raw of lines) {
-    // 🎯 1) Détection produit
-    if (isRealProductCode(raw)) {
-      pushCurrent();
+
+    // 🎯 DÉTECTION DU CODE
+    if (isSogelmerCode(raw)) {
+      push();
       current = {
         refFournisseur: raw,
         designation: "",
         colis: 0,
         poidsColisKg: 0,
         poidsTotalKg: 0,
-        prixKg: 0,
-        montantHT: 0,
         uv: "",
         lot: "",
+        prixKg: 0,
+        montantHT: 0,
         nomLatin: "",
         zone: "",
         sousZone: "",
         engin: "",
         fao: ""
       };
-      stage = 1;
+      step = 1;
       continue;
     }
 
     if (!current) continue;
 
-    // 🎯 2) Structure du BL
-    if (stage === 1 && raw !== "" && /^[0-9]+$/.test(raw)) {
-      current.colis = parseInt(raw, 10);
-      stage = 2;
+    // 🧱 ETAPE 1 → designation
+    if (step === 1) {
+      current.designation = raw;
+      step = 2;
       continue;
     }
 
-    if (stage === 2 && /^[0-9]+(?:[.,][0-9]+)?$/.test(raw)) {
+    // 🧱 ETAPE 2 → colis
+    if (step === 2 && /^\d+$/.test(raw)) {
+      current.colis = parseInt(raw);
+      step = 3;
+      continue;
+    }
+
+    // 🧱 ETAPE 3 → pds unit
+    if (step === 3 && /^[0-9]+([.,][0-9]+)?$/.test(raw)) {
       current.poidsColisKg = parseFloat(raw.replace(",", "."));
-      stage = 3;
+      step = 4;
       continue;
     }
 
-    if (stage === 3 && /^[0-9]+(?:[.,][0-9]+)?$/.test(raw)) {
+    // 🧱 ETAPE 4 → quantité
+    if (step === 4 && /^[0-9]+([.,][0-9]+)?$/.test(raw)) {
       current.poidsTotalKg = parseFloat(raw.replace(",", "."));
-      stage = 4;
+      step = 5;
       continue;
     }
 
-    if (stage === 4) {
+    // 🧱 ETAPE 5 → UV
+    if (step === 5) {
       current.uv = raw;
-      stage = 5;
+      step = 6;
       continue;
     }
 
-    if (stage === 5) {
+    // 🧱 ETAPE 6 → lot
+    if (step === 6) {
       current.lot = raw;
-      stage = 6;
+      step = 7;
       continue;
     }
 
-    if (stage === 6 && /€/.test(raw)) {
+    // 🧱 ETAPE 7 → prix HT
+    if (step === 7 && /€/.test(raw)) {
       current.prixKg = parseFloat(raw.replace("€", "").replace(",", "."));
-      stage = 7;
+      step = 8;
       continue;
     }
 
-    if (stage === 7 && /€/.test(raw)) {
+    // 🧱 ETAPE 8 → montant HT
+    if (step === 8 && /€/.test(raw)) {
       current.montantHT = parseFloat(raw.replace("€", "").replace(",", "."));
-      stage = 8;
+      step = 9;
       continue;
     }
 
-    // 🎯 3) Ligne de description : désignation + nom latin + FAO
-    if (stage >= 1) {
-      if (/FAO/i.test(raw) || /autres ss zones/i.test(raw)) {
-        const faoInfo = extractFAO_Sogelmer(raw);
-        current.zone = faoInfo.zone;
-        current.sousZone = faoInfo.sousZone;
-        current.fao = faoInfo.fao;
-      }
-
-      // nom latin : forme "Molva molva - ..."
-      const latinMatch = raw.match(/^([A-Z][a-z]+(?: [a-z]+)?(?: [a-z]+)?)/);
-      if (latinMatch) current.nomLatin = latinMatch[1].trim();
+    // 🧾 Après montant HT → bloc bio
+    if (step >= 9) {
+      // latin
+      const mLatin = raw.match(/^([A-Z][a-z]+(?: [a-z]+)?)/);
+      if (mLatin) current.nomLatin = mLatin[1];
 
       // engin
-      const engMatch = raw.match(/Chalut|Mail|FILT|Filet|Ligne/i);
-      if (engMatch) current.engin = normalizeEngin(engMatch[0]);
+      const eng = raw.match(/Chalut|Mail|FILT|Filet|Ligne/i);
+      if (eng) current.engin = eng[0];
 
-      // désignation
-      if (!/X\s*\d+KG/i.test(raw) && !/FAO/i.test(raw)) {
-        if (!/Molva|Raja|Conger|Mustelus/i.test(raw)) {
-          current.designation = raw;
+      // FAO
+      const mFao = raw.match(/FAO\s*([0-9]{1,3})\s*([IVX]*)/i);
+      if (mFao) {
+        current.zone = `FAO ${mFao[1]}`;
+        current.sousZone = mFao[2] || "";
+        if (/autres ss zones/i.test(raw)) {
+          current.sousZone += " & AUTRES SS ZONES";
         }
+        current.fao = `${current.zone} ${current.sousZone}`.trim();
       }
     }
   }
 
-  pushCurrent();
+  push();
 
   console.log("📦 Lignes SOGELMER extraites:", rows);
   return rows;
