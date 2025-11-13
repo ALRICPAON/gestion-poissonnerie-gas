@@ -31,12 +31,14 @@ function buildFAO(zone, sousZone) {
 }
 
 /**************************************************
- * PDF TEXT EXTRACT
+ * PDF TEXT EXTRACT — version avec vraies lignes
  **************************************************/
 async function extractTextFromPdf(file) {
   const pdfjsLib = window["pdfjs-dist/build/pdf"];
   if (!pdfjsLib)
-    throw new Error("PDF.js non chargé. Ajoute <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'>");
+    throw new Error(
+      "PDF.js non chargé. Ajoute <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'>"
+    );
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
@@ -47,11 +49,16 @@ async function extractTextFromPdf(file) {
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
+
+    // 👉 on remet un saut de ligne après chaque item, pour conserver la structure
     const strings = content.items.map(i => i.str);
-    fullText += strings.join(" ") + "\n";
+    fullText += strings.join("\n") + "\n";
   }
+
+  console.log("🔍 PDF brut (avec \\n) aperçu:", fullText.slice(0, 1000));
   return fullText;
 }
+
 
 /**************************************************
  * PARSE LINES
