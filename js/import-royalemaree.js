@@ -70,9 +70,9 @@ function parseRoyaleMareeLines(text) {
   let current = null;
   let stage = 0;
 
-  const isCode = s => /^\d{4,5}$/.test(s);
-  const isInt = s => /^\d+$/.test(s);
-  const isNum = s => /^[\d]+(?:,\d+)?$/.test(s);
+  const isCode  = s => /^\d{4,5}$/.test(s);
+  const isInt   = s => /^\d+$/.test(s);
+  const isNum   = s => /^[\d]+(?:,\d+)?$/.test(s);
   const isLatin = s => /^[A-Z][a-z]+(?:\s+[A-Za-z]+){1,2}(?:\s+[A-Z]{2,5})?$/.test(s);
 
   const pushCurrent = () => {
@@ -110,28 +110,25 @@ function parseRoyaleMareeLines(text) {
 
     if (stage === 1 && isInt(raw)) { current.colis = parseInt(raw, 10); stage = 2; continue; }
     if (stage === 2 && isNum(raw)) { current.poidsColisKg = parseFloat(raw.replace(",", ".")); stage = 3; continue; }
-    if (stage === 3 && isNum(raw)) { current.montantHT = parseFloat(raw.replace(",", ".")); stage = 4; continue; }
-    if (stage === 4 && isNum(raw)) { current.prixKg = parseFloat(raw.replace(",", ".")); stage = 5; continue; }
+    if (stage === 3 && isNum(raw)) { current.montantHT   = parseFloat(raw.replace(",", ".")); stage = 4; continue; }
+    if (stage === 4 && isNum(raw)) { current.prixKg       = parseFloat(raw.replace(",", ".")); stage = 5; continue; }
     if (stage === 5 && isNum(raw)) { current.poidsTotalKg = parseFloat(raw.replace(",", ".")); stage = 6; continue; }
 
-   if (stage >= 6 && !raw.startsWith("|")) {
-  // 🚫 Ignore les lignes de fin comme "Total Bon", "Total Etablissement"
-  if (/total|bon|établissement|etablissement/i.test(raw)) continue;
+    if (stage >= 6 && !raw.startsWith("|")) {
+      // 🚫 Ignore les lignes de fin comme "Total Bon", "Total Etablissement"
+      if (/total|bon|établissement|etablissement/i.test(raw)) continue;
 
-  if (isLatin(raw)) {
-    // ligne nom latin réelle
-    current.nomLatin = raw;
-    if (!current.designation.toLowerCase().includes(raw.toLowerCase())) {
-      current.designation = (current.designation + " " + raw).trim();
+      if (isLatin(raw)) {
+        current.nomLatin = raw;
+        if (!current.designation.toLowerCase().includes(raw.toLowerCase())) {
+          current.designation = (current.designation + " " + raw).trim();
+        }
+        continue;
+      } else if (!isCode(raw)) {
+        current.designation = (current.designation + " " + raw).trim();
+        continue;
+      }
     }
-    continue;
-  } else if (!isCode(raw)) {
-    // ligne supplémentaire de désignation
-    current.designation = (current.designation + " " + raw).trim();
-    continue;
-  }
-}
-
 
     if (raw.startsWith("|")) {
       if (/FAO/i.test(raw) || /Pêché/i.test(raw) || /Elevé/i.test(raw)) {
@@ -221,15 +218,14 @@ async function saveRoyaleMaree(lines) {
 
   const achatId = achatRef.id;
   let totalHT = 0;
-  let totalKg = 0;
+  let totalKg  = 0;
   const missingRefs = [];
 
   for (const L of lines) {
     totalHT += Number(L.montantHT || 0);
     totalKg  += Number(L.poidsTotalKg || 0);
 
-    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
-
+    // ---------- mapping vars (single declaration) ----------
     let plu = "";
     let designationInterne = L.designation;
     let allergenes = "";
@@ -237,72 +233,46 @@ async function saveRoyaleMaree(lines) {
     let sousZone = L.sousZone;
     let engin = L.engin;
     let fao = L.fao;
+    let cleanFromAF = ""; // needed below
 
-    // 1) Mapping AF_MAP (PRIORITAIRE pour PLU + désignation propre)
-const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
-
-let plu = "";
-let designationInterne = L.designation; // sera écrasée si AF_MAP fournit mieux
-let allergenes = "";
-let zone = L.zone;
-let sousZone = L.sousZone;
-let engin = L.engin;
-let fao = L.fao;
-
-if (M) {
-  // PLU propre
-  plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
-
-  // ✅ Désignation propre depuis AF_MAP
-  const cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
-  if (cleanFromAF) {
-    L.designation = cleanFromAF;         // ce qu'on stocke dans la ligne achat
-    designationInterne = cleanFromAF;    // interne idem
-  }
-
-  // Nom latin: si BL vide/pollué, on prend AF_MAP
-  if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
-    L.nomLatin = M.nomLatin;
-  }
-
-  // Traca: AF_MAP uniquement en **fallback** (on garde priorité au BL)
-  if (!zone && M.zone) zone = M.zone;
-  if (!sousZone && M.sousZone) sousZone = M.sousZone;
-  if (!engin && M.engin) engin = M.engin;
-
-  if (!fao) fao = buildFAO(zone, sousZone);
-
-} else {
-  missingRefs.push(L.refFournisseur);
-}
-
-// 2) Enrichissement Articles (SECONDAIRE – seulement si on n'a rien via AF_MAP)
-const art = plu ? artMap[plu] : null;
-if (art) {
-  // Ne remplace la désignation que si AF_MAP n'en a pas donné
-  if (!cleanFromAF) {
-    const artDesignation = (art.Designation || art.designation || "").trim();
-    if (artDesignation) {
-      L.designation = artDesignation;
-      designationInterne = artDesignation;
+    // 1) AF_MAP PRIORITY for PLU + clean designation
+    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+    if (M) {
+      plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+      cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
+      if (cleanFromAF) {
+        L.designation = cleanFromAF;
+        designationInterne = cleanFromAF;
+      }
+      if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
+        L.nomLatin = M.nomLatin;
+      }
+      if (!zone && M.zone) zone = M.zone;
+      if (!sousZone && M.sousZone) sousZone = M.sousZone;
+      if (!engin && M.engin) engin = M.engin;
+      if (!fao) fao = buildFAO(zone, sousZone);
+    } else {
+      missingRefs.push(L.refFournisseur);
     }
-  }
 
-  // Nom latin: si toujours vide/pollué
-  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
-    L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
-  }
-
-  // Traca (toujours BL prioritaire)
-  if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
-  if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
-  if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
-
-  if (!fao) fao = buildFAO(zone, sousZone);
-}
-
-
-
+    // 2) Articles fallback only if AF_MAP didn’t give a designation
+    const art = plu ? artMap[plu] : null;
+    if (art) {
+      if (!cleanFromAF) {
+        const artDesignation = (art.Designation || art.designation || "").trim();
+        if (artDesignation) {
+          L.designation = artDesignation;
+          designationInterne = artDesignation;
+        }
+      }
+      if (!L.nomLatin || /total/i.test(L.nomLatin)) {
+        L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
+      }
+      if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
+      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
+      if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+      if (!fao) fao = buildFAO(zone, sousZone);
+    }
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: L.refFournisseur,
@@ -340,7 +310,8 @@ if (art) {
   }
 
   alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
-  location.reload(); // 🔁 recharge la page après import
+  // 🔁 recharge la page après import
+  location.reload();
 }
 
 /**************************************************
