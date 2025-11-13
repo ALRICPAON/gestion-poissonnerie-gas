@@ -251,14 +251,20 @@ async function saveRoyaleMaree(lines) {
     }
 
     const art = plu ? artMap[plu] : null;
-    if (art) {
-      if (!designationInterne || designationInterne.length < 3)
-        designationInterne = art.designation || designationInterne;
-      if (!zone && art.zone) zone = art.zone;
-      if (!sousZone && art.sousZone) sousZone = art.sousZone;
-      if (!engin && art.engin) engin = art.engin;
-      if (!fao) fao = buildFAO(zone, sousZone);
-    }
+if (art) {
+  // 💬 Utilise la désignation propre de la base article
+  if (art.Designation) {
+    designationInterne = art.Designation.trim();
+    // On écrase aussi la désignation brute pour uniformiser dans la fiche achat
+    L.designation = art.Designation.trim();
+  }
+
+  if (!zone && art.Zone) zone = art.Zone;
+  if (!sousZone && art.SousZone) sousZone = art.SousZone;
+  if (!engin && art.Engin) engin = art.Engin;
+  if (!fao) fao = buildFAO(zone, sousZone);
+}
+
 
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: L.refFournisseur,
