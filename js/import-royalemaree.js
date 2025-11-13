@@ -58,120 +58,86 @@ async function extractTextFromPdf(file) {
  **************************************************/
 function parseRoyaleMareeLines(text) {
   const rows = [];
+  const lines = text
+    .split(/\n/)
+    .map(l => l.replace(/\s+/g, " ").trim())
+    .filter(l => l.length > 0);
 
-  // Nettoyage
-  let clean = text
-    .replace(/\s+/g, " ")
-    .replace(/€/g, "")
-    .replace(/\(pour Facture\)/gi, "")
-    .replace(/\s*Page\s*\d+\/\d+\s*/gi, " ")
-    .replace(/Transp\..+?Départ\s*:/gi, " ")
-    .trim();
+  let current = null;
 
-  // Chaque article: code (4-5) + 6 nombres (colis, poidsColis, montant, prixKg, poidsTotal) + désignation
-  // Un article = code (4-5 chiffres) suivi d’au moins 5 valeurs numériques (colis, poids, montant, prix, poidsT…)
-const parts = clean.split(/(?=\b\d{4,5}\s+\d+(?:[\s,]+\d+|\s+[\d,]+){4,6}\s*[A-Z])/g);
+  for (let raw of lines) {
+    // 🟢 Nouvelle ligne article (code 4–5 chiffres au début)
+    if (/^\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+/.test(raw)) {
+      // Sauvegarde l’article précédent s’il existe
+      if (current) rows.push(current);
 
-  console.log("📦 Nombre de blocs trouvés :", parts.length);
+      const parts = raw.match(
+        /^(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s*(.+)$/i
+      );
+      if (!parts) continue;
 
-
-  for (let part of parts) {
-    const head = part.match(
-      /(\d{4,5})\s+(\d+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([A-Z0-9éèàç+\/\-\s]+)/i
-    );
-    if (!head) continue;
-
-    const [
-      _,
-      refFourn,
-      colis,
-      poidsColis,
-      montant,
-      prixKg,
-      poidsTotal,
-      designation
-    ] = head;
-
-    // Suite après l’en-tête: contient (ligne nom latin) puis bloc traçabilité avec "|"
-    const tail = part.slice(head.index + head[0].length);
-
-    // 🔹 Nom latin: 2–3 mots (Camel ou lower), + option suffixe code (ex: "SAL") avant le premier "|"
-    // exemples valides: "Gadus morhua", "Gadus Morhua", "Salmo salar SAL"
-    const nomLatinMatch = tail.match(
-      /([A-Z][a-z]+(?:\s+[A-Za-z]+){1,2}(?:\s+[A-Z]{2,5})?)\s*(?=\|Pêché|\|Elevé|$)/i
-    );
-    const nomLatin = nomLatinMatch ? nomLatinMatch[1].trim() : "";
-
-    // 🔹 Bloc traçabilité (de |Pêché … / |Elevé … jusqu'au prochain code article ou fin)
-    const blocTrace = tail.match(/\|\s*(Pêché|Elevé).+?(?=\d{4,5}\s+\d+\s+[\d,]+|$)/i);
-    const traceTxt = blocTrace ? blocTrace[0] : "";
-
-    let zone = "";
-    let sousZone = "";
-    let engin = "";
-    let lot = "";
-    let fao = "";
-
-    // 🔸 FAO (dernier FAO du bloc si plusieurs)
-    const allFAO = [...traceTxt.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
-    if (allFAO.length) {
-      const last = allFAO[allFAO.length - 1];
-      zone = `FAO27`.replace(/27$/, last[1]); // au cas où
-      sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
+      current = {
+        refFournisseur: parts[1],
+        colis: parseInt(parts[2]),
+        poidsColisKg: parseFloat(parts[3].replace(",", ".")),
+        montantHT: parseFloat(parts[4].replace(",", ".")),
+        prixKg: parseFloat(parts[5].replace(",", ".")),
+        poidsTotalKg: parseFloat(parts[6].replace(",", ".")),
+        designation: parts[7].trim(),
+        nomLatin: "",
+        zone: "",
+        sousZone: "",
+        engin: "",
+        lot: "",
+        fao: ""
+      };
+      continue;
     }
 
-    // 🔸 ÉLEVAGE (ex: "Elevé en : zone Eleve en Ecosse")
-    if (/Elevé/i.test(traceTxt)) {
-      zone = "ÉLEVAGE";
-      // on prend la ligne "Elevé en : ..." et on capture le dernier mot comme pays/région
-      const elevLine = traceTxt.match(/Elevé\s+en\s*:?\s*([^|]+)/i);
-      if (elevLine) {
-        // nettoie les mots parasites ("zone", "Eleve en") et prend le dernier mot significatif
-        const tokens = elevLine[1]
-          .replace(/\b(zone|éleve|eleve|en)\b/gi, " ")
-          .trim()
-          .split(/\s+/);
-        const lastWord = tokens.length ? tokens[tokens.length - 1] : "";
-        if (lastWord) sousZone = lastWord.toUpperCase();
+    if (!current) continue;
+
+    // 🔹 Nom latin = 2–3 mots (ex : "Gadus morhua", "Salmo salar SAL")
+    if (/^[A-Z][a-z]+/.test(raw) && !raw.startsWith("|")) {
+      current.nomLatin = raw.trim();
+      current.designation += " " + current.nomLatin;
+      continue;
+    }
+
+    // 🔹 Bloc traçabilité
+    if (raw.startsWith("|")) {
+      if (/Pêché/i.test(raw) || /FAO/i.test(raw)) {
+        const allFAO = [...raw.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
+        if (allFAO.length) {
+          const last = allFAO[allFAO.length - 1];
+          current.zone = `FAO${last[1]}`;
+          current.sousZone = last[2]
+            ? last[2].toUpperCase().replace(/\./g, "")
+            : "";
+          current.fao = `${current.zone} ${current.sousZone}`.trim();
+        }
+        if (/Elevé/i.test(raw)) {
+          const elevMatch = raw.match(/Elevé.+?en\s*:?[\sA-Za-z]*?([A-Za-zéèêàç]+)/i);
+          const pays = elevMatch ? elevMatch[1].trim() : "";
+          current.zone = "ÉLEVAGE";
+          current.sousZone = pays ? pays.toUpperCase() : "";
+          current.fao = `ÉLEVAGE ${current.sousZone}`.trim();
+        }
+      }
+
+      if (/Engin/i.test(raw)) {
+        const m = raw.match(/Engin\s*:\s*(.+)$/i);
+        if (m) current.engin = m[1].trim();
+      }
+
+      if (/Lot/i.test(raw)) {
+        const m = raw.match(/Lot\s*:\s*(\S+)/i);
+        if (m) current.lot = m[1].trim();
       }
     }
-
-    // 🔸 Engin
-    const mEngin = traceTxt.match(/Engin\s*:\s*([^|]+)/i);
-    if (mEngin) engin = mEngin[1].trim();
-
-    // 🔸 Lot
-    const mLot = traceTxt.match(/Lot\s*:\s*(\S+)/i);
-    if (mLot) lot = mLot[1].trim();
-
-    // 🔸 Normalisation FAO final
-    if (zone.startsWith("ÉLE")) {
-      fao = sousZone ? `ÉLEVAGE ${sousZone}` : "ÉLEVAGE";
-    } else if (zone.toUpperCase().startsWith("FAO")) {
-      // variantes "FAO27" ou "FAO 27"
-      const z = zone.replace(/^FAO\s*/, "FAO").replace(/^FAO(\d+)/, "FAO $1");
-      fao = `${z}${sousZone ? " " + sousZone : ""}`.trim();
-    }
-
-    // 🔸 Nettoyage "ZONE" parasite
-    if (/^ZONE/i.test(sousZone)) sousZone = sousZone.replace(/^ZONE\s*/i, "").trim();
-
-    rows.push({
-      refFournisseur: refFourn.trim(),
-      designation: (designation.trim() + (nomLatin ? " " + nomLatin : "")).trim(),
-      nomLatin,
-      colis: parseInt(colis),
-      poidsColisKg: parseFloat(poidsColis.replace(",", ".")),
-      poidsTotalKg: parseFloat(poidsTotal.replace(",", ".")),
-      prixKg: parseFloat(prixKg.replace(",", ".")),
-      montantHT: parseFloat(montant.replace(",", ".")),
-      zone,
-      sousZone,
-      engin,
-      lot,
-      fao
-    });
   }
+
+  // Dernier bloc
+  if (current) rows.push(current);
 
   console.log("🧾 Lignes extraites:", rows);
   return rows;
