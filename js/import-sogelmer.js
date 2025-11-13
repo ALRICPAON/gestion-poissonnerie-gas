@@ -1,301 +1,287 @@
 /**************************************************
  * IMPORT SOGELMER (10003)
- * Compatible PDF – version stable du 13/11/2025
+ * Version stable — blocs exacts du BL
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
   collection, addDoc, doc, serverTimestamp, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-function buildFAO(zone, sousZone) {
-  if (!zone) return "";
-  if (/elev/i.test(zone)) return "ÉLEVAGE";
-  sousZone = sousZone ? sousZone.replace(/[^IVX]/gi,"").toUpperCase() : "";
-  return (`FAO ${zone.replace(/[^0-9]/g,"")}` + (sousZone ? " " + sousZone : "")).trim();
-}
-
+/**************************************************
+ * PDF RAW TEXT
+ **************************************************/
 async function extractTextFromPdf(file) {
   const pdfjsLib = window["pdfjs-dist/build/pdf"];
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
-  const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 
-  let txt = "";
+  let raw = "";
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const c = await page.getTextContent();
-    txt += c.items.map(i => i.str).join("\n") + "\n";
+    raw += c.items.map(i => i.str).join("\n") + "\n";
   }
 
-  console.log("🔍 PDF SOGELMER brut:", txt.slice(0,2000));
-  return txt;
+  console.log("🔍 PDF SOGELMER brut:", raw.slice(0, 1500));
+  return raw;
 }
-function isSogelmerCode(raw) {
-  const s = raw.trim();
-
-  if (!s) return false;
-
-  // pas d'espace
-  if (/\s/.test(s)) return false;
-
-  // exclure les numéros purs
-  if (/^\d+$/.test(s)) return false;
-
-  // exclure ref type C5100022
-  if (/^[A-Z]\d+$/.test(s)) return false;
-
-  // exclure lots : 05131102998
-  if (/^\d{8,}$/.test(s)) return false;
-
-  // doit contenir au moins 3 lettres
-  if ((s.match(/[A-Z]/gi) || []).length < 3) return false;
-
-  // longueur correcte
-  if (s.length < 5 || s.length > 12) return false;
-
-  return true;
-}
-
 
 /**************************************************
- * 🔍 Détecteur de vrai code produit SOGELMER
+ * Normalisation ENGIN
  **************************************************/
-function isRealProductCode(s) {
-  const txt = s.trim();
+function normalizeEngin(e) {
+  if (!e) return "";
 
-  // ❌ Exclure entête / faux codes
-  if (/^(ARTICLE|DESIGNATION|COLIS|PDS|QUANTITE|UV|LOT|TVA|CLIENT)$/i.test(txt))
-    return false;
+  const x = e.toUpperCase();
 
-  // ❌ Exclure numéros purement digitaux (client, BL, lots internes…)
-  if (/^\d{5,}$/.test(txt)) return false;
+  if (x.includes("FILMAIL")) return "Filet maillant";
+  if (x.includes("FILTS") || x.includes("TOURN")) return "Filet tournant";
+  if (x.includes("FILET")) return "Filet";
+  if (x.includes("LIGNE")) return "Ligne";
+  if (x.includes("CHALUT")) return "Chalut";
 
-  // ✔ Format typique : FILJUL58 / RAI121F/6 / DARCON / EMISP/6 / etc.
-  return /^[A-Z]{2,6}[A-Z0-9/]{1,6}$/i.test(txt);
+  return e;
 }
 
 /**************************************************
- * 🎯 Extraction FAO : conserve "autres ss zones"
- **************************************************/
-function extractFAO_Sogelmer(raw) {
-  let zone = "";
-  let sousZone = "";
-  let fao = "";
-
-  const m = raw.match(/FAO\s*([0-9]{1,3})\s*([IVX]*)/i);
-  if (m) {
-    zone = `FAO ${m[1]}`;
-    sousZone = (m[2] || "").trim();
-  }
-
-  // autres sous zones
-  if (/autres\s+ss\s+zones/i.test(raw)) {
-    if (sousZone) sousZone += " & AUTRES SS ZONES";
-    else sousZone = "AUTRES SS ZONES";
-  }
-
-  if (zone) {
-    fao = (zone + " " + sousZone).trim();
-    fao = fao.replace(/\s+/g, " ");
-  }
-
-  return { zone, sousZone, fao };
-}
-
-/**************************************************
- * ⚓ Normalisation engins Sogelmer
- **************************************************/
-function normalizeEngin(raw) {
-  const t = raw.toUpperCase();
-
-  if (/MAIL/i.test(t)) return "FILET MAILLANT";
-  if (/FILT?S?/i.test(t)) return "FILET TOURNANT";
-  if (/CHALUT/i.test(t)) return "CHALUT";
-  if (/LIGNE/i.test(t)) return "LIGNE";
-
-  return raw.trim();
-}
-
-/**************************************************
- * 📄 Parse BL SOGELMER — Version stable
+ * PARSE SOGELMER (détection par blocs)
  **************************************************/
 export function parseSogelmer(text) {
+
   const rows = [];
   const lines = text
     .split(/\n/)
-    .map(l => l.replace(/\s+/g, " ").trim())
+    .map(l => l.trim())
     .filter(l => l.length > 0);
 
-  let current = null;
-  let step = 0;
-
-  const push = () => {
-    if (current && current.designation.length > 2) rows.push(current);
-    current = null;
-    step = 0;
-  };
-
-  for (let raw of lines) {
-
-    // 🎯 DÉTECTION DU CODE
-    if (isSogelmerCode(raw)) {
-      push();
-      current = {
-        refFournisseur: raw,
-        designation: "",
-        colis: 0,
-        poidsColisKg: 0,
-        poidsTotalKg: 0,
-        uv: "",
-        lot: "",
-        prixKg: 0,
-        montantHT: 0,
-        nomLatin: "",
-        zone: "",
-        sousZone: "",
-        engin: "",
-        fao: ""
-      };
-      step = 1;
-      continue;
-    }
-
-    if (!current) continue;
-
-    // 🧱 ETAPE 1 → designation
-    if (step === 1) {
-      current.designation = raw;
-      step = 2;
-      continue;
-    }
-
-    // 🧱 ETAPE 2 → colis
-    if (step === 2 && /^\d+$/.test(raw)) {
-      current.colis = parseInt(raw);
-      step = 3;
-      continue;
-    }
-
-    // 🧱 ETAPE 3 → pds unit
-    if (step === 3 && /^[0-9]+([.,][0-9]+)?$/.test(raw)) {
-      current.poidsColisKg = parseFloat(raw.replace(",", "."));
-      step = 4;
-      continue;
-    }
-
-    // 🧱 ETAPE 4 → quantité
-    if (step === 4 && /^[0-9]+([.,][0-9]+)?$/.test(raw)) {
-      current.poidsTotalKg = parseFloat(raw.replace(",", "."));
-      step = 5;
-      continue;
-    }
-
-    // 🧱 ETAPE 5 → UV
-    if (step === 5) {
-      current.uv = raw;
-      step = 6;
-      continue;
-    }
-
-    // 🧱 ETAPE 6 → lot
-    if (step === 6) {
-      current.lot = raw;
-      step = 7;
-      continue;
-    }
-
-    // 🧱 ETAPE 7 → prix HT
-    if (step === 7 && /€/.test(raw)) {
-      current.prixKg = parseFloat(raw.replace("€", "").replace(",", "."));
-      step = 8;
-      continue;
-    }
-
-    // 🧱 ETAPE 8 → montant HT
-    if (step === 8 && /€/.test(raw)) {
-      current.montantHT = parseFloat(raw.replace("€", "").replace(",", "."));
-      step = 9;
-      continue;
-    }
-
-    // 🧾 Après montant HT → bloc bio
-    if (step >= 9) {
-      // latin
-      const mLatin = raw.match(/^([A-Z][a-z]+(?: [a-z]+)?)/);
-      if (mLatin) current.nomLatin = mLatin[1];
-
-      // engin
-      const eng = raw.match(/Chalut|Mail|FILT|Filet|Ligne/i);
-      if (eng) current.engin = eng[0];
-
-      // FAO
-      const mFao = raw.match(/FAO\s*([0-9]{1,3})\s*([IVX]*)/i);
-      if (mFao) {
-        current.zone = `FAO ${mFao[1]}`;
-        current.sousZone = mFao[2] || "";
-        if (/autres ss zones/i.test(raw)) {
-          current.sousZone += " & AUTRES SS ZONES";
-        }
-        current.fao = `${current.zone} ${current.sousZone}`.trim();
-      }
-    }
+  // Code produit = majuscules + chiffres + / -
+  function isArticleCode(s) {
+    return (
+      /^[A-Z0-9\/-]+$/.test(s) &&
+      !/^\d+$/.test(s) &&
+      s.length >= 4 &&
+      /[A-Z]/.test(s)
+    );
   }
 
-  push();
+  let i = 0;
+
+  while (i < lines.length) {
+    const L = lines[i];
+
+    if (!isArticleCode(L)) {
+      i++;
+      continue;
+    }
+
+    // 🔥 Début d’un bloc produit
+    const refF = L;
+    const designation = (lines[i + 1] || "").trim();
+
+    const colis = parseInt(lines[i + 2] || "0", 10);
+    const poidsColisKg = parseFloat((lines[i + 3] || "").replace(",", "."));
+    const poidsTotalKg = parseFloat((lines[i + 4] || "").replace(",", "."));
+    const uv = (lines[i + 5] || "").trim();
+    const lot = (lines[i + 6] || "").trim();
+
+    let prixKg = 0;
+    if ((lines[i + 7] || "").includes("€"))
+      prixKg = parseFloat(lines[i + 7].replace("€", "").replace(",", "."));
+
+    let montantHT = 0;
+    if ((lines[i + 8] || "").includes("€"))
+      montantHT = parseFloat(lines[i + 8].replace("€", "").replace(",", "."));
+
+    // Ligne bio
+    const bio = (lines[i + 10] || "").trim();
+
+    // Nom latin
+    let nomLatin = "";
+    const latin = bio.match(/^([A-Z][a-z]+(?: [a-z]+)*)/);
+    if (latin) nomLatin = latin[1];
+
+    // FAO
+    let zone = "";
+    let sousZone = "";
+    let fao = "";
+
+    const faoMatch = bio.match(/FAO\s*([0-9]{1,3})\s*([IVX]*)/i);
+    if (faoMatch) {
+      zone = `FAO ${faoMatch[1]}`;
+      sousZone = faoMatch[2] || "";
+
+      if (/autres ss zones/i.test(bio))
+        sousZone += " & AUTRES SS ZONES";
+
+      fao = `${zone} ${sousZone}`.trim();
+    }
+
+    // Engin
+    let engin = "";
+    const engMatch = bio.match(/Chalut|Ligne|Filet|Mail|FILTS/gi);
+    if (engMatch) engin = normalizeEngin(engMatch[0]);
+
+    // Ajout du produit
+    rows.push({
+      refFournisseur: refF,
+      designation,
+      colis,
+      poidsColisKg,
+      poidsTotalKg,
+      uv,
+      lot,
+      prixKg,
+      montantHT,
+      nomLatin,
+      zone,
+      sousZone,
+      engin,
+      fao
+    });
+
+    i += 11; // passer au bloc suivant
+  }
 
   console.log("📦 Lignes SOGELMER extraites:", rows);
   return rows;
 }
 
-
 /**************************************************
- * FIRESTORE SAVE
+ * SAUVEGARDE FIRESTORE
  **************************************************/
-export async function importSogelmer(file) {
-
-  const text = await extractTextFromPdf(file);
-  const lines = parseSogelmer(text);
-
+async function saveSogelmer(lines) {
   if (!lines.length) throw new Error("Aucune ligne détectée dans le BL Sogelmer");
 
-  const FOUR_CODE = "10003";
+  const FOUR_CODE = "10003"; // ✔ ton id fournisseur
+  const supplier = { code: FOUR_CODE, nom: "Sogelmer" };
 
+  // Charger AF_MAP & Articles
+  const [afSnap, artSnap] = await Promise.all([
+    getDocs(collection(db, "af_map")),
+    getDocs(collection(db, "articles"))
+  ]);
+
+  const afMap = {};
+  afSnap.forEach(d => { afMap[d.id.toUpperCase()] = d.data(); });
+
+  const artMap = {};
+  artSnap.forEach(d => {
+    const a = d.data();
+    if (a?.plu) artMap[a.plu.toString().trim()] = a;
+  });
+
+  // Créer en-tête achat
   const achatRef = await addDoc(collection(db, "achats"), {
     date: new Date().toISOString().slice(0, 10),
-    fournisseurCode: FOUR_CODE,
-    fournisseurNom: "SOGELMER",
+    fournisseurCode: supplier.code,
+    fournisseurNom: supplier.nom,
     type: "BL",
     statut: "new",
     montantHT: 0,
     montantTTC: 0,
     totalKg: 0,
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   });
+
+  const achatId = achatRef.id;
 
   let totalHT = 0;
   let totalKg = 0;
+  const missing = [];
 
   for (const L of lines) {
-    totalHT += L.montantHT;
-    totalKg += L.poidsTotalKg;
+    totalHT += L.montantHT || 0;
+    totalKg += L.poidsTotalKg || 0;
 
-    await addDoc(collection(db, "achats", achatRef.id, "lignes"), {
-      ...L,
-      fao: buildFAO(L.zone, L.sousZone),
+    const keyExact = `${FOUR_CODE}__${L.refFournisseur}`.toUpperCase();
+    const M = afMap[keyExact] || null;
+
+    let plu = "";
+    let designationInterne = L.designation;
+    let allergenes = "";
+    let zone = L.zone;
+    let sousZone = L.sousZone;
+    let engin = L.engin;
+    let fao = L.fao;
+    let nomLatin = L.nomLatin;
+
+    // 1) AF_MAP (prioritaire)
+    if (M) {
+      plu = (M.plu || "").toString();
+      if (M.designationInterne)
+        designationInterne = M.designationInterne;
+
+      if (!nomLatin && M.nomLatin) nomLatin = M.nomLatin;
+      if (!zone && M.zone) zone = M.zone;
+      if (!sousZone && M.sousZone) sousZone = M.sousZone;
+      if (!engin && M.engin) engin = normalizeEngin(M.engin);
+
+      if (!fao) fao = `${zone} ${sousZone}`.trim();
+    } else {
+      missing.push(L.refFournisseur);
+    }
+
+    // 2) Articles database
+    const art = plu ? artMap[plu] : null;
+    if (art) {
+      if (art.designation) designationInterne = art.designation;
+      if (!nomLatin && art.nomLatin) nomLatin = art.nomLatin;
+
+      if (!zone && art.zone) zone = art.zone;
+      if (!sousZone && art.sousZone) sousZone = art.sousZone;
+      if (!engin && art.engin) engin = normalizeEngin(art.engin);
+
+      if (!fao) fao = `${zone} ${sousZone}`.trim();
+    }
+
+    // Sauvegarde
+    await addDoc(collection(db, "achats", achatId, "lignes"), {
+      refFournisseur: L.refFournisseur,
+      designation: L.designation,
+      designationInterne,
+      nomLatin,
+      plu,
+      allergenes,
+      colis: L.colis,
+      poidsColisKg: L.poidsColisKg,
+      poidsTotalKg: L.poidsTotalKg,
+      uv: L.uv,
+      lot: L.lot,
+      prixKg: L.prixKg,
+      montantHT: L.montantHT,
+      montantTTC: L.montantHT,
+      zone,
+      sousZone,
+      engin,
+      fao,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
   }
 
-  await updateDoc(doc(db, "achats", achatRef.id), {
-    montantHT: totalHT,
-    montantTTC: totalHT,
-    totalKg,
-    updatedAt: serverTimestamp()
+  await updateDoc(doc(db, "achats", achatId), {
+    montantHT: Number(totalHT.toFixed(2)),
+    montantTTC: Number(totalHT.toFixed(2)),
+    totalKg: Number(totalKg.toFixed(3)),
+    updatedAt: serverTimestamp(),
   });
 
-  alert(`✅ ${lines.length} lignes importées pour Sogelmer`);
+  if (missing.length)
+    console.warn("⚠️ Références SOGELMER manquantes dans AF_MAP:", missing);
+
+  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
+  location.reload();
+}
+
+/**************************************************
+ * MAIN
+ **************************************************/
+export async function importSogelmer(file) {
+  const txt = await extractTextFromPdf(file);
+  const lines = parseSogelmer(txt);
+  await saveSogelmer(lines);
 }
