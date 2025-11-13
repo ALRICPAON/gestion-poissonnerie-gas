@@ -180,23 +180,10 @@ async function saveRoyaleMaree(lignes, user) {
   setTimeout(() => window.location.reload(), 800);
 }
 
-/**************************************************
- * 📂 Gestion du fichier uploadé
- **************************************************/
-document.getElementById("import-pdf").addEventListener("change", async e => {
-  const file = e.target.files[0];
-  if (!file) return alert("Aucun fichier sélectionné.");
-
+export async function importRoyaleMaree(file, user) {
   const arrayBuffer = await file.arrayBuffer();
-  const user = firebase.auth().currentUser;
-  if (!user) return alert("Utilisateur non connecté.");
+  const lignes = await parseRoyaleMareePDF(arrayBuffer);
+  if (!lignes.length) throw new Error("Aucune ligne trouvée dans le PDF.");
+  await saveRoyaleMaree(lignes, user);
+}
 
-  try {
-    const lignes = await parseRoyaleMareePDF(arrayBuffer);
-    if (!lignes || !lignes.length) throw new Error("Aucune ligne trouvée dans le PDF.");
-    await saveRoyaleMaree(lignes, user);
-  } catch (err) {
-    console.error(err);
-    alert("❌ Erreur import : " + err.message);
-  }
-});
