@@ -3,7 +3,7 @@
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
-  collection, addDoc, doc, serverTimestamp, updateDoc
+  collection, addDoc, doc, serverTimestamp, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
@@ -11,22 +11,32 @@ import {
  **************************************************/
 function findAFMapEntry(afMap, fourCode, refFournisseur) {
   if (!refFournisseur) return null;
-
   const refStr = refFournisseur.toString().trim();
   const keyExact = `${fourCode}__${refStr}`.toUpperCase();
   const keyNoZero = `${fourCode}__${refStr.replace(/^0+/, "")}`.toUpperCase();
-  const keyAlt = `${fourCode}__${refStr.padStart(5, "0")}`.toUpperCase(); // au cas où
-
+  const keyAlt = `${fourCode}__${refStr.padStart(5, "0")}`.toUpperCase();
   return afMap[keyExact] || afMap[keyNoZero] || afMap[keyAlt] || null;
 }
 
+/**************************************************
+ * 🧩 FAO normalisé
+ **************************************************/
+function buildFAO(zone, sousZone) {
+  if (!zone) return "";
+  zone = zone.toUpperCase().replace(/^FAO/, "FAO ").replace(/\s+/g, " ").trim();
+  sousZone = sousZone?.toUpperCase().replace(/\./g, "").trim() || "";
+  if (zone.startsWith("ÉLE")) return zone;
+  if (zone.startsWith("FAO")) return `${zone}${sousZone ? " " + sousZone : ""}`.trim();
+  return `${zone} ${sousZone}`.trim().replace(/\s{2,}/g, " ");
+}
 
 /**************************************************
  * PDF TEXT EXTRACT
  **************************************************/
 async function extractTextFromPdf(file) {
   const pdfjsLib = window["pdfjs-dist/build/pdf"];
-  if (!pdfjsLib) throw new Error("PDF.js non chargé. Ajoute <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'>");
+  if (!pdfjsLib)
+    throw new Error("PDF.js non chargé. Ajoute <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'>");
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
@@ -47,20 +57,17 @@ async function extractTextFromPdf(file) {
  * PARSE LINES
  **************************************************/
 function parseRoyaleMareeLines(text) {
-  const lines = [];
   const rows = [];
 
-  // 1️⃣ Nettoyage du texte brut
   let clean = text
-    .replace(/\s+/g, " ")        // espaces multiples → simple
-    .replace(/[,;]/g, ",")       // normalisation virgules
-    .replace(/€/g, "")           // supprime €
+    .replace(/\s+/g, " ")
+    .replace(/[,;]/g, ",")
+    .replace(/€/g, "")
     .replace(/\(pour Facture\)/gi, "")
-    .replace(/\s+\|\s+/g, "|")   // supprime espaces avant/après |
+    .replace(/\s+\|\s+/g, "|")
     .replace(/\s*Page\s*\d+\/\d+\s*/gi, " ")
-    .replace(/Transp\..+?Départ\s*:/gi, " "); // coupe l'en-tête parasite
+    .replace(/Transp\..+?Départ\s*:/gi, " ");
 
-  // 2️⃣ Découpage des blocs par code article (4 à 5 chiffres)
   const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g);
 
   for (let part of parts) {
@@ -69,22 +76,10 @@ function parseRoyaleMareeLines(text) {
     );
     if (!matchHead) continue;
 
-    const [
-      _,
-      refFourn,
-      colis,
-      poidsColis,
-      montant,
-      prixKg,
-      poidsTotal,
-      designation
-    ] = matchHead;
+    const [_, refFourn, colis, poidsColis, montant, prixKg, poidsTotal, designation] = matchHead;
 
-    // 3️⃣ Extraction du reste : nom latin, FAO, engin, lot, etc.
     const tail = part.slice(matchHead.index + matchHead[0].length);
     const nomLatin = (tail.match(/[A-Z][a-z]+\s+[a-z]+\s*[A-Z]?[a-z]*/i)?.[0] || "").trim();
-
-    // Bloc de traçabilité (FAO, Engin…)
     const blocTrace = tail.match(/(Pêché|Elevé).+?Lot\s*:\s*\S+/i);
     const traceTxt = blocTrace ? blocTrace[0] : "";
 
@@ -93,24 +88,20 @@ function parseRoyaleMareeLines(text) {
     let engin = "";
     let lot = "";
 
-    // FAO
     const mFAO = traceTxt.match(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/i);
     if (mFAO) {
       zone = `FAO${mFAO[1]}`;
       sousZone = mFAO[2] ? mFAO[2].toUpperCase().replace(/\./g, "") : "";
     }
 
-    // Élevage
     if (/Elevé/i.test(traceTxt)) {
       zone = "Élevage";
       sousZone = (traceTxt.match(/en\s*:?([A-Za-z\s]+)/i)?.[1] || "").trim();
     }
 
-    // Engin
     const mEngin = traceTxt.match(/Engin\s*:\s*([^|]+)/i);
     if (mEngin) engin = mEngin[1].trim();
 
-    // Lot
     const mLot = traceTxt.match(/Lot\s*:\s*(\S+)/i);
     if (mLot) lot = mLot[1].trim();
 
@@ -135,22 +126,28 @@ function parseRoyaleMareeLines(text) {
 }
 
 /**************************************************
- * FIRESTORE SAVE (avec mapping AF_MAP)
+ * FIRESTORE SAVE (avec mapping AF_MAP + Articles)
  **************************************************/
-import { getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
 async function saveRoyaleMaree(lines) {
   if (!lines.length) throw new Error("Aucune ligne trouvée dans le PDF.");
 
   const FOUR_CODE = "10004";
   const supplier = { code: FOUR_CODE, nom: "Royale Marée" };
 
-  // 🔹 Charge AF_MAP complet une seule fois
-  const snap = await getDocs(collection(db, "af_map"));
-  const afMap = {};
-  snap.forEach(d => { afMap[d.id.toUpperCase()] = d.data(); });
+  const [afSnap, artSnap] = await Promise.all([
+    getDocs(collection(db, "af_map")),
+    getDocs(collection(db, "articles"))
+  ]);
 
-  // 🔹 Crée un en-tête achat
+  const afMap = {};
+  afSnap.forEach(d => { afMap[d.id.toUpperCase()] = d.data(); });
+
+  const artMap = {};
+  artSnap.forEach(d => {
+    const a = d.data();
+    if (a.plu) artMap[a.plu.toString().trim()] = a;
+  });
+
   const achatRef = await addDoc(collection(db, "achats"), {
     date: new Date().toISOString().slice(0, 10),
     fournisseurCode: supplier.code,
@@ -172,7 +169,6 @@ async function saveRoyaleMaree(lines) {
     totalHT += L.montantHT;
     totalKg += L.poidsTotalKg;
 
-    // 🔍 Essaie de retrouver le mapping AF_MAP
     const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
     let plu = "";
@@ -194,12 +190,22 @@ async function saveRoyaleMaree(lines) {
       missingRefs.push(L.refFournisseur);
     }
 
+    // 🔹 Complète depuis la fiche Article si PLU connu
+    const art = artMap[plu];
+    if (art) {
+      if (!designationInterne || designationInterne.length < 3)
+        designationInterne = art.designation || designationInterne;
+      if (!zone && art.zone) zone = art.zone;
+      if (!sousZone && art.sousZone) sousZone = art.sousZone;
+      if (!engin && art.engin) engin = art.engin;
+    }
+
     await addDoc(collection(db, "achats", achatId, "lignes"), {
       ...L,
       plu,
       designationInterne,
       allergenes,
-      fao: `${zone} ${sousZone}`.trim(),
+      fao: buildFAO(zone, sousZone),
       fournisseurRef: L.refFournisseur,
       montantTTC: L.montantHT,
       createdAt: serverTimestamp(),
@@ -214,9 +220,8 @@ async function saveRoyaleMaree(lines) {
     updatedAt: serverTimestamp(),
   });
 
-  if (missingRefs.length > 0) {
+  if (missingRefs.length > 0)
     console.warn("⚠️ Références non trouvées dans AF_MAP:", missingRefs);
-  }
 
   alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
 }
