@@ -229,6 +229,18 @@ function parseRoyaleMareeLines(text) {
 if (current) {
   rows.push(current);
 }
+  // 🧽 Nettoyage spécial fin de PDF (évite "Total Bon", "Total Etablissement", etc.)
+for (const r of cleaned) {
+  if (/total/i.test(r.designation)) {
+    // coupe la désignation avant le mot "Total"
+    const idx = r.designation.search(/total/i);
+    if (idx > 0) r.designation = r.designation.slice(0, idx).trim();
+  }
+  if (/total/i.test(r.nomLatin)) {
+    r.nomLatin = "";
+  }
+}
+
 
   // 🧹 Nettoyage final : supprime les lignes vides ou incohérentes
 const cleaned = rows.filter(r =>
