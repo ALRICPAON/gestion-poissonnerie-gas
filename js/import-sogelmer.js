@@ -221,7 +221,10 @@ async function saveSogelmer(lines) {
       if (!fao) fao = buildFAO(zone, sousZone);
 
     } else {
-      missingRefs.push(L.refFournisseur);
+      missingRefs.push(
+  L.refFournisseur.replace(/\//g, "_")
+);
+
     }
 
     // ---- ARTICLES fallback
