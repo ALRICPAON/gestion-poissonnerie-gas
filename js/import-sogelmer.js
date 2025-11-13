@@ -1,13 +1,13 @@
 /**************************************************
  * IMPORT SOGELMER (10003)
- * Version FINALISÉE — 14/11/2025
+ * Version finale — AF_MAP + Popup + lineId
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
   collection, addDoc, doc, serverTimestamp, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { manageAFMap } from "./manage-af-map.js";
 
+import { manageAFMap } from "./manage-af-map.js";
 
 /**************************************************
  * PDF TEXT EXTRACT
@@ -40,7 +40,7 @@ const isArticleCode = s =>
   !/CLIENT|SOGELMER|PAGE|DATE|FR|CE|TARIF|POIDS|STEF|BL|FACTURE|LIVRE/i.test(s);
 
 /**************************************************
- * PARSE PDF → blocs Sogelmer
+ * PARSE PDF
  **************************************************/
 export function parseSogelmer(text) {
 
@@ -138,13 +138,15 @@ function buildFAO(zone, sousZone) {
 }
 
 /**************************************************
- * SAVE SOGELMER
+ * SAVE SOGELMER — popup AF_MAP incluse
  **************************************************/
 async function saveSogelmer(lines) {
 
   const FOUR_CODE = "10003";
+
   if (!lines.length) throw new Error("Aucune ligne SOGELMER détectée");
 
+  // Charger AF_MAP + ARTICLES
   const [afSnap, artSnap] = await Promise.all([
     getDocs(collection(db, "af_map")),
     getDocs(collection(db, "articles"))
@@ -159,6 +161,7 @@ async function saveSogelmer(lines) {
     if (a.plu) artMap[a.plu.toString()] = a;
   });
 
+  // Créer achat
   const achatRef = await addDoc(collection(db, "achats"), {
     date: new Date().toISOString().slice(0,10),
     fournisseurCode: FOUR_CODE,
@@ -179,16 +182,13 @@ async function saveSogelmer(lines) {
   let missingRefs = [];
 
   /**************************************************
-   * BOUCLE DES LIGNES
+   * BOUCLE LIGNES
    **************************************************/
   for (const L of lines) {
 
     totalHT += Number(L.montantHT || 0);
     totalKg += Number(L.poidsTotalKg || 0);
 
-    /**************************************************
-     * 🧩 ENRICHISSEMENT AF_MAP + ARTICLES
-     **************************************************/
     let plu = "";
     let designationInterne = (L.designation || "").trim();
     let allergenes = "";
@@ -199,8 +199,9 @@ async function saveSogelmer(lines) {
 
     let cleanFromAF = "";
 
-    // ---- AF_MAP = priorité totale
-    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+    // ---- AF_MAP ----
+    const refClean = L.refFournisseur.replace(/\//g, "_");
+    const M = findAFMapEntry(afMap, FOUR_CODE, refClean);
 
     if (M) {
       plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
@@ -221,13 +222,17 @@ async function saveSogelmer(lines) {
       if (!fao) fao = buildFAO(zone, sousZone);
 
     } else {
-      missingRefs.push(
-  L.refFournisseur.replace(/\//g, "_")
-);
-
+      // ❗ Ajouter à la liste pour la popup
+      missingRefs.push({
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: refClean,
+        designation: L.designation,
+        achatId,
+        lineId: null // sera rempli juste après l'insert
+      });
     }
 
-    // ---- ARTICLES fallback
+    // ---- FALLBACK ARTICLES ----
     const art = plu ? artMap[plu] : null;
 
     if (art) {
@@ -250,19 +255,18 @@ async function saveSogelmer(lines) {
       if (!fao) fao = buildFAO(zone, sousZone);
     }
 
-    // Normalisation engins
     if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
     if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
     /**************************************************
-     * Sauvegarde Firestore de la ligne
+     * 🔵 INSERER LIGNE + récupérer lineId
      **************************************************/
-    await addDoc(collection(db, "achats", achatId, "lignes"), {
+    const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
       ...L,
       plu,
       designationInterne,
       allergenes,
-      fournisseurRef: L.refFournisseur,
+      fournisseurRef: refClean,
       zone,
       sousZone,
       engin,
@@ -272,10 +276,15 @@ async function saveSogelmer(lines) {
       updatedAt: serverTimestamp()
     });
 
-  } // ← fermeture du for
+    const lineId = lineRef.id;
+
+    // Ajouter lineId aux missingRefs concernés
+    const missObj = missingRefs.find(m => m.refFournisseur === refClean && m.lineId === null);
+    if (missObj) missObj.lineId = lineId;
+  }
 
   /**************************************************
-   * Mise à jour du total
+   * UPDATE TOTAL ACHAT
    **************************************************/
   await updateDoc(doc(db, "achats", achatId), {
     montantHT: totalHT,
@@ -284,35 +293,15 @@ async function saveSogelmer(lines) {
     updatedAt: serverTimestamp()
   });
 
-  if (missingRefs.length > 0)
-    console.warn("⚠️ Références SOGELMER non trouvées dans AF_MAP:", missingRefs);
-
-    // Après updateDoc(...)
-  await updateDoc(doc(db, "achats", achatId), {
-    montantHT: totalHT,
-    montantTTC: totalHT,
-    totalKg,
-    updatedAt: serverTimestamp()
-  });
-
-  // 🆕🔔 OUVERTURE POPUP MANAGE AF_MAP SI RÉF MANQUANTE
+  /**************************************************
+   * 🔥 POPUP AF_MAP SI REF MANQUANTE
+   **************************************************/
   if (missingRefs.length > 0) {
-    console.log("🔎 Références SOGELMER manquantes :", missingRefs);
-    await manageAFMap(
-      missingRefs.map(ref => ({
-        fournisseurCode: FOUR_CODE,
-        refFournisseur: ref,
-        designation: "",   // tu peux mettre L.designation si tu veux
-        achatId: achatId
-      }))
-    );
+    console.log("🔎 Réf SOGELMER manquantes :", missingRefs);
+    await manageAFMap(missingRefs);  // ✔ envoie lineId + achatId + refFournisseur
   }
 
-  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
-  location.reload();
-
-
-  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
+  alert(`✅ ${lines.length} lignes importées (SOGELMER)`);
   location.reload();
 }
 
