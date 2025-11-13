@@ -34,83 +34,186 @@ async function extractTextFromPdf(file) {
 }
 
 /**************************************************
- * PARSE SOGELMER (format spécial)
+ * 🔍 Détecteur de vrai code produit SOGELMER
  **************************************************/
-function parseSogelmer(text) {
+function isRealProductCode(s) {
+  const txt = s.trim();
+
+  // ❌ Exclure entête / faux codes
+  if (/^(ARTICLE|DESIGNATION|COLIS|PDS|QUANTITE|UV|LOT|TVA|CLIENT)$/i.test(txt))
+    return false;
+
+  // ❌ Exclure numéros purement digitaux (client, BL, lots internes…)
+  if (/^\d{5,}$/.test(txt)) return false;
+
+  // ✔ Format typique : FILJUL58 / RAI121F/6 / DARCON / EMISP/6 / etc.
+  return /^[A-Z]{2,6}[A-Z0-9/]{1,6}$/i.test(txt);
+}
+
+/**************************************************
+ * 🎯 Extraction FAO : conserve "autres ss zones"
+ **************************************************/
+function extractFAO_Sogelmer(raw) {
+  let zone = "";
+  let sousZone = "";
+  let fao = "";
+
+  const m = raw.match(/FAO\s*([0-9]{1,3})\s*([IVX]*)/i);
+  if (m) {
+    zone = `FAO ${m[1]}`;
+    sousZone = (m[2] || "").trim();
+  }
+
+  // autres sous zones
+  if (/autres\s+ss\s+zones/i.test(raw)) {
+    if (sousZone) sousZone += " & AUTRES SS ZONES";
+    else sousZone = "AUTRES SS ZONES";
+  }
+
+  if (zone) {
+    fao = (zone + " " + sousZone).trim();
+    fao = fao.replace(/\s+/g, " ");
+  }
+
+  return { zone, sousZone, fao };
+}
+
+/**************************************************
+ * ⚓ Normalisation engins Sogelmer
+ **************************************************/
+function normalizeEngin(raw) {
+  const t = raw.toUpperCase();
+
+  if (/MAIL/i.test(t)) return "FILET MAILLANT";
+  if (/FILT?S?/i.test(t)) return "FILET TOURNANT";
+  if (/CHALUT/i.test(t)) return "CHALUT";
+  if (/LIGNE/i.test(t)) return "LIGNE";
+
+  return raw.trim();
+}
+
+/**************************************************
+ * 📄 Parse BL SOGELMER — Version stable
+ **************************************************/
+export function parseSogelmer(text) {
   const rows = [];
-  const lines = text.split("\n").map(l => l.trim()).filter(l => l);
+  const lines = text
+    .split(/\n/)
+    .map(l => l.replace(/\s+/g, " ").trim())
+    .filter(l => l.length > 0);
 
-  let i = 0;
+  let current = null;
+  let stage = 0; // 1=colis, 2=poids unit, 3=quantité, 4=UV, 5=lot, 6=prix, 7=montant
 
-  while (i < lines.length) {
+  const pushCurrent = () => {
+    if (current && current.designation.length > 2) {
+      rows.push(current);
+    }
+    current = null;
+    stage = 0;
+  };
 
-    /** 1) CODE article SOGELMER = 5–10 caractères alphanumériques */
-    if (/^[A-Z0-9]{5,12}$/.test(lines[i]) && !/PAGE|SOGELMER|CHALLANS/i.test(lines[i])) {
-
-      const refFournisseur = lines[i];
-      i++;
-
-      /** 2) Désignation */
-      const designation = (lines[i] || "").trim();
-      i++;
-
-      /** 3) Tableau quantités (8 lignes fixes) */
-      const colis        = parseInt((lines[i++]||"0").replace(",", "."), 10);
-      const pdsUnit      = parseFloat((lines[i++]||"0").replace(",", "."));
-      const poidsTotalKg = parseFloat((lines[i++]||"0").replace(",", "."));
-      const uv           = lines[i++] || "KG";
-      const lot          = lines[i++] || "";
-      const prixKg       = parseFloat((lines[i++]||"0").replace(",", "."));
-      const montantHT    = parseFloat((lines[i++]||"0").replace(",", "."));
-      const tva          = lines[i++] || "";
-
-      /** 4) Traçabilité */
-      let nomLatin = "";
-      let zone = "";
-      let sousZone = "";
-      let engin = "";
-
-      const trace = lines[i] || "";
-      if (/FAO/i.test(trace)) {
-        // Ex: "Molva molva - FAO 27 VI & autres ss zones - Chalut"
-        const latinMatch = trace.match(/^([A-Za-z ]+)\s*-/);
-        if (latinMatch) nomLatin = latinMatch[1].trim();
-
-        const faoMatch = trace.match(/FAO\s*([0-9]{1,3})/i);
-        if (faoMatch) zone = faoMatch[1];
-
-        const ssMatch = trace.match(/FAO[0-9]+\s+([IVX]+)/i);
-        if (ssMatch) sousZone = ssMatch[1];
-
-        const engMatch = trace.match(/(Chalut|Ligne|Filet|Purse|Traine|Tournant)/i);
-        if (engMatch) engin = engMatch[1];
-
-        i++;
-      }
-
-      rows.push({
-        refFournisseur,
-        designation,
-        nomLatin,
-        colis,
-        poidsColisKg: pdsUnit,
-        poidsTotalKg,
-        uv,
-        lot,
-        prixKg,
-        montantHT,
-        zone,
-        sousZone,
-        engin
-      });
+  for (let raw of lines) {
+    // 🎯 1) Détection produit
+    if (isRealProductCode(raw)) {
+      pushCurrent();
+      current = {
+        refFournisseur: raw,
+        designation: "",
+        colis: 0,
+        poidsColisKg: 0,
+        poidsTotalKg: 0,
+        prixKg: 0,
+        montantHT: 0,
+        uv: "",
+        lot: "",
+        nomLatin: "",
+        zone: "",
+        sousZone: "",
+        engin: "",
+        fao: ""
+      };
+      stage = 1;
+      continue;
     }
 
-    i++;
+    if (!current) continue;
+
+    // 🎯 2) Structure du BL
+    if (stage === 1 && raw !== "" && /^[0-9]+$/.test(raw)) {
+      current.colis = parseInt(raw, 10);
+      stage = 2;
+      continue;
+    }
+
+    if (stage === 2 && /^[0-9]+(?:[.,][0-9]+)?$/.test(raw)) {
+      current.poidsColisKg = parseFloat(raw.replace(",", "."));
+      stage = 3;
+      continue;
+    }
+
+    if (stage === 3 && /^[0-9]+(?:[.,][0-9]+)?$/.test(raw)) {
+      current.poidsTotalKg = parseFloat(raw.replace(",", "."));
+      stage = 4;
+      continue;
+    }
+
+    if (stage === 4) {
+      current.uv = raw;
+      stage = 5;
+      continue;
+    }
+
+    if (stage === 5) {
+      current.lot = raw;
+      stage = 6;
+      continue;
+    }
+
+    if (stage === 6 && /€/.test(raw)) {
+      current.prixKg = parseFloat(raw.replace("€", "").replace(",", "."));
+      stage = 7;
+      continue;
+    }
+
+    if (stage === 7 && /€/.test(raw)) {
+      current.montantHT = parseFloat(raw.replace("€", "").replace(",", "."));
+      stage = 8;
+      continue;
+    }
+
+    // 🎯 3) Ligne de description : désignation + nom latin + FAO
+    if (stage >= 1) {
+      if (/FAO/i.test(raw) || /autres ss zones/i.test(raw)) {
+        const faoInfo = extractFAO_Sogelmer(raw);
+        current.zone = faoInfo.zone;
+        current.sousZone = faoInfo.sousZone;
+        current.fao = faoInfo.fao;
+      }
+
+      // nom latin : forme "Molva molva - ..."
+      const latinMatch = raw.match(/^([A-Z][a-z]+(?: [a-z]+)?(?: [a-z]+)?)/);
+      if (latinMatch) current.nomLatin = latinMatch[1].trim();
+
+      // engin
+      const engMatch = raw.match(/Chalut|Mail|FILT|Filet|Ligne/i);
+      if (engMatch) current.engin = normalizeEngin(engMatch[0]);
+
+      // désignation
+      if (!/X\s*\d+KG/i.test(raw) && !/FAO/i.test(raw)) {
+        if (!/Molva|Raja|Conger|Mustelus/i.test(raw)) {
+          current.designation = raw;
+        }
+      }
+    }
   }
+
+  pushCurrent();
 
   console.log("📦 Lignes SOGELMER extraites:", rows);
   return rows;
 }
+
 
 /**************************************************
  * FIRESTORE SAVE
