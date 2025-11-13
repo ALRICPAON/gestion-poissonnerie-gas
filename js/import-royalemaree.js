@@ -225,14 +225,22 @@ function parseRoyaleMareeLines(text) {
       stage = 1;
     }
   }
-  // 🧩 pousse le dernier article si on a atteint la fin sans nouveau code
+ // 🧩 pousse le dernier article si on a atteint la fin sans nouveau code
 if (current) {
   rows.push(current);
 }
-  // 🧽 Nettoyage spécial fin de PDF (évite "Total Bon", "Total Etablissement", etc.)
+
+// 🧹 Nettoyage final : supprime les lignes vides ou incohérentes
+const cleaned = rows.filter(r =>
+  r.refFournisseur &&
+  r.designation &&
+  r.designation.length > 3 &&
+  !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
+);
+
+// 🧽 Nettoyage spécial fin de PDF (évite "Total Bon", "Total Etablissement", etc.)
 for (const r of cleaned) {
   if (/total/i.test(r.designation)) {
-    // coupe la désignation avant le mot "Total"
     const idx = r.designation.search(/total/i);
     if (idx > 0) r.designation = r.designation.slice(0, idx).trim();
   }
@@ -241,18 +249,11 @@ for (const r of cleaned) {
   }
 }
 
-
-  // 🧹 Nettoyage final : supprime les lignes vides ou incohérentes
-const cleaned = rows.filter(r =>
-  r.refFournisseur &&
-  r.designation &&
-  r.designation.length > 3 &&
-  !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
-);
-
 console.log("📦 Nombre d'articles trouvés (après nettoyage):", cleaned.length);
 console.log("🧾 Lignes extraites:", cleaned);
+
 return cleaned;
+
 
 
   // Pousse le dernier
