@@ -68,7 +68,7 @@ function parseRoyaleMareeLines(text) {
     .replace(/Transp\..+?Départ\s*:/gi, " ")
     .trim();
 
-  // Chaque ligne article commence par le code fournisseur (4-5 chiffres)
+  // Chaque ligne article commence par un code fournisseur (4-5 chiffres)
   const parts = clean.split(/(?=\b\d{4,5}\s+\d+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+)/g);
 
   for (let part of parts) {
@@ -88,14 +88,13 @@ function parseRoyaleMareeLines(text) {
       designation
     ] = match;
 
-    // ⬇️ Extraire la suite (nom latin + bloc traçabilité)
     const tail = part.slice(match.index + match[0].length);
 
-    // 👉 Le nom latin est la 1ʳᵉ ligne après la désignation, formée de deux mots, l’un majuscule initiale
+    // 🔹 Nom latin = 2 à 3 mots, commence par majuscule, avant le 1er "|"
     const nomLatinMatch = tail.match(/([A-Z][a-z]+(?:\s+[a-z]+){0,2})\s*(?=\|Pêché|\|Elevé|$)/i);
     const nomLatin = nomLatinMatch ? nomLatinMatch[1].trim() : "";
 
-    // Bloc traçabilité multi-lignes
+    // 🔹 Bloc traçabilité
     const blocTrace = tail.match(/\|\s*(Pêché|Elevé).+?(?=\d{4,5}|$)/i);
     const traceTxt = blocTrace ? blocTrace[0] : "";
 
@@ -104,7 +103,7 @@ function parseRoyaleMareeLines(text) {
     let engin = "";
     let lot = "";
 
-    // 🔹 FAO (on prend le dernier FAO trouvé)
+    // 🔸 Cas FAO
     const mAllFAO = [...traceTxt.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
     if (mAllFAO.length) {
       const last = mAllFAO[mAllFAO.length - 1];
@@ -112,28 +111,30 @@ function parseRoyaleMareeLines(text) {
       sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
     }
 
-    // 🔹 ÉLEVAGE
+    // 🔸 Cas ÉLEVAGE
     if (/Elevé/i.test(traceTxt)) {
-      // Exemple: "Elevé en : zone Eleve en Ecosse"
       const elevMatch = traceTxt.match(/Elevé\s+en\s*:?[\sA-Za-z]*?([A-Za-zéèêàç]+)/i);
       const pays = elevMatch ? elevMatch[1].trim() : "";
       zone = "ÉLEVAGE";
       sousZone = pays ? pays.toUpperCase() : "";
     }
 
-    // 🔹 Engin
+    // 🔸 Engin
     const mEngin = traceTxt.match(/Engin\s*:\s*([^|]+)/i);
     if (mEngin) engin = mEngin[1].trim();
 
-    // 🔹 Lot
+    // 🔸 Lot
     const mLot = traceTxt.match(/Lot\s*:\s*(\S+)/i);
     if (mLot) lot = mLot[1].trim();
 
-    // 🔹 Construction FAO propre, même pour élevage
+    // 🔸 Construction FAO propre
     let fao = "";
     if (zone.startsWith("ÉLE")) fao = sousZone ? `${zone} ${sousZone}` : "ÉLEVAGE";
     else if (zone.startsWith("FAO")) fao = `${zone}${sousZone ? " " + sousZone : ""}`;
     fao = fao.trim().replace(/\s{2,}/g, " ");
+
+    // 🔹 Nettoyage du mot "ZONE" qui pollue parfois sousZone
+    if (/^ZONE/i.test(sousZone)) sousZone = sousZone.replace(/^ZONE\s*/i, "").trim();
 
     rows.push({
       refFournisseur: refFourn.trim(),
