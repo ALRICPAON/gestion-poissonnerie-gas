@@ -95,6 +95,8 @@ function parseRoyaleMareeLines(text) {
   for (let raw of lines) {
     // Début d'un nouvel article : une ligne contenant uniquement le code (4–5 chiffres)
     if (isCode(raw)) {
+        // 🧹 Ignore les codes d'entête (inférieurs à 10000)
+  if (parseInt(raw, 10) < 10000) continue;
       // ferme l'article précédent
       pushCurrent();
       current = {
