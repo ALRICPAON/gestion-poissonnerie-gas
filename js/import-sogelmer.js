@@ -255,6 +255,55 @@ if (art) {
 if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
 if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
+        /**************************************************
+     * Sauvegarde Firestore de la ligne
+     **************************************************/
+    await addDoc(collection(db, "achats", achatId, "lignes"), {
+      ...L,
+      plu,
+      designationInterne,
+      allergenes,
+      fournisseurRef: L.refFournisseur,
+      zone,
+      sousZone,
+      engin,
+      fao,
+      montantTTC: L.montantHT,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+  } // ←←← FERMETURE DU for (IMPORTANT !!)
+
+  /**************************************************
+   * Mise à jour du total achat
+   **************************************************/
+  await updateDoc(doc(db, "achats", achatId), {
+    montantHT: totalHT,
+    montantTTC: totalHT,
+    totalKg,
+    updatedAt: serverTimestamp()
+  });
+
+  if (missingRefs.length > 0)
+    console.warn("⚠️ Références SOGELMER non trouvées dans AF_MAP:", missingRefs);
+
+  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
+  location.reload();
+
+} // ←←← FERMETURE FONCTION saveSogelmer (MANQUAIT !!)
+
+
+/**************************************************
+ * MAIN
+ **************************************************/
+export async function importSogelmer(file) {
+  const text = await extractTextFromPdf(file);
+  const lines = parseSogelmer(text);
+  await saveSogelmer(lines);
+}
+
+
 /**************************************************
  * MAIN
  **************************************************/
