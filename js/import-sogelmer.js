@@ -196,92 +196,78 @@ async function saveSogelmer(lines) {
     totalKg += Number(L.poidsTotalKg || 0);
 
     /**************************************************
-     * 🧩 Enrichissement AF_MAP + Articles
-     **************************************************/
-    let plu = "";
-    let designationInterne = (L.designation || "").trim();
-    let allergenes = "";
-    let zone = L.zone;
-    let sousZone = L.sousZone;
-    let engin = L.engin;
-    let fao = L.fao;
+ * 🧩 Enrichissement AF_MAP + Articles (version Royale Marée adaptée)
+ **************************************************/
+let plu = "";
+let designationInterne = (L.designation || "").trim();
+let allergenes = "";
+let zone = L.zone;
+let sousZone = L.sousZone;
+let engin = L.engin;
+let fao = L.fao;
 
-    // AF_MAP = priorité 1
-    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+let cleanFromAF = "";
 
-    if (M) {
-      plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+// 1) AF_MAP : priorité absolue
+const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
-      if (M.designationInterne)
-        designationInterne = M.designationInterne.trim();
+if (M) {
 
-      if (!L.nomLatin && M.nomLatin)
-        L.nomLatin = M.nomLatin;
+  // PLU propre (supprime .0)
+  plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
 
-      if (!zone && M.zone) zone = M.zone;
-      if (!sousZone && M.sousZone) sousZone = M.sousZone;
-      if (!engin && M.engin) engin = M.engin;
-
-      if (!fao) fao = buildFAO(zone, sousZone);
-    } else {
-      missingRefs.push(L.refFournisseur);
-    }
-
-    // ARTICLES = priorité 2
-    const art = plu ? artMap[plu] : null;
-
-    if (art) {
-      if (!M?.designationInterne) {
-        const d2 = (art.Designation || art.designation || "").trim();
-        if (d2) designationInterne = d2;
-      }
-
-      if (!L.nomLatin)
-        L.nomLatin = (art.NomLatin || art.nomLatin || "").trim();
-
-      if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
-      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
-      if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
-
-      if (!fao) fao = buildFAO(zone, sousZone);
-    }
-
-    // Normalisations engins
-    if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-    if (/FILTS/i.test(engin)) engin = "FILET TOURNANT";
-
-    /**************************************************
-     * Sauvegarde ligne Firestore
-     **************************************************/
-    await addDoc(collection(db, "achats", achatId, "lignes"), {
-      ...L,
-      plu,
-      designationInterne,
-      allergenes,
-      fournisseurRef: L.refFournisseur,
-      zone,
-      sousZone,
-      engin,
-      fao,
-      montantTTC: L.montantHT,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+  // Désignation interne (ou aliasFournisseur)
+  cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
+  if (cleanFromAF) {
+    L.designation = cleanFromAF;
+    designationInterne = cleanFromAF;
   }
 
-  await updateDoc(doc(db, "achats", achatId), {
-    montantHT: totalHT,
-    montantTTC: totalHT,
-    totalKg: totalKg,
-    updatedAt: serverTimestamp()
-  });
+  // Nom latin si BL vide ou bruité
+  if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
+    L.nomLatin = M.nomLatin;
+  }
 
-  if (missingRefs.length > 0)
-    console.warn("⚠️ Références SOGELMER manquantes dans AF_MAP:", missingRefs);
+  // Traca : AF_MAP > BL
+  if (!zone && M.zone) zone = M.zone;
+  if (!sousZone && M.sousZone) sousZone = M.sousZone;
+  if (!engin && M.engin) engin = M.engin;
 
-  alert(`✅ ${lines.length} lignes importées pour SOGELMER`);
-  location.reload();
+  if (!fao) fao = buildFAO(zone, sousZone);
+
+} else {
+  missingRefs.push(L.refFournisseur);
 }
+
+
+// 2) ARTICLES : priorité si AF_MAP n’a pas donné de désignation
+const art = plu ? artMap[plu] : null;
+
+if (art) {
+
+  if (!cleanFromAF) {
+    const artDesignation = (art.Designation || art.designation || "").trim();
+    if (artDesignation) {
+      L.designation = artDesignation;
+      designationInterne = artDesignation;
+    }
+  }
+
+  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
+    L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin).trim();
+  }
+
+  if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
+  if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
+  if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+
+  if (!fao) fao = buildFAO(zone, sousZone);
+}
+
+
+// Normalisation engin
+if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
+if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
 /**************************************************
  * 🚀 Entrée principale
