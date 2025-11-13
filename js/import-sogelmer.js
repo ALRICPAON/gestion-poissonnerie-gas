@@ -1,7 +1,7 @@
 /**************************************************
- * IMPORT SOGELMER (20006)
- * ✅ Version initiale – 13/11/2025
- * Inspiré de Royale Marée – parsing adapté au PDF 511-00074112
+ * IMPORT SOGELMER (10003)
+ * ✅ Version stable – 13/11/2025
+ * Inspiré de Royale Marée – adapté au PDF 511-00074112
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -167,7 +167,7 @@ function parseSogelmerLines(text) {
  **************************************************/
 async function saveSogelmer(lines) {
   if (!lines.length) throw new Error("Aucune ligne trouvée dans le PDF.");
-  const FOUR_CODE = "20006";
+  const FOUR_CODE = "10003";
   const supplier = { code: FOUR_CODE, nom: "SOGELMER" };
 
   const [afSnap, artSnap] = await Promise.all([
