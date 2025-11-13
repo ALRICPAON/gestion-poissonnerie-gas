@@ -229,6 +229,80 @@ async function saveSogelmer(lines) {
       if (!fao) fao = buildFAO(zone, sousZone);
       if (!L.nomLatin && art.nomLatin) L.nomLatin = art.nomLatin;
     }
+    /**************************************************
+ * 🧩 Enrichissement AF_MAP + Articles (priorité RM)
+ **************************************************/
+const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+
+let plu = "";
+let designationInterne = L.designation;
+let allergenes = "";
+let zone = L.zone;
+let sousZone = L.sousZone;
+let engin = L.engin;
+let fao = L.fao;
+
+// ---------------------------
+// 1) AF_MAP = PRIORITÉ N°1
+// ---------------------------
+let cleanFromAF = "";
+
+if (M) {
+  // PLU propre
+  plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+
+  // Désignation interne prioritaire
+  cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
+  if (cleanFromAF) {
+    L.designation = cleanFromAF;
+    designationInterne = cleanFromAF;
+  }
+
+  // Nom latin : si BL vide ou pollué (Total Bon, etc.)
+  if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
+    L.nomLatin = M.nomLatin;
+  }
+
+  // Traca : BL prioritaire, AF_MAP fallback
+  if (!zone && M.zone) zone = M.zone;
+  if (!sousZone && M.sousZone) sousZone = M.sousZone;
+  if (!engin && M.engin) engin = M.engin;
+
+  if (!fao) fao = buildFAO(zone, sousZone);
+} else {
+  missingRefs.push(L.refFournisseur);
+}
+
+// ---------------------------
+// 2) ARTICLES = PRIORITÉ N°2
+// ---------------------------
+const art = plu ? artMap[plu] : null;
+if (art) {
+  // Si AF_MAP n'a pas donné de désignation propre
+  if (!cleanFromAF) {
+    const artDesignation = (art.Designation || art.designation || "").trim();
+    if (artDesignation) {
+      L.designation = artDesignation;
+      designationInterne = artDesignation;
+    }
+  }
+
+  if (!L.nomLatin || /total/i.test(L.nomLatin)) {
+    L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
+  }
+
+  if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
+  if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
+  if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+
+  if (!fao) fao = buildFAO(zone, sousZone);
+}
+
+// Filmail → Filet maillant
+if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
+// FILTS → Filet tournant
+if (/FILTS/i.test(engin)) engin = "FILET TOURNANT";
+
 
     // Écriture Firestore
     await addDoc(collection(db, "achats", achatId, "lignes"), {
