@@ -1,10 +1,10 @@
 /**************************************************
  * IMPORT ROYALE MAREE (10004)
- * ✅ Version stable – 13/11/2025
+ *  Version stable + PATCH PLU auto — 16/11/2025
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
-  collection, addDoc, doc, serverTimestamp, updateDoc, getDocs
+  collection, addDoc, doc, serverTimestamp, updateDoc, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
@@ -37,9 +37,8 @@ function buildFAO(zone, sousZone) {
  **************************************************/
 async function extractTextFromPdf(file) {
   const pdfjsLib = window["pdfjs-dist/build/pdf"];
-  if (!pdfjsLib) {
-    throw new Error("PDF.js non chargé. Ajoute <script src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'>");
-  }
+  if (!pdfjsLib) throw new Error("PDF.js non chargé");
+
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
@@ -53,7 +52,6 @@ async function extractTextFromPdf(file) {
     const strings = content.items.map(i => i.str);
     fullText += strings.join("\n") + "\n";
   }
-  console.log("🔍 PDF brut (aperçu avec \\n):", fullText.slice(0, 1000));
   return fullText;
 }
 
@@ -115,8 +113,7 @@ function parseRoyaleMareeLines(text) {
     if (stage === 5 && isNum(raw)) { current.poidsTotalKg = parseFloat(raw.replace(",", ".")); stage = 6; continue; }
 
     if (stage >= 6 && !raw.startsWith("|")) {
-      // 🚫 Ignore les lignes de fin comme "Total Bon", "Total Etablissement"
-      if (/total|bon|établissement|etablissement/i.test(raw)) continue;
+      if (/total|bon|etablissement/i.test(raw)) continue;
 
       if (isLatin(raw)) {
         current.nomLatin = raw;
@@ -158,10 +155,8 @@ function parseRoyaleMareeLines(text) {
     }
   }
 
-  // 🧩 Fix final : pousse le dernier article (ex: la sole)
   if (current) rows.push(current);
 
-  // 🧹 Nettoyage final
   const cleaned = rows.filter(r =>
     r.refFournisseur &&
     r.designation &&
@@ -169,25 +164,21 @@ function parseRoyaleMareeLines(text) {
     !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
   );
 
-  // Supprime les fins type "Total Bon"
   for (const r of cleaned) {
     const idx = r.designation.search(/total/i);
     if (idx > 0) r.designation = r.designation.slice(0, idx).trim();
   }
 
-  console.log("📦 Nombre d'articles trouvés (après nettoyage):", cleaned.length);
-  console.log("🧾 Lignes extraites:", cleaned);
-
   return cleaned;
 }
 
 /**************************************************
- * 💾 Sauvegarde Firestore (avec AF_MAP + Articles)
+ * 💾 SAVE ROYALE MAREE (avec patch)
  **************************************************/
 async function saveRoyaleMaree(lines) {
-  if (!lines.length) throw new Error("Aucune ligne trouvée dans le PDF.");
+  if (!lines.length) throw new Error("Aucune ligne trouvée");
+
   const FOUR_CODE = "10004";
-  const supplier = { code: FOUR_CODE, nom: "Royale Marée" };
 
   const [afSnap, artSnap] = await Promise.all([
     getDocs(collection(db, "af_map")),
@@ -195,7 +186,7 @@ async function saveRoyaleMaree(lines) {
   ]);
 
   const afMap = {};
-  afSnap.forEach(d => { afMap[d.id.toUpperCase()] = d.data(); });
+  afSnap.forEach(d => afMap[d.id.toUpperCase()] = d.data());
 
   const artMap = {};
   artSnap.forEach(d => {
@@ -203,89 +194,52 @@ async function saveRoyaleMaree(lines) {
     if (a?.plu) artMap[a.plu.toString().trim()] = a;
   });
 
-  const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
-  refFournisseur: L.refFournisseur,
-  designation: L.designation,
-  nomLatin: L.nomLatin,
-  colis: L.colis,
-  poidsColisKg: L.poidsColisKg,
-  poidsTotalKg: L.poidsTotalKg,
-  prixKg: L.prixKg,
-  montantHT: L.montantHT,
-  zone,
-  sousZone,
-  engin,
-  lot: L.lot || "",
-  fao,
-  plu,
-  designationInterne,
-  allergenes,
-  fournisseurRef: L.refFournisseur,
-  montantTTC: L.montantHT,
-  createdAt: serverTimestamp(),
-  updatedAt: serverTimestamp(),
-});
-
-
-/**************************************************
- * PATCH AUTO-UPDATE SI MAPPING AJOUTÉ DANS LE POPUP
- **************************************************/
-if (!M) {
-  const refKey = (`10004__${L.refFournisseur}`).toUpperCase();
-
-  // Attendre un peu que AF_MAP soit créé dans Firestore
-  setTimeout(async () => {
-    const snap = await getDoc(doc(db, "af_map", refKey));
-    if (!snap.exists()) return;
-
-    const mapped = snap.data();
-
-    await updateDoc(
-      doc(db, "achats", achatId, "lignes", lineRef.id),
-      {
-        plu: mapped.plu || "",
-        designationInterne: mapped.designationInterne || "",
-        designation: mapped.designationInterne || "",
-        updatedAt: serverTimestamp()
-      }
-    );
-
-    console.log("🔄 Royale Marée — Ligne mise à jour après mapping :", lineRef.id);
-  }, 500);
-}
-
+  const achatRef = await addDoc(collection(db, "achats"), {
+    date: new Date().toISOString().slice(0, 10),
+    fournisseurCode: FOUR_CODE,
+    fournisseurNom: "Royale Marée",
+    type: "BL",
+    statut: "new",
+    montantHT: 0,
+    montantTTC: 0,
+    totalKg: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
 
   const achatId = achatRef.id;
   let totalHT = 0;
-  let totalKg  = 0;
+  let totalKg = 0;
+
   const missingRefs = [];
 
   for (const L of lines) {
-    totalHT += Number(L.montantHT || 0);
-    totalKg  += Number(L.poidsTotalKg || 0);
 
-    // ---------- mapping vars (single declaration) ----------
+    totalHT += Number(L.montantHT || 0);
+    totalKg += Number(L.poidsTotalKg || 0);
+
     let plu = "";
     let designationInterne = L.designation;
-    let allergenes = "";
     let zone = L.zone;
     let sousZone = L.sousZone;
     let engin = L.engin;
     let fao = L.fao;
-    let cleanFromAF = ""; // needed below
+    let cleanFromAF = "";
 
-    // 1) AF_MAP PRIORITY for PLU + clean designation
+    /**************************************************
+     * AF_MAP PRIORITY
+     **************************************************/
     const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+
     if (M) {
       plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
+
       cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
       if (cleanFromAF) {
         L.designation = cleanFromAF;
         designationInterne = cleanFromAF;
       }
-      if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
-        L.nomLatin = M.nomLatin;
-      }
+
       if (!zone && M.zone) zone = M.zone;
       if (!sousZone && M.sousZone) sousZone = M.sousZone;
       if (!engin && M.engin) engin = M.engin;
@@ -294,39 +248,35 @@ if (!M) {
       missingRefs.push(L.refFournisseur);
     }
 
-    // 2) Articles fallback only if AF_MAP didn’t give a designation
+    /**************************************************
+     * FALLBACK : FICHE ARTICLE
+     **************************************************/
     const art = plu ? artMap[plu] : null;
-    if (art) {
-      if (!cleanFromAF) {
-        const artDesignation = (art.Designation || art.designation || "").trim();
-        if (artDesignation) {
-          L.designation = artDesignation;
-          designationInterne = artDesignation;
-        }
+    if (art && !cleanFromAF) {
+
+      const artDesignation =
+        (art.Designation || art.designation || art.designationInterne || "").trim();
+
+      if (artDesignation) {
+        L.designation = artDesignation;
+        designationInterne = artDesignation;
       }
-      if (!L.nomLatin || /total/i.test(L.nomLatin)) {
-        L.nomLatin = (art.NomLatin || art.nomLatin || L.nomLatin || "").trim();
-      }
-      if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
-      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
-      if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+
+      if (!zone && (art.Zone || art.zone)) zone = art.Zone || art.zone;
+      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = art.SousZone || art.sousZone;
+      if (!engin && (art.Engin || art.engin)) engin = art.Engin || art.engin;
+
       if (!fao) fao = buildFAO(zone, sousZone);
     }
-    // 🪝 Normalisation automatique des engins de pêche
-if (engin) {
-  const e = engin.toUpperCase().trim();
-  if (e.includes("FILMAIL")) engin = "FILET MAILLANT";
-  else if (e.includes("FILTS")) engin = "FILET TOURNANT";
-  else if (e.includes("LIGNE")) engin = "LIGNE";
-  else if (e.includes("CHALUT")) engin = "CHALUT";
-  // tu peux ajouter d’autres règles ici si besoin
-}
 
-
-    await addDoc(collection(db, "achats", achatId, "lignes"), {
+    /**************************************************
+     * ENREGISTRE LIGNE
+     **************************************************/
+    const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: L.refFournisseur,
       designation: L.designation,
-      nomLatin: L.nomLatin,
+      designationInterne,
+      nomLatin: L.nomLatin || "",
       colis: L.colis,
       poidsColisKg: L.poidsColisKg,
       poidsTotalKg: L.poidsTotalKg,
@@ -338,13 +288,38 @@ if (engin) {
       lot: L.lot || "",
       fao,
       plu,
-      designationInterne,
-      allergenes,
+      allergenes: "",
       fournisseurRef: L.refFournisseur,
       montantTTC: L.montantHT,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    /**************************************************
+     * PATCH AUTO — mise à jour après popup AF_MAP
+     **************************************************/
+    if (!M) {
+      const refKey = (`10004__${L.refFournisseur}`).toUpperCase();
+
+      setTimeout(async () => {
+        const snap = await getDoc(doc(db, "af_map", refKey));
+        if (!snap.exists()) return;
+
+        const mapped = snap.data();
+
+        await updateDoc(
+          doc(db, "achats", achatId, "lignes", lineRef.id),
+          {
+            plu: mapped.plu || "",
+            designationInterne: mapped.designationInterne || "",
+            designation: mapped.designationInterne || "",
+            updatedAt: serverTimestamp()
+          }
+        );
+
+        console.log("🔄 Royale Marée — Ligne mise à jour après AF_MAP :", lineRef.id);
+      }, 500);
+    }
   }
 
   await updateDoc(doc(db, "achats", achatId), {
@@ -355,11 +330,10 @@ if (engin) {
   });
 
   if (missingRefs.length > 0) {
-    console.warn("⚠️ Références non trouvées dans AF_MAP:", missingRefs);
+    console.warn("⚠ Réfs non trouvées dans AF_MAP:", missingRefs);
   }
 
-  alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
-  // 🔁 recharge la page après import
+  alert(`✅ ${lines.length} lignes importées (Royale Marée)`);
   location.reload();
 }
 
