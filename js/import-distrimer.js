@@ -1,16 +1,11 @@
 /**************************************************
- * IMPORT DISTRIMER (10002)
- * Version finale, propre & patchée
+ * IMPORT distrimer (10002)
+ * Version finale — multi-FAO + popup AF_MAP
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
-  collection,
-  addDoc,
-  doc,
-  serverTimestamp,
-  updateDoc,
-  getDocs,
-  getDoc
+  collection, addDoc, doc, serverTimestamp,
+  updateDoc, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
@@ -36,29 +31,30 @@ async function extractTextFromPdf(file) {
 }
 
 /**************************************************
- * Détection code article
+ * Détection code article Distrimer
  **************************************************/
 const isArticleCode = s =>
   /^[A-Z]{3,6}[A-Z0-9/]{1,6}$/.test(s) &&
   !/CLIENT|DISTRIMER|PAGE|DATE|FR|CE|TARIF|POIDS|STEF|BL|FACTURE|LIVRE/i.test(s);
 
 /**************************************************
- * Normalisation des références Distrimer
- * EMISP/6   → EMISP_06
- * RAI121F/6 → RAI121F_06
+ * Normalisation ref fournisseur → format constant
  **************************************************/
 function normalizeRef(ref) {
   if (!ref) return "";
   let r = ref.trim().replace("/", "_");
-  // Lettres + 1 chiffre → on pad : EMISP6 → EMISP06
+
+  // EMISP_6 → EMISP_06
   r = r.replace(/^(\D+)(\d)$/, "$1" + "0" + "$2");
+
   return r.toUpperCase();
 }
 
 /**************************************************
- * Parse PDF → lignes Distrimer
+ * Parse Distrimer (PDF → lignes)
  **************************************************/
-function parseDistrimer(text) {
+export function parsedistrimer(text) {
+
   const rows = [];
   const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
 
@@ -72,57 +68,67 @@ function parseDistrimer(text) {
       continue;
     }
 
-    const rawRef = line;
-    const refFournisseur = normalizeRef(rawRef);
+    const refFournisseur = normalizeRef(line);
 
-    const designation  = (lines[i + 1] || "").trim();
-    const colis        = parseFloat((lines[i + 2] || "").replace(",", "."));
-    const poidsColisKg = parseFloat((lines[i + 3] || "").replace(",", "."));
-    const quantite     = parseFloat((lines[i + 4] || "").replace(",", "."));
-    const uv           = (lines[i + 5] || "").trim();
-    const lot          = (lines[i + 6] || "").trim();
+    const designation   = (lines[i+1] || "").trim();
+    const colis         = parseFloat((lines[i+2] || "").replace(",", "."));
+    const poidsColisKg  = parseFloat((lines[i+3] || "").replace(",", "."));
+    const quantite      = parseFloat((lines[i+4] || "").replace(",", "."));
+    const uv            = (lines[i+5] || "").trim();
+    const lot           = (lines[i+6] || "").trim();
 
+    // prix/kg
     let prixKg = 0;
-    if ((lines[i + 7] || "").includes("€")) {
-      prixKg = parseFloat(
-        lines[i + 7].replace("€", "").replace(",", ".")
-      );
-    }
+    if ((lines[i+7] || "").includes("€"))
+      prixKg = parseFloat(lines[i+7].replace("€","").replace(",","."));
 
+    // montant HT
     let montantHT = 0;
-    if ((lines[i + 8] || "").includes("€")) {
-      montantHT = parseFloat(
-        lines[i + 8].replace("€", "").replace(",", ".")
-      );
+    if ((lines[i+8] || "").includes("€"))
+      montantHT = parseFloat(lines[i+8].replace("€","").replace(",","."));
+
+    const bio = (lines[i+10] || "").trim();
+
+    /**************************************************
+     * Extraction multi-FAO
+     **************************************************/
+    // EX: FAO 27 VIa | FAO27 IVb | FAO 27 VI Ouest Ecosse
+    const regexFAO = /FAO\s*([0-9]{1,3})\s*([IVX]+)?\s*([A-Za-z])?/gi;
+    let faoList = [];
+    let m;
+
+    while ((m = regexFAO.exec(bio)) !== null) {
+      const num    = m[1];
+      const roman  = m[2] ? m[2].toUpperCase() : "";
+      const letter = m[3] ? m[3].toUpperCase() : "";
+      const full   = `FAO ${num} ${roman}${letter}`.trim();
+      faoList.push(full);
     }
 
-    const bio = (lines[i + 10] || "").trim();
+    // Valeurs à stocker (norme DGCCRF = première zone uniquement)
+    let zone = "";
+    let sousZone = "";
+    let fao = "";
 
+    if (faoList.length > 0) {
+      fao = faoList[0];
+      const m2 = fao.match(/FAO\s*([0-9]{1,3})\s*([IVX]+)?([A-Za-z])?/i);
+      if (m2) {
+        zone = `FAO ${m2[1]}`;
+        sousZone = ((m2[2] || "") + (m2[3] || "")).toUpperCase();
+      }
+    }
+
+    /**************************************************
+     * Nom latin
+     **************************************************/
     let nomLatin = "";
     const latin = bio.match(/^([A-Z][a-z]+(?: [a-z]+)*)/);
     if (latin) nomLatin = latin[1];
 
-   let zone = "";
-let sousZone = "";
-let fao = "";
-
-const faoMatch = bio.match(/FAO\s*([0-9]{1,3})\s*([IVX]+)?\s*([A-Za-z])?/i);
-
-if (faoMatch) {
-  const num    = faoMatch[1];             // ex: 27
-  const roman  = faoMatch[2] || "";       // ex: VIII
-  const letter = faoMatch[3] ? faoMatch[3].toUpperCase() : "";  // ex: A, B, D
-
-  zone = `FAO ${num}`;
-
-  // sous-zone : "VIII A", "V B", "III", "A", etc.
-  sousZone = [roman, letter].filter(Boolean).join(" ").trim();
-
-  fao = `${zone}${sousZone ? " " + sousZone : ""}`;
-}
-
-
-
+    /**************************************************
+     * Engin
+     **************************************************/
     let engin = "";
     const engMatch = bio.match(/Chalut|Ligne|Filet|Mail|FILTS/gi);
     if (engMatch) engin = engMatch[0];
@@ -131,7 +137,7 @@ if (faoMatch) {
     if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
     rows.push({
-      refFournisseur,        // déjà normalisé (EMISP_06)
+      refFournisseur,
       designation,
       colis,
       poidsColisKg,
@@ -144,7 +150,8 @@ if (faoMatch) {
       zone,
       sousZone,
       engin,
-      fao
+      fao,
+      autresFAO: faoList.slice(1)  // stocke le reste
     });
 
     i += 11;
@@ -154,27 +161,23 @@ if (faoMatch) {
 }
 
 /**************************************************
- * AF_MAP smart matching
+ * AF_MAP smart match
  **************************************************/
 function findAFMapEntry(afMap, fourCode, ref) {
-  const clean = (ref || "").toString().trim().toUpperCase();
+  const clean = (ref || "").trim().toUpperCase();
 
   const keyExact  = `${fourCode}__${clean}`;
-  const keyNoZero = `${fourCode}__${clean.replace(/^0+/, "")}`;
-  const keyPadded = `${fourCode}__${clean.replace(/^(\D+)(\d)$/, "$1" + "0" + "$2")}`;
+  const keyNoZero = `${fourCode}__${clean.replace(/^0+/,"")}`;
+  const keyPadded = `${fourCode}__${clean.replace(/^(\D+)(\d)$/,"$10$2")}`;
 
   return afMap[keyExact] || afMap[keyNoZero] || afMap[keyPadded] || null;
-}
-
-function buildFAO(zone, sousZone) {
-  if (!zone) return "";
-  return `${zone} ${sousZone || ""}`.trim();
 }
 
 /**************************************************
  * SAVE Distrimer
  **************************************************/
-async function saveDistrimer(lines) {
+async function savedistrimer(lines) {
+
   const FOUR_CODE = "10002";
   if (!lines.length) throw new Error("Aucune ligne Distrimer détectée");
 
@@ -184,16 +187,16 @@ async function saveDistrimer(lines) {
   ]);
 
   const afMap = {};
-  afSnap.forEach(d => { afMap[d.id.toUpperCase()] = d.data(); });
+  afSnap.forEach(d => afMap[d.id.toUpperCase()] = d.data());
 
   const artMap = {};
   artSnap.forEach(d => {
     const a = d.data();
-    if (a?.plu) artMap[a.plu.toString().trim()] = a;
+    if (a.plu) artMap[a.plu.toString()] = a;
   });
 
   const achatRef = await addDoc(collection(db, "achats"), {
-    date: new Date().toISOString().slice(0, 10),
+    date: new Date().toISOString().slice(0,10),
     fournisseurCode: FOUR_CODE,
     fournisseurNom: "Distrimer",
     type: "BL",
@@ -209,106 +212,56 @@ async function saveDistrimer(lines) {
 
   let totalHT = 0;
   let totalKg = 0;
-  const missingRefs = [];
+
+  const missing = [];
 
   for (const L of lines) {
+
     totalHT += Number(L.montantHT || 0);
     totalKg += Number(L.poidsTotalKg || 0);
 
     let plu = "";
-    let designationInterne = (L.designation || "").trim();
-    let allergenes = "";
-    let zone = L.zone;
-    let sousZone = L.sousZone;
-    let engin = L.engin;
-    let fao = L.fao;
+    let designationInterne = L.designation;
     let cleanFromAF = "";
 
-    /**************************************************
-     * AF_MAP — priorité totale
-     **************************************************/
     const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
     if (M) {
       plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
-
       cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
       if (cleanFromAF) {
         L.designation = cleanFromAF;
         designationInterne = cleanFromAF;
       }
-
-      if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
-        L.nomLatin = M.nomLatin;
-      }
-
-      if (!zone && M.zone) zone = M.zone;
-      if (!sousZone && M.sousZone) sousZone = M.sousZone;
-      if (!engin && M.engin) engin = M.engin;
-
-      if (!fao) fao = buildFAO(zone, sousZone);
     }
 
-    /**************************************************
-     * Fallback fiche article
-     **************************************************/
     if (plu && artMap[plu]) {
       const art = artMap[plu];
-
       const artDesignation =
         (art.Designation || art.designation || art.designationInterne || "").trim();
-
       if (!cleanFromAF && artDesignation) {
         L.designation = artDesignation;
         designationInterne = artDesignation;
       }
-
-      if (!zone && (art.Zone || art.zone)) zone = art.Zone || art.zone;
-      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = art.SousZone || art.sousZone;
-      if (!engin && (art.Engin || art.engin)) engin = art.Engin || art.engin;
-
-      if (!fao) fao = buildFAO(zone, sousZone);
     }
 
-    /**************************************************
-     * SAVE LIGNE
-     **************************************************/
     const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
-      refFournisseur: L.refFournisseur,
-      fournisseurRef: L.refFournisseur,
-
+      ...L,
       plu,
-      designation: L.designation,
       designationInterne,
-      nomLatin: L.nomLatin,
-
-      zone,
-      sousZone,
-      fao,
-      engin,
-      allergenes,
-
-      poidsKg: L.poidsTotalKg,
+      fournisseurRef: L.refFournisseur,
       prixHTKg: L.prixKg,
-      prixKg: L.prixKg,
-      montantHT: L.montantHT,
       montantTTC: L.montantHT,
-
-      colis: L.colis,
-      poidsColisKg: L.poidsColisKg,
-      poidsTotalKg: L.poidsTotalKg,
-
-      received: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
 
     const lineId = lineRef.id;
 
-    /***** PATCH AUTO-UPDATE APRÈS POPUP ******/
+    // PATCH auto-update après popup
     if (!M) {
       setTimeout(async () => {
-        const key = (`${FOUR_CODE}__${L.refFournisseur}`).toUpperCase();
+        const key = (`10002__${L.refFournisseur}`).toUpperCase();
         const snap = await getDoc(doc(db, "af_map", key));
         if (!snap.exists()) return;
 
@@ -323,49 +276,39 @@ async function saveDistrimer(lines) {
             updatedAt: serverTimestamp()
           }
         );
-
-        console.log("🔄 Distrimer — ligne mise à jour après AF_MAP :", lineId);
       }, 500);
     }
 
-    /**************************************************
-     * MANQUANTS → popup AF_MAP
-     **************************************************/
     if (!M) {
-      missingRefs.push({
+      missing.push({
         fournisseurCode: FOUR_CODE,
         refFournisseur: L.refFournisseur,
-        designation: L.designation || "",
-        designationInterne: designationInterne || "",
-        aliasFournisseur: L.designation || "",
+        designation: L.designation,
+        designationInterne,
+        aliasFournisseur: L.designation,
         nomLatin: L.nomLatin || "",
-        zone: zone || "",
-        sousZone: sousZone || "",
-        engin: engin || "",
-        allergenes: allergenes || "",
+        zone: L.zone || "",
+        sousZone: L.sousZone || "",
+        engin: L.engin || "",
+        allergenes: "",
         achatId,
-        ligneId: lineId   // ✅ clé attendue par manage-af-map.js
+        ligneId: lineId
       });
     }
   }
 
   await updateDoc(doc(db, "achats", achatId), {
-    montantHT: Number(totalHT.toFixed(2)),
-    montantTTC: Number(totalHT.toFixed(2)),
-    totalKg: Number(totalKg.toFixed(3)),
+    montantHT: totalHT,
+    montantTTC: totalHT,
+    totalKg,
     updatedAt: serverTimestamp()
   });
 
-  if (missingRefs.length > 0) {
-    console.warn("🔎 Réf Distrimer manquantes :", missingRefs);
-    const { manageAFMap } = await import("./manage-af-map.js");
-    await manageAFMap(missingRefs);
-    alert("🔄 PLU Distrimer associés. Recharge la page pour rafraîchir les lignes.");
-    return;
+  if (missing.length > 0) {
+    console.warn("🔎 mapping manquant Distrimer :", missing);
+    const mod = await import("./manage-af-map.js");
+    mod.manageAFMap(missing);
   }
-
-  alert(`✅ ${lines.length} lignes importées (Distrimer)`);
-  location.reload();
 }
 
 /**************************************************
@@ -373,6 +316,6 @@ async function saveDistrimer(lines) {
  **************************************************/
 export async function importDistrimer(file) {
   const text = await extractTextFromPdf(file);
-  const lines = parseDistrimer(text);
-  await saveDistrimer(lines);
+  const lines = parsedistrimer(text);
+  await savedistrimer(lines);
 }
