@@ -90,34 +90,39 @@ export function parsedistrimer(text) {
     const bio = (lines[i+10] || "").trim();
 
     /**************************************************
-     * Extraction multi-FAO
-     **************************************************/
-    // EX: FAO 27 VIa | FAO27 IVb | FAO 27 VI Ouest Ecosse
-    const regexFAO = /FAO\s*([0-9]{1,3})\s*([IVX]+)?\s*([A-Za-z])?/gi;
-    let faoList = [];
-    let m;
+ * Extraction FAO ultra-fiable
+ * - prend TOUTES les FAO
+ * - ignore “Ouest”, “Ecosse”, etc.
+ * - gère FAO 27 VIa
+ **************************************************/
+function extractFAOs(bio) {
 
-    while ((m = regexFAO.exec(bio)) !== null) {
-      const num    = m[1];
-      const roman  = m[2] ? m[2].toUpperCase() : "";
-      const letter = m[3] ? m[3].toUpperCase() : "";
-      const full   = `FAO ${num} ${roman}${letter}`.trim();
-      faoList.push(full);
-    }
+  // Exemples reconnus :
+  // FAO 27 VIa
+  // FAO27 VIb
+  // FAO 27 IV
+  // FAO 27 VIIc
 
-    // Valeurs à stocker (norme DGCCRF = première zone uniquement)
-    let zone = "";
-    let sousZone = "";
-    let fao = "";
+  const regex = /FAO\s*([0-9]{1,3})\s*([IVX]{1,4})?\s*([A-Za-z])?/gi;
 
-    if (faoList.length > 0) {
-      fao = faoList[0];
-      const m2 = fao.match(/FAO\s*([0-9]{1,3})\s*([IVX]+)?([A-Za-z])?/i);
-      if (m2) {
-        zone = `FAO ${m2[1]}`;
-        sousZone = ((m2[2] || "") + (m2[3] || "")).toUpperCase();
-      }
-    }
+  let list = [];
+  let m;
+
+  while ((m = regex.exec(bio)) !== null) {
+    const num = m[1];
+    const roman = m[2] ? m[2].toUpperCase() : "";
+    let letter = m[3] ? m[3].toUpperCase() : "";
+
+    // ❌ On supprime les lettres invalides ("O" = Ouest)
+    if (letter === "O") letter = "";
+
+    // Construction propre
+    const fao = `FAO ${num} ${roman}${letter}`.trim();
+    list.push(fao);
+  }
+
+  return list;
+}
 
     /**************************************************
      * Nom latin
