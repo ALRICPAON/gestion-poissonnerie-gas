@@ -27,6 +27,7 @@
   <script type="module" src="../js/import-criee.js"></script>
   <script type="module" src="../js/import-royalemaree.js"></script>
   <script type="module" src="../js/import-sogelmer.js"></script>
+  <script type="module" src="../js/import-distrimer.js"></script>
 
 
 </head>
@@ -118,6 +119,7 @@
   import { importCrieePLUcolA, importCrieePLUcolB } from "../js/import-criee.js";
   import { importRoyaleMaree } from "../js/import-royalemaree.js";
   import { importSogelmer } from "../js/import-sogelmer.js";
+  import { importDistrimer } from "../js/import-distrimer.js";
 
 
 
@@ -168,6 +170,11 @@
     if (provider === "SCAPMAREE") {
   await importScapmaree(file);
   status.textContent = "✅ Import Scapmarée terminé !";
+
+      } else if (provider === "DISTRIMER") {
+        // 🎯 AJOUT ICI : Distrimer 10002
+        await importDistrimer(file);
+        status.textContent = "✅ Import Distrimer terminé !";
 
 } else if (provider === "ROYALEMAREE") {
   await importRoyaleMaree(file);
