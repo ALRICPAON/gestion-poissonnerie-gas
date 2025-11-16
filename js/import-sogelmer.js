@@ -1,10 +1,11 @@
 /**************************************************
  * IMPORT SOGELMER (10003)
- * Version finale — multi-FAO, multi Latin, AF_MAP OK
+ * Version finale — Multi FAO + Multi Latin + Popup AF_MAP
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
-  collection, addDoc, doc, serverTimestamp, updateDoc, getDocs, getDoc
+  collection, addDoc, doc, serverTimestamp,
+  updateDoc, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
@@ -30,14 +31,14 @@ async function extractTextFromPdf(file) {
 }
 
 /**************************************************
- * Détection code article
+ * Détection code article SOGELMER
  **************************************************/
 const isArticleCode = s =>
   /^[A-Z]{3,6}[A-Z0-9/]{1,6}$/.test(s) &&
   !/CLIENT|SOGELMER|PAGE|DATE|FR|CE|TARIF|POIDS|STEF|BL|FACTURE|LIVRE/i.test(s);
 
 /**************************************************
- * Normalisation réf SOGELMER
+ * Normalisation ref fournisseur
  **************************************************/
 function normalizeRef(ref) {
   if (!ref) return "";
@@ -47,53 +48,35 @@ function normalizeRef(ref) {
 }
 
 /**************************************************
- * Multi-FAO SOGELMER (identique Distrimer)
+ * Multi-FAO (lettres, multiples, évite "Ouest")
  **************************************************/
 function extractFAOs(bio) {
   if (!bio) return [];
 
-  const blocks = bio
-    .split(/FAO/i)
-    .slice(1)
-    .map(b => b.trim());
-
   const out = [];
+  const regex = /FAO\s*([0-9]{1,3})\s*([IVX]{1,4})?\s*([A-Za-z])?/gi;
 
-  for (let blk of blocks) {
-    blk = blk.split(/Chalut|Casier|Ligne|Filet|Mail|-/i)[0].trim();
+  let m;
+  while ((m = regex.exec(bio)) !== null) {
+    const num = m[1];
+    const roman = m[2] ? m[2].toUpperCase() : "";
+    let letter = m[3] ? m[3].toUpperCase() : "";
 
-    const numMatch = blk.match(/^([0-9]{1,3})/);
-    if (!numMatch) continue;
+    if (letter === "O") letter = ""; // exclure Ouest / Ecosse
 
-    const num = numMatch[1];
-    let rest = blk.replace(num, "").trim();
-
-    const parts = rest.split(/et|\/|,/i).map(s => s.trim());
-
-    for (let p of parts) {
-      const m = p.match(/^([IVX]+)([A-Za-z]?)?/i);
-      if (!m) continue;
-
-      const roman = (m[1] || "").toUpperCase();
-      let letter = (m[2] || "").toLowerCase();
-
-      if (/ouest|ecosse/i.test(p)) letter = "";
-
-      out.push(`FAO ${num} ${roman}${letter}`.trim());
-    }
+    out.push(`FAO ${num} ${roman}${letter}`.trim());
   }
 
   return [...new Set(out)];
 }
 
 /**************************************************
- * Parse PDF → lignes SOGELMER (multi FAO + multi latin)
+ * Parse SOGELMER
  **************************************************/
 export function parseSogelmer(text) {
 
   const rows = [];
   const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
-
   let i = 0;
 
   while (i < lines.length) {
@@ -104,8 +87,7 @@ export function parseSogelmer(text) {
       continue;
     }
 
-    const rawRef = line;
-    const refFournisseur = normalizeRef(rawRef);
+    const refFournisseur = normalizeRef(line);
 
     const designation = (lines[i + 1] || "").trim();
     const colis        = parseFloat((lines[i + 2] || "").replace(",", "."));
@@ -125,48 +107,44 @@ export function parseSogelmer(text) {
     const bio = (lines[i + 10] || "").trim();
 
     /***********************************************
-     * NOM LATIN — tout avant “ - FAO”
+     * NOM LATIN — tout avant " - FAO"
      ***********************************************/
-    let nomLatin = "";
     let multiLatin = [];
-
     const latinPart = bio.split(/ - FAO| - ANE FAO/i)[0];
 
     if (latinPart) {
       multiLatin = latinPart
-        .split("-")              // plusieurs espèces séparées par "-"
+        .split("-")
         .map(x => x.trim())
         .filter(x => x.length > 0);
     }
 
-    nomLatin = multiLatin.join(" / ");
+    const nomLatin = multiLatin.join(" / ");
 
     /***********************************************
-     * MULTI-FAO + lettres (comme Distrimer)
+     * MULTI-FAO
      ***********************************************/
-    const faoList = [];
-    const faoRegex = /FAO\s*([0-9]{1,3})\s*([IVX]{1,4})?\s*([A-Za-z])?/gi;
-
-    let m;
-    while ((m = faoRegex.exec(bio)) !== null) {
-      const num = m[1];
-      const roman = m[2] ? m[2].toUpperCase() : "";
-      let letter = m[3] ? m[3].toUpperCase() : "";
-
-      if (letter === "O") letter = ""; // éviter "Ouest"
-
-      faoList.push(`FAO ${num} ${roman}${letter}`.trim());
-    }
-
+    const faoList = extractFAOs(bio);
     const fao = faoList[0] || "";
     const autresFAO = faoList.slice(1);
 
     /***********************************************
-     * ENGIN — dernier segment après le dernier " - "
+     * ZONES (seulement si 1 FAO)
+     ***********************************************/
+    let zone = "";
+    let sousZone = "";
+
+    if (fao) {
+      const parts = fao.split(" ");
+      zone = (parts[0] + " " + parts[1]) || "";
+      sousZone = parts[2] || "";
+    }
+
+    /***********************************************
+     * ENGIN (dernier match)
      ***********************************************/
     let engin = "";
-    const engRegex = /(Chalut|Ligne|Filet|Mail|FILTS)/gi;
-    const engMatch = bio.match(engRegex);
+    const engMatch = bio.match(/Chalut|Ligne|Filet|Mail|Casier|FILTS/gi);
     if (engMatch) engin = engMatch[engMatch.length - 1];
 
     if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
@@ -185,11 +163,12 @@ export function parseSogelmer(text) {
 
       nomLatin,
       multiLatin,
+
       fao,
       autresFAO,
 
-      zone: fao.split(" ")[1] || "",
-      sousZone: fao.split(" ")[2] || "",
+      zone,
+      sousZone,
       engin
     });
 
@@ -200,7 +179,7 @@ export function parseSogelmer(text) {
 }
 
 /**************************************************
- * AF_MAP smart match (identique Distrimer)
+ * AF_MAP smart match
  **************************************************/
 function findAFMapEntry(afMap, fourCode, ref) {
 
@@ -208,28 +187,17 @@ function findAFMapEntry(afMap, fourCode, ref) {
 
   const keyExact  = `${fourCode}__${clean}`;
   const keyNoZero = `${fourCode}__${clean.replace(/^0+/, "")}`;
-  const keyPadded = `${fourCode}__${clean.replace(/^(\D+)(\d)$/, "$1" + "0" + "$2")}`;
+  const keyPad    = `${fourCode}__${clean.replace(/^(\D+)(\d)$/, "$10$2")}`;
 
-  return (
-    afMap[keyExact] ||
-    afMap[keyNoZero] ||
-    afMap[keyPadded] ||
-    null
-  );
-}
-
-function buildFAO(zone, sousZone) {
-  if (!zone) return "";
-  return `${zone} ${sousZone || ""}`.trim();
+  return afMap[keyExact] || afMap[keyNoZero] || afMap[keyPad] || null;
 }
 
 /**************************************************
- * SAVE SOGELMER (copie 100% Distrimer)
+ * SAVE SOGELMER
  **************************************************/
 async function saveSogelmer(lines) {
 
   const FOUR_CODE = "10003";
-  if (!lines.length) throw new Error("Aucune ligne SOGELMER détectée");
 
   const [afSnap, artSnap] = await Promise.all([
     getDocs(collection(db, "af_map")),
@@ -271,46 +239,28 @@ async function saveSogelmer(lines) {
     totalKg += Number(L.poidsTotalKg || 0);
 
     let plu = "";
-    let designationInterne = (L.designation || "").trim();
-    let allergenes = "";
-    let zone = L.zone;
-    let sousZone = L.sousZone;
-    let engin = L.engin;
-    let fao = L.fao;
-    let faos = L.faos;
-
+    let designationInterne = L.designation;
     let cleanFromAF = "";
 
-    /**************************************************
-     * AF_MAP PRIORITÉ
-     **************************************************/
     const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
+    /**************** AF_MAP ****************/
     if (M) {
-
       plu = (M.plu || "").toString().trim().replace(/\.0$/, "");
-
       cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
+
       if (cleanFromAF) {
-        L.designation = cleanFromAF;
         designationInterne = cleanFromAF;
+        L.designation = cleanFromAF;
       }
 
-      if ((!L.nomLatin || /total/i.test(L.nomLatin)) && M.nomLatin) {
-        L.nomLatin = M.nomLatin;
-      }
-
-      if (!zone && M.zone) zone = M.zone;
-      if (!sousZone && M.sousZone) sousZone = M.sousZone;
-      if (!engin && M.engin) engin = M.engin;
-
-      if (!fao && M.zone)
-        fao = buildFAO(`FAO ${M.zone}`, M.sousZone);
+      if (M.nomLatin) L.nomLatin = M.nomLatin;
+      if (M.zone)     L.zone = M.zone;
+      if (M.sousZone) L.sousZone = M.sousZone;
+      if (M.engin)    L.engin = M.engin;
     }
 
-    /**************************************************
-     * ARTICLE fallback
-     **************************************************/
+    /**************** Fallback fiche article ****************/
     if (plu && artMap[plu]) {
       const art = artMap[plu];
 
@@ -318,26 +268,16 @@ async function saveSogelmer(lines) {
         (art.Designation || art.designation || art.designationInterne || "").trim();
 
       if (!cleanFromAF && artDesignation) {
-        L.designation = artDesignation;
         designationInterne = artDesignation;
+        L.designation = artDesignation;
       }
 
-      if (!zone && (art.Zone || art.zone))
-        zone = art.Zone || art.zone;
-
-      if (!sousZone && (art.SousZone || art.sousZone))
-        sousZone = art.SousZone || art.sousZone;
-
-      if (!engin && (art.Engin || art.engin))
-        engin = art.Engin || art.engin;
-
-      if (!fao)
-        fao = buildFAO(zone, sousZone);
+      if (art.Zone)     L.zone = art.Zone;
+      if (art.SousZone) L.sousZone = art.SousZone;
+      if (art.Engin)    L.engin = art.Engin;
     }
 
-    /**************************************************
-     * SAVE LIGNE
-     **************************************************/
+    /**************** SAVE LIGNE ****************/
     const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: L.refFournisseur,
       fournisseurRef: L.refFournisseur,
@@ -345,14 +285,14 @@ async function saveSogelmer(lines) {
       plu,
       designation: L.designation,
       designationInterne,
+
       nomLatin: L.nomLatin,
 
-      zone,
-      sousZone,
-      fao,
-      faos,
-      engin,
-      allergenes,
+      zone: L.zone,
+      sousZone: L.sousZone,
+      fao: L.fao,
+      autresFAO: L.autresFAO || [],
+      engin: L.engin || "",
 
       poidsKg: L.poidsTotalKg,
       prixHTKg: L.prixKg,
@@ -371,9 +311,7 @@ async function saveSogelmer(lines) {
 
     const lineId = lineRef.id;
 
-    /**************************************************
-     * PATCH AUTO après popup
-     **************************************************/
+    /**************** PATCH AUTO-UPDATE après mapping ****************/
     if (!M) {
       setTimeout(async () => {
         const key = (`10003__${L.refFournisseur}`).toUpperCase();
@@ -391,32 +329,30 @@ async function saveSogelmer(lines) {
             updatedAt: serverTimestamp()
           }
         );
-
-        console.log("🔄 Ligne SOGELMER mise à jour après mapping :", lineId);
       }, 500);
     }
 
-    /**************************************************
-     * MANQUANTS → popup AF_MAP (identique Distrimer)
-     **************************************************/
+    /**************** Collect missing for popup ****************/
     if (!M) {
       missingRefs.push({
         fournisseurCode: FOUR_CODE,
         refFournisseur: L.refFournisseur,
-        designation: L.designation || "",
-        designationInterne: designationInterne || "",
-        aliasFournisseur: L.designation || "",
+        designation: L.designation,
+        designationInterne,
+        aliasFournisseur: L.designation,
         nomLatin: L.nomLatin || "",
-        zone: zone || "",
-        sousZone: sousZone || "",
-        engin: engin || "",
-        allergenes: allergenes || "",
+        zone: L.zone || "",
+        sousZone: L.sousZone || "",
+        engin: L.engin || "",
+        allergenes: "",
         achatId,
         ligneId: lineId
       });
     }
+
   }
 
+  /**************** Update achat ****************/
   await updateDoc(doc(db, "achats", achatId), {
     montantHT: totalHT,
     montantTTC: totalHT,
@@ -424,8 +360,8 @@ async function saveSogelmer(lines) {
     updatedAt: serverTimestamp()
   });
 
+  /**************** Popup mapping ****************/
   if (missingRefs.length > 0) {
-    console.warn("🔎 Réf SOGELMER manquantes :", missingRefs);
     const mod = await import("./manage-af-map.js");
     mod.manageAFMap(missingRefs);
   }
@@ -438,4 +374,7 @@ export async function importSogelmer(file) {
   const text = await extractTextFromPdf(file);
   const lines = parseSogelmer(text);
   await saveSogelmer(lines);
+
+  // auto refresh
+  setTimeout(() => location.reload(), 500);
 }
