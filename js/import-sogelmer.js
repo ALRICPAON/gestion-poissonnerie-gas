@@ -248,27 +248,41 @@ async function saveSogelmer(lines) {
     }
 
     /**************************************************
-     * Articles (fallback)
-     **************************************************/
-    if (!plu && artMap[plu]) {
-      const art = artMap[plu];
-      const artDesignation = (art.Designation || art.designation || "").trim();
+ * Articles (fallback)
+ **************************************************/
+if (plu && artMap[plu]) {
 
-      if (!cleanFromAF && artDesignation) {
-        L.designation = artDesignation;
-        designationInterne = artDesignation;
-      }
+  const art = artMap[plu];
 
-      if (!zone && (art.Zone || art.zone)) zone = (art.Zone || art.zone);
-      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = (art.SousZone || art.sousZone);
-      if (!engin && (art.Engin || art.engin)) engin = (art.Engin || art.engin);
+  const artDesignation =
+    (art.Designation || art.designation || art.designationInterne || "").trim();
 
-      if (!fao) fao = buildFAO(zone, sousZone);
-    }
+  // ✔ Si AF_MAP n’a pas donné de nom → on prend celui de la fiche article
+  if (!cleanFromAF && artDesignation) {
+    L.designation = artDesignation;
+    designationInterne = artDesignation;
+  }
 
-    // Normalisation
-    if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-    if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
+  // ✔ Si zone manquante → fiche article
+  if (!zone && (art.Zone || art.zone)) {
+    zone = art.Zone || art.zone;
+  }
+
+  // ✔ Si sous-zone manquante → fiche article
+  if (!sousZone && (art.SousZone || art.sousZone)) {
+    sousZone = art.SousZone || art.sousZone;
+  }
+
+  // ✔ Si engin manquant → fiche article
+  if (!engin && (art.Engin || art.engin)) {
+    engin = art.Engin || art.engin;
+  }
+
+  // ✔ FAO reconstruit si absent
+  if (!fao) {
+    fao = buildFAO(zone, sousZone);
+  }
+}
 
     /**************************************************
      * SAVE LIGNE
