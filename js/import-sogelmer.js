@@ -372,7 +372,7 @@ if (missingRefs.length > 0) {
 // ✔ Aucun mapping → refresh automatique
 setTimeout(() => location.reload(), 300);
 
-}
+
 
 /**************************************************
  * ENTRY
