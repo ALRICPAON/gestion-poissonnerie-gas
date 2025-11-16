@@ -315,14 +315,43 @@ if (engin) {
     updatedAt: serverTimestamp(),
   });
 
-  if (missingRefs.length > 0) {
-    console.warn("⚠️ Références non trouvées dans AF_MAP:", missingRefs);
-  }
+ /**************************************************
+ * 📌 FIN IMPORT — Popup AF_MAP si besoin
+ **************************************************/
+if (missingRefs.length > 0) {
+  console.warn("⚠️ Références non trouvées dans AF_MAP:", missingRefs);
 
-  alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
-  // 🔁 recharge la page après import
+  // Charge le module popup
+  const { manageAFMap } = await import("./manage-af-map.js");
+
+  // Transforme les ref en objets complets pour le popup
+  const popupList = missingRefs.map(ref => ({
+    fournisseurCode: FOUR_CODE,
+    refFournisseur: ref,
+    designation: "",            // visible dans le popup
+    designationInterne: "",     // champ éditable
+    aliasFournisseur: ref,      // info
+    nomLatin: "",
+    zone: "",
+    sousZone: "",
+    engin: "",
+    allergenes: "",
+    achatId,
+    lineId: null
+  }));
+
+  // Ouvre le popup AF_MAP
+  await manageAFMap(popupList);
+
+  alert("🔄 Associations AF_MAP mises à jour. Recharge...");
   location.reload();
+  return;
 }
+
+// Aucun PLU manquant → import normal
+alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
+location.reload();
+
 
 /**************************************************
  * 🧾 Entrée principale
