@@ -245,8 +245,23 @@ async function saveRoyaleMaree(lines) {
       if (!engin && M.engin) engin = M.engin;
       if (!fao) fao = buildFAO(zone, sousZone);
     } else {
-      missingRefs.push(L.refFournisseur);
-    }
+      missingRefs.push({
+  fournisseurCode: FOUR_CODE,
+  refFournisseur: L.refFournisseur,
+  designation: L.designation || "",
+  designationInterne,
+  aliasFournisseur: L.designation || "",
+  nomLatin: L.nomLatin || "",
+  zone,
+  sousZone,
+  engin,
+  allergenes,
+  achatId,
+  // lineId sera connu APRÈS addDoc → on le met à null temporairement
+  lineId: null
+});
+}
+    
 
     /**************************************************
      * FALLBACK : FICHE ARTICLE
@@ -295,6 +310,14 @@ async function saveRoyaleMaree(lines) {
       updatedAt: serverTimestamp(),
     });
 
+    // Après création de la ligne Firestore
+missingRefs.forEach(ref => {
+  if (ref.refFournisseur === L.refFournisseur && ref.lineId === null) {
+    ref.lineId = lineRef.id;
+  }
+});
+
+
     /**************************************************
      * PATCH AUTO — mise à jour après popup AF_MAP
      **************************************************/
@@ -332,10 +355,15 @@ async function saveRoyaleMaree(lines) {
   if (missingRefs.length > 0) {
     console.warn("⚠ Réfs non trouvées dans AF_MAP:", missingRefs);
   }
-
+  // Ouvre le popup AF_MAP si nécessaire
+if (missingRefs.length > 0) {
+  const { manageAFMap } = await import("./manage-af-map.js");
+  await manageAFMap(missingRefs);
+} else {
   alert(`✅ ${lines.length} lignes importées (Royale Marée)`);
   location.reload();
 }
+
 
 /**************************************************
  * 🧾 Entrée principale
