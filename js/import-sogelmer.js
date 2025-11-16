@@ -87,7 +87,7 @@ function extractFAOs(bio) {
 }
 
 /**************************************************
- * Parse PDF → lignes SOGELMER (nouveau)
+ * Parse PDF → lignes SOGELMER (multi FAO + multi latin)
  **************************************************/
 export function parseSogelmer(text) {
 
@@ -104,7 +104,8 @@ export function parseSogelmer(text) {
       continue;
     }
 
-    const refFournisseur = normalizeRef(line);
+    const rawRef = line;
+    const refFournisseur = normalizeRef(rawRef);
 
     const designation = (lines[i + 1] || "").trim();
     const colis        = parseFloat((lines[i + 2] || "").replace(",", "."));
@@ -115,42 +116,58 @@ export function parseSogelmer(text) {
 
     let prixKg = 0;
     if ((lines[i + 7] || "").includes("€"))
-      prixKg = parseFloat(lines[i + 7].replace("€", "").replace(",", "."));
+      prixKg = parseFloat(lines[i + 7].replace("€","").replace(",","."));    
 
     let montantHT = 0;
     if ((lines[i + 8] || "").includes("€"))
-      montantHT = parseFloat(lines[i + 8].replace("€", "").replace(",", "."));
+      montantHT = parseFloat(lines[i + 8].replace("€","").replace(",","."));    
 
     const bio = (lines[i + 10] || "").trim();
 
-    /***********************
-     * Multi nom latin
-     ***********************/
+    /***********************************************
+     * NOM LATIN — tout avant “ - FAO”
+     ***********************************************/
     let nomLatin = "";
-    const latinList = bio.match(/[A-Z][a-z]+(?: [a-z]+)*/g);
-    if (latinList) nomLatin = latinList.join(", ");
+    let multiLatin = [];
 
-    /***********************
-     * Multi-FAO
-     ***********************/
-    const faos = extractFAOs(bio);
-    const fao = faos.join(", ");
+    const latinPart = bio.split(/ - FAO| - ANE FAO/i)[0];
 
-    // zone / sous-zone = uniquement si 1 FAO
-    let zone = "";
-    let sousZone = "";
-    if (faos.length === 1) {
-      const parts = faos[0].split(" ");
-      zone = `${parts[0]} ${parts[1]}`;
-      sousZone = parts[2] || "";
+    if (latinPart) {
+      multiLatin = latinPart
+        .split("-")              // plusieurs espèces séparées par "-"
+        .map(x => x.trim())
+        .filter(x => x.length > 0);
     }
 
-    /***********************
-     * Engin
-     ***********************/
+    nomLatin = multiLatin.join(" / ");
+
+    /***********************************************
+     * MULTI-FAO + lettres (comme Distrimer)
+     ***********************************************/
+    const faoList = [];
+    const faoRegex = /FAO\s*([0-9]{1,3})\s*([IVX]{1,4})?\s*([A-Za-z])?/gi;
+
+    let m;
+    while ((m = faoRegex.exec(bio)) !== null) {
+      const num = m[1];
+      const roman = m[2] ? m[2].toUpperCase() : "";
+      let letter = m[3] ? m[3].toUpperCase() : "";
+
+      if (letter === "O") letter = ""; // éviter "Ouest"
+
+      faoList.push(`FAO ${num} ${roman}${letter}`.trim());
+    }
+
+    const fao = faoList[0] || "";
+    const autresFAO = faoList.slice(1);
+
+    /***********************************************
+     * ENGIN — dernier segment après le dernier " - "
+     ***********************************************/
     let engin = "";
-    const engMatch = bio.match(/Chalut|Ligne|Filet|Mail|Casier|FILTS/gi);
-    if (engMatch) engin = engMatch[0];
+    const engRegex = /(Chalut|Ligne|Filet|Mail|FILTS)/gi;
+    const engMatch = bio.match(engRegex);
+    if (engMatch) engin = engMatch[engMatch.length - 1];
 
     if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
     if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
@@ -165,14 +182,15 @@ export function parseSogelmer(text) {
       montantHT,
       uv,
       lot,
+
       nomLatin,
+      multiLatin,
+      fao,
+      autresFAO,
 
-      zone,
-      sousZone,
-      engin,
-
-      fao,   // string
-      faos   // array
+      zone: fao.split(" ")[1] || "",
+      sousZone: fao.split(" ")[2] || "",
+      engin
     });
 
     i += 11;
