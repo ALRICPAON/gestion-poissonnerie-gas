@@ -203,18 +203,57 @@ async function saveRoyaleMaree(lines) {
     if (a?.plu) artMap[a.plu.toString().trim()] = a;
   });
 
-  const achatRef = await addDoc(collection(db, "achats"), {
-    date: new Date().toISOString().slice(0, 10),
-    fournisseurCode: supplier.code,
-    fournisseurNom: supplier.nom,
-    type: "BL",
-    statut: "new",
-    montantHT: 0,
-    montantTTC: 0,
-    totalKg: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
+  refFournisseur: L.refFournisseur,
+  designation: L.designation,
+  nomLatin: L.nomLatin,
+  colis: L.colis,
+  poidsColisKg: L.poidsColisKg,
+  poidsTotalKg: L.poidsTotalKg,
+  prixKg: L.prixKg,
+  montantHT: L.montantHT,
+  zone,
+  sousZone,
+  engin,
+  lot: L.lot || "",
+  fao,
+  plu,
+  designationInterne,
+  allergenes,
+  fournisseurRef: L.refFournisseur,
+  montantTTC: L.montantHT,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+});
+
+
+/**************************************************
+ * PATCH AUTO-UPDATE SI MAPPING AJOUTÉ DANS LE POPUP
+ **************************************************/
+if (!M) {
+  const refKey = (`10004__${L.refFournisseur}`).toUpperCase();
+
+  // Attendre un peu que AF_MAP soit créé dans Firestore
+  setTimeout(async () => {
+    const snap = await getDoc(doc(db, "af_map", refKey));
+    if (!snap.exists()) return;
+
+    const mapped = snap.data();
+
+    await updateDoc(
+      doc(db, "achats", achatId, "lignes", lineRef.id),
+      {
+        plu: mapped.plu || "",
+        designationInterne: mapped.designationInterne || "",
+        designation: mapped.designationInterne || "",
+        updatedAt: serverTimestamp()
+      }
+    );
+
+    console.log("🔄 Royale Marée — Ligne mise à jour après mapping :", lineRef.id);
+  }, 500);
+}
+
 
   const achatId = achatRef.id;
   let totalHT = 0;
