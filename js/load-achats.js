@@ -92,7 +92,7 @@ rows.push({
     });
   }
 
-  // rendu
+   // rendu
   el.tbody.innerHTML = rows.map(r => {
     const href = `./achat-detail.html?id=${encodeURIComponent(r.id)}`;
     const typeLabel = r.type === "BL" ? "BL" : "Commande";
@@ -108,11 +108,35 @@ rows.push({
         <td><span class="badge">${statut}</span></td>
         <td>
           <button class="btn btn-small" onclick="location.href='${href}'">Ouvrir</button>
+          <button class="btn btn-small btn-danger btn-del" data-id="${r.id}">🗑️</button>
         </td>
       </tr>
     `;
   }).join("") || `<tr><td colspan="8">Aucun achat</td></tr>`;
-}
+
+  /* 🗑️ BOUTON SUPPRESSION — À AJOUTER ICI */
+  document.querySelectorAll(".btn-del").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const achatId = btn.dataset.id;
+      if (!confirm("🗑️ Supprimer cet achat ainsi que toutes ses lignes ?")) return;
+
+      try {
+        await deleteDoc(doc(db, "achats", achatId));
+
+        const lignesCol = collection(db, "achats", achatId, "lignes");
+        const snap = await getDocs(lignesCol);
+        for (const d of snap.docs) {
+          await deleteDoc(doc(lignesCol, d.id));
+        }
+
+        alert("👍 Achat supprimé.");
+        loadAchats();
+      } catch (e) {
+        console.error(e);
+        alert("❌ Erreur suppression : " + e.message);
+      }
+    });
+  });
 
 function bindFilters() {
   if (el.btnApply) el.btnApply.addEventListener("click", loadAchats);
