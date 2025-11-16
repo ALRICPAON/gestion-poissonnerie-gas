@@ -224,7 +224,9 @@ async function saveSogelmer(lines) {
     /**************************************************
      * AF_MAP — priorité totale
      **************************************************/
-    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
+    const refNorm = normalizeRef(L.refFournisseur);
+const M = findAFMapEntry(afMap, FOUR_CODE, refNorm);
+
 
     if (M) {
 
@@ -325,7 +327,7 @@ if (plu && artMap[plu]) {
     if (!M) {
      missingRefs.push({
   fournisseurCode: FOUR_CODE,
-  refFournisseur: L.refFournisseur,
+  refFournisseur: refNorm,
   designation: L.designation || "",
   designationInterne: designationInterne || "",
   aliasFournisseur: L.designation || "",
