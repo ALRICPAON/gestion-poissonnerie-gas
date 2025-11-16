@@ -1,6 +1,6 @@
 /**************************************************
  * IMPORT SOGELMER (10003)
- * Version finale, propre & patchée — 14/11/2025
+ * Version finale, propre & patchée
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
@@ -40,14 +40,14 @@ const isArticleCode = s =>
  * Normalisation des références SOGELMER
  * EMISP/6 → EMISP_06
  * RAI121F/6 → RAI121F_06
+ * (idempotent : si déjà EMISP_06, ne bouge plus)
  **************************************************/
 function normalizeRef(ref) {
   if (!ref) return "";
   let r = ref.trim().replace("/", "_");
 
-  // Cas général : lettres + chiffre final → pad 0 devant
-  // EMISP_6 → EMISP_06
-  r = r.replace(/(\D+)(\d)$/, "$10$2");
+  // On ne pad que si on a "LETTRES+1 chiffre" (ex: EMISP_6)
+  r = r.replace(/^(\D+)(\d)$/, "$1" + "0" + "$2");
 
   return r.toUpperCase();
 }
@@ -109,10 +109,10 @@ export function parseSogelmer(text) {
     if (engMatch) engin = engMatch[0];
 
     if (/FILMAIL/i.test(engin)) engin = "FILET MAILLANT";
-    if (/FILTS/i.test(engin))    engin = "FILET TOURNANT";
+    if (/FILTS/i.test(engin))   engin = "FILET TOURNANT";
 
     rows.push({
-      refFournisseur,
+      refFournisseur,        // déjà normalisé (EMISP_06)
       designation,
       colis,
       poidsColisKg,
@@ -139,16 +139,16 @@ export function parseSogelmer(text) {
  **************************************************/
 function findAFMapEntry(afMap, fourCode, ref) {
 
-  const clean = ref.toString().trim().toUpperCase();
+  const clean = (ref || "").toString().trim().toUpperCase();
 
   // EXACT
   const keyExact = `${fourCode}__${clean}`;
 
-  // SANS ZERO
+  // SANS ZERO (au cas où)
   const keyNoZero = `${fourCode}__${clean.replace(/^0+/, "")}`;
 
-  // AVEC ZERO AUTO
-  const keyPadded = `${fourCode}__${clean.replace(/(\D+)(\d)$/, "$10$2")}`;
+  // AVEC ZERO AUTO (si jamais ref mal stockée dans AF_MAP)
+  const keyPadded = `${fourCode}__${clean.replace(/^(\D+)(\d)$/, "$1" + "0" + "$2")}`;
 
   return (
     afMap[keyExact] ||
@@ -224,9 +224,8 @@ async function saveSogelmer(lines) {
     /**************************************************
      * AF_MAP — priorité totale
      **************************************************/
-    const refNorm = normalizeRef(L.refFournisseur);
-const M = findAFMapEntry(afMap, FOUR_CODE, refNorm);
-
+    // L.refFournisseur est déjà normalisé dans parseSogelmer
+    const M = findAFMapEntry(afMap, FOUR_CODE, L.refFournisseur);
 
     if (M) {
 
@@ -250,41 +249,37 @@ const M = findAFMapEntry(afMap, FOUR_CODE, refNorm);
     }
 
     /**************************************************
- * Articles (fallback)
- **************************************************/
-if (plu && artMap[plu]) {
+     * Articles (fallback)
+     **************************************************/
+    if (plu && artMap[plu]) {
 
-  const art = artMap[plu];
+      const art = artMap[plu];
 
-  const artDesignation =
-    (art.Designation || art.designation || art.designationInterne || "").trim();
+      const artDesignation =
+        (art.Designation || art.designation || art.designationInterne || "").trim();
 
-  // ✔ Si AF_MAP n’a pas donné de nom → on prend celui de la fiche article
-  if (!cleanFromAF && artDesignation) {
-    L.designation = artDesignation;
-    designationInterne = artDesignation;
-  }
+      // Si AF_MAP n’a pas donné de nom → on prend celui de la fiche article
+      if (!cleanFromAF && artDesignation) {
+        L.designation = artDesignation;
+        designationInterne = artDesignation;
+      }
 
-  // ✔ Si zone manquante → fiche article
-  if (!zone && (art.Zone || art.zone)) {
-    zone = art.Zone || art.zone;
-  }
+      if (!zone && (art.Zone || art.zone)) {
+        zone = art.Zone || art.zone;
+      }
 
-  // ✔ Si sous-zone manquante → fiche article
-  if (!sousZone && (art.SousZone || art.sousZone)) {
-    sousZone = art.SousZone || art.sousZone;
-  }
+      if (!sousZone && (art.SousZone || art.sousZone)) {
+        sousZone = art.SousZone || art.sousZone;
+      }
 
-  // ✔ Si engin manquant → fiche article
-  if (!engin && (art.Engin || art.engin)) {
-    engin = art.Engin || art.engin;
-  }
+      if (!engin && (art.Engin || art.engin)) {
+        engin = art.Engin || art.engin;
+      }
 
-  // ✔ FAO reconstruit si absent
-  if (!fao) {
-    fao = buildFAO(zone, sousZone);
-  }
-}
+      if (!fao) {
+        fao = buildFAO(zone, sousZone);
+      }
+    }
 
     /**************************************************
      * SAVE LIGNE
@@ -323,22 +318,23 @@ if (plu && artMap[plu]) {
 
     /**************************************************
      * MANQUANTS → popup AF_MAP
+     * (⚠️ clé = **ligneId** pour coller à manage-af-map.js)
      **************************************************/
     if (!M) {
-     missingRefs.push({
-  fournisseurCode: FOUR_CODE,
-  refFournisseur: refNorm,
-  designation: L.designation || "",
-  designationInterne: designationInterne || "",
-  aliasFournisseur: L.designation || "",
-  nomLatin: L.nomLatin || "",
-  zone: zone || "",
-  sousZone: sousZone || "",
-  engin: engin || "",
-  allergenes: allergenes || "",
-  achatId,
-  lineId
-});
+      missingRefs.push({
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: L.refFournisseur,   // déjà normalisé (EMISP_06)
+        designation: L.designation || "",
+        designationInterne: designationInterne || "",
+        aliasFournisseur: L.designation || "",
+        nomLatin: L.nomLatin || "",
+        zone: zone || "",
+        sousZone: sousZone || "",
+        engin: engin || "",
+        allergenes: allergenes || "",
+        achatId,
+        ligneId: lineId                     // 🔴 ICI : **ligneId** (et pas lineId)
+      });
     }
   }
 
