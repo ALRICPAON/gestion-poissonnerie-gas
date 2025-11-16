@@ -309,13 +309,20 @@ async function saveSogelmer(lines) {
      * MANQUANTS → popup AF_MAP
      **************************************************/
     if (!M) {
-      missingRefs.push({
-        fournisseurCode: FOUR_CODE,
-        refFournisseur: L.refFournisseur,
-        designation: L.designation,
-        achatId,
-        lineId
-      });
+     missingRefs.push({
+  fournisseurCode: FOUR_CODE,
+  refFournisseur: L.refFournisseur,
+  designation: L.designation || "",
+  designationInterne: designationInterne || "",
+  aliasFournisseur: L.designation || "",
+  nomLatin: L.nomLatin || "",
+  zone: zone || "",
+  sousZone: sousZone || "",
+  engin: engin || "",
+  allergenes: allergenes || "",
+  achatId,
+  lineId
+});
     }
   }
 
