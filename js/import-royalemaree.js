@@ -278,6 +278,32 @@ async function saveRoyaleMaree(lines) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    /**************************************************
+ * PATCH AUTO — mise à jour après popup AF_MAP
+ **************************************************/
+if (!M) {
+  const refKey = (`${FOUR_CODE}__${L.refFournisseur}`).toUpperCase();
+
+  setTimeout(async () => {
+    const snap = await getDoc(doc(db, "af_map", refKey));
+    if (!snap.exists()) return;
+
+    const mapped = snap.data();
+
+    await updateDoc(
+      doc(db, "achats", achatId, "lignes", lineRef.id),
+      {
+        plu: mapped.plu || "",
+        designationInterne: mapped.designationInterne || "",
+        designation: mapped.designationInterne || "",
+        updatedAt: serverTimestamp()
+      }
+    );
+
+    console.log("🔄 Royale Marée — Ligne mise à jour après AF_MAP :", lineRef.id);
+  }, 500);
+}
+
 
     // 🔗 Associe lineId pour la popup
     for (const ref of missingRefs) {
