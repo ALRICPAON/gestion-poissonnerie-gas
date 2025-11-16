@@ -203,12 +203,15 @@ const traca = [
     get(".btn-qr")?.addEventListener("click", () => openQRForLine(id));
 
     // Photo sanitaire
-    get(".btn-photo")?.addEventListener("click", () => {
+get(".btn-photo")?.addEventListener("click", () => {
   location.href = `/pages/photo-line.html?achatId=${achatId}&lineId=${id}`;
-      // Lecture étiquette sanitaire (OCR)
+});
+
+// Lecture étiquette sanitaire (OCR)
 get(".btn-sanitaire")?.addEventListener("click", () => {
   openSanitaireReader(id);
 });
+
 
 
 
@@ -556,3 +559,87 @@ window.addEventListener("DOMContentLoaded", async () => {
   bindQRPrint();
   await loadAchat();
 });
+/* ======================================================
+   🔍 OCR Sanitaire — Extraction + Validation Utilisateur
+   ====================================================== */
+async function openSanitaireReader(lineId) {
+
+  const L = lines.find(x => x.id === lineId);
+  if (!L || !L.photo_url) {
+    return alert("Aucune photo sanitaire trouvée sur cette ligne.");
+  }
+
+  // Ouvrir popup
+  const modal = document.getElementById("popup-sanitaire");
+  const imgEl = document.getElementById("sanitaire-img");
+  const rawEl = document.getElementById("san-raw");
+
+  modal.style.display = "block";
+  imgEl.src = L.photo_url;
+  rawEl.textContent = "Lecture OCR en cours…";
+
+  // OCR
+  const worker = await Tesseract.createWorker();
+  const { data } = await worker.recognize(L.photo_url);
+  await worker.terminate();
+
+  const text = data.text || "";
+  rawEl.textContent = text;
+
+  // Extraction des données
+  const nomLatin = extractNomLatin(text);
+  const fao      = extractFAO(text);
+  const dlc      = extractDLC(text);
+  const engin    = extractEngin(text);
+
+  // Remplir les champs
+  document.getElementById("san-nomlatin").value = nomLatin;
+  document.getElementById("san-fao").value      = fao;
+  document.getElementById("san-dlc").value      = dlc;
+  document.getElementById("san-engin").value    = engin;
+
+  // boutons
+  document.getElementById("san-fermer").onclick = () => modal.style.display = "none";
+
+  document.getElementById("san-valider").onclick = async () => {
+    await setDoc(doc(linesCol, lineId), {
+      nomLatin: nomLatin || "",
+      fao: fao || "",
+      zone: fao.split(" ")[1] || "",
+      sousZone: fao.split(" ")[2] || "",
+      dlc: dlc || "",
+      engin: engin || "",
+      updatedAt: Timestamp.now()
+    }, { merge:true });
+
+    modal.style.display = "none";
+    await loadAchat();
+  };
+}
+
+/* =====================
+   Extraction helpers
+   ===================== */
+
+function extractNomLatin(txt) {
+  // Exemples : "Gadus morhua", "Merluccius merluccius"
+  const m = txt.match(/[A-Z][a-z]{2,}\s+[a-z]{2,}/g);
+  return m ? m[0] : "";
+}
+
+function extractFAO(txt) {
+  const m = txt.match(/FAO\s*\d+\s*[A-Z0-9]*/i);
+  return m ? m[0].replace(/\s+/g," ").trim() : "";
+}
+
+function extractDLC(txt) {
+  const m = txt.match(/(0[1-9]|[12][0-9]|3[01])[\/.-](0[1-9]|1[0-2])[\/.-](20\d{2})/);
+  if (!m) return "";
+  const [d,mn,y] = m[0].replace(/-/g,"/").split("/");
+  return `${y}-${mn}-${d}`; // format input[type=date]
+}
+
+function extractEngin(txt) {
+  const eng = txt.match(/CHALUT|LIGNE|FILET|CASIER|SENNE|PALANGRE/i);
+  return eng ? eng[0] : "";
+}
