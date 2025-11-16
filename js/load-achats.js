@@ -114,7 +114,7 @@ rows.push({
     `;
   }).join("") || `<tr><td colspan="8">Aucun achat</td></tr>`;
 
-  /* 🗑️ BOUTON SUPPRESSION — À AJOUTER ICI */
+    // 🗑️ BOUTON SUPPRESSION
   document.querySelectorAll(".btn-del").forEach(btn => {
     btn.addEventListener("click", async () => {
       const achatId = btn.dataset.id;
@@ -136,9 +136,13 @@ rows.push({
         alert("❌ Erreur suppression : " + e.message);
       }
     });
-  });
+  });   // ← 1) fermeture du forEach
 
+}        // ← 2) fermeture de loadAchats()
+
+// ---------- BIND FILTERS -----------
 function bindFilters() {
+
   if (el.btnApply) el.btnApply.addEventListener("click", loadAchats);
   if (el.btnReset) el.btnReset.addEventListener("click", () => {
     el.from.value = ""; el.to.value = ""; el.q.value = ""; loadAchats();
