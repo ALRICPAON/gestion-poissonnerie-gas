@@ -252,7 +252,21 @@ async function saveRoyaleMaree(lines) {
       if (!engin && M.engin) engin = M.engin;
       if (!fao) fao = buildFAO(zone, sousZone);
     } else {
-      missingRefs.push(L.refFournisseur);
+      missingRefs.push({
+  fournisseurCode: FOUR_CODE,
+  refFournisseur: L.refFournisseur,
+  designation: L.designation || "",
+  designationInterne: L.designation || "",
+  aliasFournisseur: L.designation || "",
+  nomLatin: L.nomLatin || "",
+  zone: L.zone || "",
+  sousZone: L.sousZone || "",
+  engin: L.engin || "",
+  allergenes: "",
+  achatId,
+  lineId: null
+});
+
     }
 
     // 2) Articles fallback only if AF_MAP didn’t give a designation
@@ -320,37 +334,23 @@ if (engin) {
  **************************************************/
 if (missingRefs.length > 0) {
   console.warn("⚠️ Références non trouvées dans AF_MAP:", missingRefs);
+console.log("missingRefs =", missingRefs);
 
-  // Charge le module popup
+  // Charge module popup
   const { manageAFMap } = await import("./manage-af-map.js");
 
-  // Transforme les ref en objets complets pour le popup
-  const popupList = missingRefs.map(ref => ({
-    fournisseurCode: FOUR_CODE,
-    refFournisseur: ref,
-    designation: "",            // visible dans le popup
-    designationInterne: "",     // champ éditable
-    aliasFournisseur: ref,      // info
-    nomLatin: "",
-    zone: "",
-    sousZone: "",
-    engin: "",
-    allergenes: "",
-    achatId,
-    lineId: null
-  }));
+  // Ouvre le popup
+  await manageAFMap(missingRefs);
 
-  // Ouvre le popup AF_MAP
-  await manageAFMap(popupList);
-
-  alert("🔄 Associations AF_MAP mises à jour. Recharge...");
-  location.reload();
+  // ⛔ surtout PAS de reload ici
+  alert("🔄 Associations AF_MAP créées. Recharge la page pour voir les PLU.");
   return;
 }
 
 // Aucun PLU manquant → import normal
 alert(`✅ ${lines.length} lignes importées pour Royale Marée`);
 location.reload();
+
 
 
 /**************************************************
