@@ -102,26 +102,25 @@ function parseDistrimer(text) {
     const latin = bio.match(/^([A-Z][a-z]+(?: [a-z]+)*)/);
     if (latin) nomLatin = latin[1];
 
-    let zone = "";
+   let zone = "";
 let sousZone = "";
 let fao = "";
 
 const faoMatch = bio.match(/FAO\s*([0-9]{1,3})\s*([IVX]+)?\s*([A-Za-z])?/i);
 
 if (faoMatch) {
-  const num   = faoMatch[1];             // ex: 27
-  const roman = faoMatch[2] || "";       // ex: VIII
-  const letter = faoMatch[3] || "";      // ex: a, b, d...
-  const letter = faoMatch[3] ? faoMatch[3].toUpperCase() : "";
-
+  const num    = faoMatch[1];             // ex: 27
+  const roman  = faoMatch[2] || "";       // ex: VIII
+  const letter = faoMatch[3] ? faoMatch[3].toUpperCase() : "";  // ex: A, B, D
 
   zone = `FAO ${num}`;
-  
-  // Construit la sous-zone propre : "VIII a"
+
+  // sous-zone : "VIII A", "V B", "III", "A", etc.
   sousZone = [roman, letter].filter(Boolean).join(" ").trim();
 
   fao = `${zone}${sousZone ? " " + sousZone : ""}`;
 }
+
 
 
     let engin = "";
