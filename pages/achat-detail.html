@@ -137,6 +137,31 @@
       });
     }
   </script>
+<div id="popup-sanitaire" class="modal" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.6); padding:2rem;
+  z-index:10000; overflow:auto;">
+  
+  <div style="background:white; padding:1rem; border-radius:10px; max-width:600px; margin:auto;">
+    <h2>Lecture étiquette sanitaire</h2>
+    <p><strong>Image détectée :</strong></p>
+    <img id="sanitaire-img" style="max-width:100%; border:1px solid #ccc; margin-bottom:1rem;" />
+
+    <h3>Champs détectés</h3>
+    <label>Nom latin : <input id="san-nomlatin" style="width:100%"></label><br><br>
+    <label>FAO : <input id="san-fao" style="width:100%"></label><br><br>
+    <label>DLC : <input id="san-dlc" type="date" style="width:100%"></label><br><br>
+    <label>Engin : <input id="san-engin" style="width:100%"></label><br><br>
+
+    <div style="margin-top:1rem;display:flex;gap:1rem;">
+      <button id="san-valider" class="btn btn-primary">✔ Valider</button>
+      <button id="san-fermer" class="btn btn-muted">✖ Annuler</button>
+    </div>
+
+    <pre id="san-raw" style="white-space:pre-wrap; background:#f3f3f3; padding:.5rem; margin-top:1rem; font-size:.8rem;"></pre>
+  </div>
+
+</div>
 
 </body>
 </html>
