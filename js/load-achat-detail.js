@@ -107,7 +107,13 @@ const traca = [
         <td><input class="inp prixkg" type="number" step="0.01" min="0" value="${nz(r.prixKg)}" /></td>
         <td><input class="inp mht" type="number" step="0.01" min="0" value="${nz(r.montantHT)}" /></td>
         <td><input class="inp lot" value="${lot}" readonly /></td>
-        <td><button class="btn btn-small btn-qr" title="Voir QR">◼︎</button></td>
+
+<!-- 🆕 CHAMP DLC -->
+<td>
+  <input class="inp dltc" type="date" value="${nz(r.dltc)}" />
+</td>
+
+<td><button class="btn btn-small btn-qr" title="Voir QR">◼︎</button></td>
         <td class="txt-center">${ok}</td>
         <td>
           <button class="btn btn-small btn-article" title="Chercher article (F9)">F9</button>
@@ -168,6 +174,7 @@ const traca = [
     ["change","blur"].forEach(ev => {
       get(".colis")?.addEventListener(ev, onCalc);
       get(".pcolis")?.addEventListener(ev, onCalc);
+      get(".dltc")?.addEventListener(ev, () => saveLine(id));
       get(".ptotal")?.addEventListener(ev, onCalc);
       get(".prixkg")?.addEventListener(ev, onCalc);
       get(".mht")?.addEventListener(ev, async () => { await saveLine(id); recomputeTotals(); });
@@ -244,6 +251,7 @@ async function saveLine(lineId){
 
   const plu = nz(tr.querySelector(".plu")?.value);
   const designation = nz(tr.querySelector(".designation")?.value);
+  const dltc = nz(tr.querySelector(".dltc")?.value);
   const colis = toNum(tr.querySelector(".colis")?.value);
   const pcolis= toNum(tr.querySelector(".pcolis")?.value);
   const ptotal= toNum(tr.querySelector(".ptotal")?.value);
@@ -263,16 +271,17 @@ async function saveLine(lineId){
 
   const ref = doc(linesCol, lineId);
   await setDoc(ref, {
-    plu, designation, colis, poidsColisKg: pcolis, poidsTotalKg: ptotal,
-    prixKg: prixkg, montantHT: mht,
-    lot: lines[idx].lot,
-    qr_url: lines[idx].qr_url || "",
-    updatedAt: Timestamp.fromDate(new Date())
-  }, { merge:true });
+  plu, designation, colis, poidsColisKg: pcolis, poidsTotalKg: ptotal,
+  prixKg: prixkg, montantHT: mht,
+  dltc,   // 🆕 ajout
+  lot: lines[idx].lot,
+  qr_url: lines[idx].qr_url || "",
+  updatedAt: Timestamp.fromDate(new Date())
+}, { merge:true });
 
   // maj cache
   lines[idx] = { ...lines[idx],
-    plu, designation, colis, poidsColisKg:pcolis, poidsTotalKg:ptotal, prixKg:prixkg, montantHT:mht
+    plu, designation, colis, poidsColisKg:pcolis, poidsTotalKg:ptotal, prixKg:prixkg, montantHT:mht,dltc 
   };
 }
 
