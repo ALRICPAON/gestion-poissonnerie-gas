@@ -1,5 +1,3 @@
-et tu m'as casser les nom latin c'est hyper chiant 
-donc sa sa marchait pour tout sauf la popup qui ce referme
 /**************************************************
  * IMPORT SOGELMER (10003)
  * Version finale — Multi FAO + Multi Latin + Popup AF_MAP
@@ -64,7 +62,8 @@ function extractFAOs(bio) {
     const roman = m[2] ? m[2].toUpperCase() : "";
     let letter = m[3] ? m[3].toUpperCase() : "";
 
-    if (letter === "O") letter = ""; // exclure Ouest / Ecosse
+    // exclure le "O" de Ouest / Ecosse
+    if (letter === "O") letter = "";
 
     out.push(`FAO ${num} ${roman}${letter}`.trim());
   }
@@ -109,7 +108,7 @@ export function parseSogelmer(text) {
     const bio = (lines[i + 10] || "").trim();
 
     /***********************************************
-     * NOM LATIN — tout avant " - FAO"
+     * NOM LATIN — tout avant " - FAO" ou " - ANE FAO"
      ***********************************************/
     let multiLatin = [];
     const latinPart = bio.split(/ - FAO| - ANE FAO/i)[0];
@@ -138,8 +137,8 @@ export function parseSogelmer(text) {
 
     if (fao) {
       const parts = fao.split(" ");
-      zone = (parts[0] + " " + parts[1]) || "";
-      sousZone = parts[2] || "";
+      zone = (parts[0] + " " + (parts[1] || "")).trim(); // ex: "FAO 27"
+      sousZone = parts[2] || "";                          // ex: "VIa"
     }
 
     /***********************************************
@@ -362,17 +361,15 @@ async function saveSogelmer(lines) {
     updatedAt: serverTimestamp()
   });
 
- 
-  /**************** Popup mapping ****************/
-if (missingRefs.length > 0) {
-  const mod = await import("./manage-af-map.js");
-  return mod.manageAFMap(missingRefs);  // ⛔ Pas de reload !!
+  /**************** Popup mapping / reload ****************/
+  if (missingRefs.length > 0) {
+    const mod = await import("./manage-af-map.js");
+    return mod.manageAFMap(missingRefs);  // ⛔ pas de reload ici
+  }
+
+  // ✔ Aucun mapping → refresh automatique
+  setTimeout(() => location.reload(), 300);
 }
-
-// ✔ Aucun mapping → refresh automatique
-setTimeout(() => location.reload(), 300);
-
-
 
 /**************************************************
  * ENTRY
