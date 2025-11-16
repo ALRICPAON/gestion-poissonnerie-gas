@@ -112,3 +112,79 @@ tr:hover {
 .actions button {
   margin-right: 0.5em;
 }
+/* ============================
+   🔵 POPUP SANITAIRE (MODAL)
+   ============================ */
+
+.modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 30, 50, 0.55); /* léger voile bleu marine */
+  display: none;                    /* caché par défaut */
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.modal-content {
+  background: var(--bg-box);
+  color: var(--text-main);
+  width: 90%;
+  max-width: 420px;
+  padding: 1.5em;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  animation: popupIn 0.2s ease-out;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 1em;
+  font-size: 20px;
+  color: var(--text-main);
+}
+
+.modal-content label {
+  font-size: 14px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 0.8em;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="date"] {
+  width: 100%;
+  padding: 0.6em;
+  font-size: 15px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-top: 0.2em;
+  background: white;
+  color: var(--text-main);
+}
+
+.modal-buttons {
+  margin-top: 1.5em;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5em;
+}
+
+#san-fermer {
+  background: var(--text-muted);
+  color: white;
+}
+
+#san-valider {
+  background: var(--accent);
+  color: white;
+}
+
+/* Animation popup */
+@keyframes popupIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
