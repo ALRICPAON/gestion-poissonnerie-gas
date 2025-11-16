@@ -139,31 +139,38 @@
       });
     }
   </script>
-<div id="popup-sanitaire" class="modal" style="
-  display:none; position:fixed; inset:0;
-  background:rgba(0,0,0,.6); padding:2rem;
-  z-index:10000; overflow:auto;">
-  
-  <div style="background:white; padding:1rem; border-radius:10px; max-width:600px; margin:auto;">
-    <h2>Lecture étiquette sanitaire</h2>
-    <p><strong>Image détectée :</strong></p>
-    <img id="sanitaire-img" style="max-width:100%; border:1px solid #ccc; margin-bottom:1rem;" />
 
-    <h3>Champs détectés</h3>
-    <label>Nom latin : <input id="san-nomlatin" style="width:100%"></label><br><br>
-    <label>FAO : <input id="san-fao" style="width:100%"></label><br><br>
-    <label>DLC : <input id="san-dlc" type="date" style="width:100%"></label><br><br>
-    <label>Engin : <input id="san-engin" style="width:100%"></label><br><br>
+  <div id="popup-sanitaire" class="modal">
+  <div class="modal-content">
+    <h3>Étiquette sanitaire</h3>
 
-    <div style="margin-top:1rem;display:flex;gap:1rem;">
-      <button id="san-valider" class="btn btn-primary">✔ Valider</button>
-      <button id="san-fermer" class="btn btn-muted">✖ Annuler</button>
+    <img id="sanitaire-img" src="" style="max-width:100%;border:1px solid #555;margin-bottom:10px;"/>
+
+    <label>Nom latin :</label>
+    <input id="san-nomlatin" type="text">
+
+    <label>FAO :</label>
+    <input id="san-fao" type="text">
+
+    <label>Zone :</label>
+    <input id="san-zone" type="text">
+
+    <label>Sous-zone :</label>
+    <input id="san-souszone" type="text">
+
+    <label>DLC :</label>
+    <input id="san-dlc" type="date">
+
+    <label>Engin :</label>
+    <input id="san-engin" type="text">
+
+    <div class="modal-buttons">
+      <button id="san-fermer" class="btn">Fermer</button>
+      <button id="san-valider" class="btn btn-primary">Valider</button>
     </div>
-
-    <pre id="san-raw" style="white-space:pre-wrap; background:#f3f3f3; padding:.5rem; margin-top:1rem; font-size:.8rem;"></pre>
   </div>
-
 </div>
+
 
 </body>
 </html>
