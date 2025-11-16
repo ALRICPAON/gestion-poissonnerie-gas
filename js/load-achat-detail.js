@@ -559,9 +559,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   bindQRPrint();
   await loadAchat();
 });
-/* ======================================================
-   🔍 OCR Sanitaire — Extraction + Validation Utilisateur
-   ====================================================== */
 async function openSanitaireReader(lineId) {
 
   const L = lines.find(x => x.id === lineId);
@@ -569,7 +566,12 @@ async function openSanitaireReader(lineId) {
     return alert("Aucune photo sanitaire trouvée sur cette ligne.");
   }
 
-  // Ouvrir popup
+  if (!window.Tesseract) {
+    alert("Tesseract non chargé.");
+    return;
+  }
+
+  // Affiche popup + image
   const modal = document.getElementById("popup-sanitaire");
   const imgEl = document.getElementById("sanitaire-img");
   const rawEl = document.getElementById("san-raw");
@@ -578,13 +580,20 @@ async function openSanitaireReader(lineId) {
   imgEl.src = L.photo_url;
   rawEl.textContent = "Lecture OCR en cours…";
 
-  // OCR
-  const worker = await Tesseract.createWorker();
-  const { data } = await worker.recognize(L.photo_url);
-  await worker.terminate();
+  try {
 
-  const text = data.text || "";
-  rawEl.textContent = text;
+    // 🔥 Étape indispensable : convertir l'image Firebase → BLOB local
+    const resp = await fetch(L.photo_url, { mode: "cors" });
+    const blob = await resp.blob();
+
+    // 🔍 OCR
+    const { data } = await Tesseract.recognize(blob, "fra", {
+      logger: m => console.log(m)
+    });
+
+    const text = data.text || "";
+    rawEl.textContent = text;
+
 
   // Extraction des données
   const nomLatin = extractNomLatin(text);
