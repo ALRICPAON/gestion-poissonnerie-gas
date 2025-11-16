@@ -301,28 +301,31 @@ const lineRef = await addDoc(
   collection(db, "achats", achatId, "lignes"),
   lineDef
 );
+    const lineId = lineRef.id;   // ✅ REMIS ICI
 
 
-    // Auto-patch après popup
-    if (!M) {
-      setTimeout(async () => {
-        const key = (`10002__${L.refFournisseur}`).toUpperCase();
-        const snap = await getDoc(doc(db, "af_map", key));
-        if (!snap.exists()) return;
+   // Auto-patch après popup (AF_MAP)
+if (!M) {
+  setTimeout(async () => {
 
-        const mapped = snap.data();
+    const key = (`10002__${L.refFournisseur}`).toUpperCase();
+    const snap = await getDoc(doc(db, "af_map", key));
+    if (!snap.exists()) return;
 
-        await updateDoc(
-          doc(db, "achats", achatId, "lignes", lineId),
-          {
-            plu: mapped.plu || "",
-            designationInterne: mapped.designationInterne || "",
-            designation: mapped.designationInterne || "",
-            updatedAt: serverTimestamp()
-          }
-        );
-      }, 500);
-    }
+    const mapped = snap.data();
+
+    await updateDoc(
+      doc(db, "achats", achatId, "lignes", lineId),   // ✅ lineId existe de nouveau
+      {
+        plu: mapped.plu || "",
+        designationInterne: mapped.designationInterne || "",
+        designation: mapped.designationInterne || "",
+        updatedAt: serverTimestamp()
+      }
+    );
+  }, 500);
+}
+
 
     // Pour popup AF_MAP
     if (!M) {
