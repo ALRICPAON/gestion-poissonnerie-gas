@@ -611,23 +611,50 @@ async function openSanitaireReader(lineId) {
     // boutons
     document.getElementById("san-fermer").onclick = () => modal.style.display = "none";
 
-    document.getElementById("san-valider").onclick = async () => {
-      await setDoc(doc(linesCol, lineId), {
-        nomLatin: nomLatin || "",
-        fao: fao || "",
-        zone: fao.split(" ")[1] || "",
-        sousZone: fao.split(" ")[2] || "",
-        dltc: dlc || "",
-        engin: engin || "",
-        updatedAt: Timestamp.now()
-      }, { merge:true });
+     document.getElementById("san-valider").onclick = async () => {
+    await setDoc(doc(linesCol, lineId), {
+      nomLatin: nomLatin || "",
+      fao: fao || "",
+      zone: fao.split(" ")[1] || "",
+      sousZone: fao.split(" ")[2] || "",
+      dltc: dlc || "",
+      engin: engin || "",
+      updatedAt: Timestamp.now()
+    }, { merge:true });
 
-      modal.style.display = "none";
-      await loadAchat();
-    };
+    modal.style.display = "none";
+    await loadAchat();
+  };
 
   } catch (e) {
     console.error("OCR error", e);
     rawEl.textContent = "❌ Erreur OCR : " + e.message;
   }
+} // ←←← FERMETURE OBLIGATOIRE DE openSanitaireReader()
+
+
+/* =====================
+   Extraction helpers
+   ===================== */
+function extractNomLatin(txt) {
+  const m = txt.match(/[A-Z][a-z]{2,}\s+[a-z]{2,}/g);
+  return m ? m[0] : "";
 }
+
+function extractFAO(txt) {
+  const m = txt.match(/FAO\s*\d+\s*[A-Z0-9]*/i);
+  return m ? m[0].replace(/\s+/g," ").trim() : "";
+}
+
+function extractDLC(txt) {
+  const m = txt.match(/(0[1-9]|[12][0-9]|3[01])[\/.-](0[1-9]|1[0-2])[\/.-](20\d{2})/);
+  if (!m) return "";
+  const [d,mn,y] = m[0].replace(/-/g,"/").split("/");
+  return `${y}-${mn}-${d}`;
+}
+
+function extractEngin(txt) {
+  const eng = txt.match(/CHALUT|LIGNE|FILET|CASIER|SENNE|PALANGRE/i);
+  return eng ? eng[0] : "";
+}
+
