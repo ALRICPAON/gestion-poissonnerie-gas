@@ -316,6 +316,30 @@ async function saveSogelmer(lines) {
 
     const lineId = lineRef.id;
 
+    /***** PATCH AUTO-UPDATE APRÈS POPUP ******/
+if (!M) {
+  setTimeout(async () => {
+    const key = (`10003__${L.refFournisseur}`).toUpperCase();
+    const snap = await getDoc(doc(db, "af_map", key));
+    if (!snap.exists()) return;
+
+    const mapped = snap.data();
+
+    await updateDoc(
+      doc(db, "achats", achatId, "lignes", lineId),
+      {
+        plu: mapped.plu || "",
+        designationInterne: mapped.designationInterne || "",
+        designation: mapped.designationInterne || "",
+        updatedAt: serverTimestamp()
+      }
+    );
+
+    console.log("🔄 Ligne mise à jour après mapping :", lineId);
+  }, 500);
+}
+
+
     /**************************************************
      * MANQUANTS → popup AF_MAP
      * (⚠️ clé = **ligneId** pour coller à manage-af-map.js)
