@@ -90,22 +90,16 @@ export function parsedistrimer(text) {
     const bio = (lines[i+10] || "").trim();
 
     /**************************************************
- * Extraction FAO ultra-fiable
+ * EXTRACTION FAO ULTRA-FIABLE
  * - prend TOUTES les FAO
- * - ignore “Ouest”, “Ecosse”, etc.
- * - gère FAO 27 VIa
+ * - ignore "Ouest", "Ecosse", etc.
+ * - supporte FAO 27 VIa / IVb / VIIc...
  **************************************************/
 function extractFAOs(bio) {
-
-  // Exemples reconnus :
-  // FAO 27 VIa
-  // FAO27 VIb
-  // FAO 27 IV
-  // FAO 27 VIIc
+  if (!bio) return [];
 
   const regex = /FAO\s*([0-9]{1,3})\s*([IVX]{1,4})?\s*([A-Za-z])?/gi;
-
-  let list = [];
+  let out = [];
   let m;
 
   while ((m = regex.exec(bio)) !== null) {
@@ -113,15 +107,13 @@ function extractFAOs(bio) {
     const roman = m[2] ? m[2].toUpperCase() : "";
     let letter = m[3] ? m[3].toUpperCase() : "";
 
-    // ❌ On supprime les lettres invalides ("O" = Ouest)
+    // ❌ NE PAS PRENDRE LE "O" de "Ouest"
     if (letter === "O") letter = "";
 
-    // Construction propre
-    const fao = `FAO ${num} ${roman}${letter}`.trim();
-    list.push(fao);
+    out.push(`FAO ${num} ${roman}${letter}`.trim());
   }
 
-  return list;
+  return out;
 }
 
     /**************************************************
