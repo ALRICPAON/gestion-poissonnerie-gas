@@ -103,14 +103,26 @@ function parseDistrimer(text) {
     if (latin) nomLatin = latin[1];
 
     let zone = "";
-    let sousZone = "";
-    let fao = "";
-    const faoMatch = bio.match(/FAO\s*([0-9]{1,3})\s*([IVX]*)/i);
-    if (faoMatch) {
-      zone = `FAO ${faoMatch[1]}`;
-      sousZone = faoMatch[2] || "";
-      fao = `${zone} ${sousZone}`.trim();
-    }
+let sousZone = "";
+let fao = "";
+
+const faoMatch = bio.match(/FAO\s*([0-9]{1,3})\s*([IVX]+)?\s*([A-Za-z])?/i);
+
+if (faoMatch) {
+  const num   = faoMatch[1];             // ex: 27
+  const roman = faoMatch[2] || "";       // ex: VIII
+  const letter = faoMatch[3] || "";      // ex: a, b, d...
+  const letter = faoMatch[3] ? faoMatch[3].toUpperCase() : "";
+
+
+  zone = `FAO ${num}`;
+  
+  // Construit la sous-zone propre : "VIII a"
+  sousZone = [roman, letter].filter(Boolean).join(" ").trim();
+
+  fao = `${zone}${sousZone ? " " + sousZone : ""}`;
+}
+
 
     let engin = "";
     const engMatch = bio.match(/Chalut|Ligne|Filet|Mail|FILTS/gi);
