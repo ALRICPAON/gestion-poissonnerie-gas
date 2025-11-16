@@ -1,39 +1,42 @@
 /**************************************************
  * IMPORT ROYALE MAREE (10004)
- *  Version stable + PATCH PLU auto — 16/11/2025
+ *  Version FINALE — Stable + Popup AF_MAP + Patch PLU
  **************************************************/
 import { db } from "../js/firebase-init.js";
 import {
-  collection, addDoc, doc, serverTimestamp, updateDoc, getDocs, getDoc
+  collection, addDoc, doc, serverTimestamp,
+  updateDoc, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
- * 🔎 Recherche AF_MAP — tolère zéros supprimés
+ * AF_MAP — Recherche intelligente
  **************************************************/
-function findAFMapEntry(afMap, fourCode, refFournisseur) {
-  if (!refFournisseur) return null;
-  const refStr = refFournisseur.toString().trim();
-  const keyExact  = `${fourCode}__${refStr}`.toUpperCase();
-  const keyNoZero = `${fourCode}__${refStr.replace(/^0+/, "")}`.toUpperCase();
-  const keyPad    = `${fourCode}__${refStr.padStart(5, "0")}`.toUpperCase();
+function findAFMapEntry(afMap, fourCode, ref) {
+  if (!ref) return null;
+  const clean = ref.toString().trim().toUpperCase();
+
+  const keyExact  = `${fourCode}__${clean}`;
+  const keyNoZero = `${fourCode}__${clean.replace(/^0+/, "")}`;
+  const keyPad    = `${fourCode}__${clean.padStart(5, "0")}`;
+
   return afMap[keyExact] || afMap[keyNoZero] || afMap[keyPad] || null;
 }
 
 /**************************************************
- * 🧩 FAO normalisé (y compris élevage)
+ * Normalisation FAO
  **************************************************/
 function buildFAO(zone, sousZone) {
   if (!zone) return "";
-  const isElev = zone.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().startsWith("ELEV");
-  if (isElev) return ("ÉLEVAGE" + (sousZone ? " " + sousZone.toUpperCase() : "")).trim();
 
-  let z = zone.toUpperCase().replace(/^FAO\s*/, "FAO").replace(/^FAO(\d+)/, "FAO $1").trim();
-  let sz = (sousZone || "").toUpperCase().replace(/\./g, "").trim();
-  return (z + (sz ? " " + sz : "")).trim().replace(/\s{2,}/g, " ");
+  const isElev = zone.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().startsWith("ELEV");
+  if (isElev) return ("ÉLEVAGE " + (sousZone || "")).trim();
+
+  const z = "FAO " + zone.replace(/FAO/i, "").trim();
+  return (z + " " + (sousZone || "")).trim();
 }
 
 /**************************************************
- * 📄 Extraction texte PDF
+ * PDF → texte
  **************************************************/
 async function extractTextFromPdf(file) {
   const pdfjsLib = window["pdfjs-dist/build/pdf"];
@@ -42,28 +45,24 @@ async function extractTextFromPdf(file) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 
-  let fullText = "";
+  let text = "";
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
-    const strings = content.items.map(i => i.str);
-    fullText += strings.join("\n") + "\n";
+    text += content.items.map(i => i.str).join("\n") + "\n";
   }
-  return fullText;
+  return text;
 }
 
 /**************************************************
- * 🧠 Parse du PDF Royale Marée
+ * Parse PDF Royale Marée
  **************************************************/
 function parseRoyaleMareeLines(text) {
   const rows = [];
-  const lines = text
-    .split(/\n/)
-    .map(l => l.replace(/\s+/g, " ").trim())
-    .filter(l => l.length > 0);
+  const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
 
   let current = null;
   let stage = 0;
@@ -71,7 +70,7 @@ function parseRoyaleMareeLines(text) {
   const isCode  = s => /^\d{4,5}$/.test(s);
   const isInt   = s => /^\d+$/.test(s);
   const isNum   = s => /^[\d]+(?:,\d+)?$/.test(s);
-  const isLatin = s => /^[A-Z][a-z]+(?:\s+[A-Za-z]+){1,2}(?:\s+[A-Z]{2,5})?$/.test(s);
+  const isLatin = s => /^[A-Z][a-z]+(?: [A-Za-z]+)*$/.test(s);
 
   const pushCurrent = () => {
     if (current) {
@@ -87,13 +86,13 @@ function parseRoyaleMareeLines(text) {
       pushCurrent();
       current = {
         refFournisseur: raw,
-        colis: 0,
-        poidsColisKg: 0,
-        montantHT: 0,
-        prixKg: 0,
-        poidsTotalKg: 0,
         designation: "",
         nomLatin: "",
+        colis: 0,
+        poidsColisKg: 0,
+        prixKg: 0,
+        montantHT: 0,
+        poidsTotalKg: 0,
         zone: "",
         sousZone: "",
         engin: "",
@@ -106,49 +105,46 @@ function parseRoyaleMareeLines(text) {
 
     if (!current) continue;
 
-    if (stage === 1 && isInt(raw)) { current.colis = parseInt(raw, 10); stage = 2; continue; }
-    if (stage === 2 && isNum(raw)) { current.poidsColisKg = parseFloat(raw.replace(",", ".")); stage = 3; continue; }
-    if (stage === 3 && isNum(raw)) { current.montantHT   = parseFloat(raw.replace(",", ".")); stage = 4; continue; }
-    if (stage === 4 && isNum(raw)) { current.prixKg       = parseFloat(raw.replace(",", ".")); stage = 5; continue; }
-    if (stage === 5 && isNum(raw)) { current.poidsTotalKg = parseFloat(raw.replace(",", ".")); stage = 6; continue; }
+    if (stage === 1 && isInt(raw)) { current.colis = parseInt(raw); stage=2; continue; }
+    if (stage === 2 && isNum(raw)) { current.poidsColisKg = parseFloat(raw.replace(",", ".")); stage=3; continue; }
+    if (stage === 3 && isNum(raw)) { current.montantHT   = parseFloat(raw.replace(",", ".")); stage=4; continue; }
+    if (stage === 4 && isNum(raw)) { current.prixKg       = parseFloat(raw.replace(",", ".")); stage=5; continue; }
+    if (stage === 5 && isNum(raw)) { current.poidsTotalKg = parseFloat(raw.replace(",", ".")); stage=6; continue; }
 
+    // designation + latin
     if (stage >= 6 && !raw.startsWith("|")) {
-      if (/total|bon|etablissement/i.test(raw)) continue;
+      if (/total|établissement|bon/i.test(raw)) continue;
 
       if (isLatin(raw)) {
         current.nomLatin = raw;
-        if (!current.designation.toLowerCase().includes(raw.toLowerCase())) {
+        if (!current.designation.includes(raw)) {
           current.designation = (current.designation + " " + raw).trim();
         }
         continue;
-      } else if (!isCode(raw)) {
+      }
+
+      if (!isCode(raw)) {
         current.designation = (current.designation + " " + raw).trim();
         continue;
       }
     }
 
+    // Meta : FAO / Engin / Lot
     if (raw.startsWith("|")) {
-      if (/FAO/i.test(raw) || /Pêché/i.test(raw) || /Elevé/i.test(raw)) {
-        const allFAO = [...raw.matchAll(/FAO\s*([0-9]{1,3})[ .]*([IVX]*)/gi)];
-        if (allFAO.length) {
-          const last = allFAO[allFAO.length - 1];
-          current.zone = `FAO${last[1]}`;
-          current.sousZone = last[2] ? last[2].toUpperCase().replace(/\./g, "") : "";
-          current.fao = buildFAO(current.zone, current.sousZone);
-        }
-        if (/Elevé/i.test(raw)) {
-          current.zone = "ÉLEVAGE";
-          const m = raw.match(/Elevé.+?en\s*:?\s*([^|]+)/i);
-          if (m) current.sousZone = (m[1] || "").trim().toUpperCase();
+      if (/FAO/i.test(raw)) {
+        const m = raw.match(/FAO\s*([0-9]{1,3})\s*([IVX]*)/i);
+        if (m) {
+          current.zone = m[1];
+          current.sousZone = m[2] || "";
           current.fao = buildFAO(current.zone, current.sousZone);
         }
       }
       if (/Engin/i.test(raw)) {
-        const m = raw.match(/Engin\s*:\s*([^|]+)/i);
+        const m = raw.match(/Engin\s*:\s*(.*)/i);
         if (m) current.engin = m[1].trim();
       }
       if (/Lot/i.test(raw)) {
-        const m = raw.match(/Lot\s*:\s*([A-Za-z0-9\-]+)/i);
+        const m = raw.match(/Lot\s*:\s*(.*)/i);
         if (m) current.lot = m[1].trim();
       }
       continue;
@@ -156,28 +152,13 @@ function parseRoyaleMareeLines(text) {
   }
 
   if (current) rows.push(current);
-
-  const cleaned = rows.filter(r =>
-    r.refFournisseur &&
-    r.designation &&
-    r.designation.length > 3 &&
-    !["0008", "85350", "85100", "44360"].includes(r.refFournisseur)
-  );
-
-  for (const r of cleaned) {
-    const idx = r.designation.search(/total/i);
-    if (idx > 0) r.designation = r.designation.slice(0, idx).trim();
-  }
-
-  return cleaned;
+  return rows;
 }
 
 /**************************************************
- * 💾 SAVE ROYALE MAREE (avec patch)
+ * SAVE ROYALE MAREE
  **************************************************/
 async function saveRoyaleMaree(lines) {
-  if (!lines.length) throw new Error("Aucune ligne trouvée");
-
   const FOUR_CODE = "10004";
 
   const [afSnap, artSnap] = await Promise.all([
@@ -195,7 +176,7 @@ async function saveRoyaleMaree(lines) {
   });
 
   const achatRef = await addDoc(collection(db, "achats"), {
-    date: new Date().toISOString().slice(0, 10),
+    date: new Date().toISOString().slice(0,10),
     fournisseurCode: FOUR_CODE,
     fournisseurNom: "Royale Marée",
     type: "BL",
@@ -204,7 +185,7 @@ async function saveRoyaleMaree(lines) {
     montantTTC: 0,
     totalKg: 0,
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
 
   const achatId = achatRef.id;
@@ -220,11 +201,11 @@ async function saveRoyaleMaree(lines) {
 
     let plu = "";
     let designationInterne = L.designation;
+    let cleanFromAF = "";
     let zone = L.zone;
     let sousZone = L.sousZone;
     let engin = L.engin;
     let fao = L.fao;
-    let cleanFromAF = "";
 
     /**************************************************
      * AF_MAP PRIORITY
@@ -236,56 +217,52 @@ async function saveRoyaleMaree(lines) {
 
       cleanFromAF = (M.designationInterne || M.aliasFournisseur || "").trim();
       if (cleanFromAF) {
-        L.designation = cleanFromAF;
         designationInterne = cleanFromAF;
+        L.designation = cleanFromAF;
       }
 
       if (!zone && M.zone) zone = M.zone;
       if (!sousZone && M.sousZone) sousZone = M.sousZone;
       if (!engin && M.engin) engin = M.engin;
       if (!fao) fao = buildFAO(zone, sousZone);
+
     } else {
       missingRefs.push({
-  fournisseurCode: FOUR_CODE,
-  refFournisseur: L.refFournisseur,
-  designation: L.designation || "",
-  designationInterne,
-  aliasFournisseur: L.designation || "",
-  nomLatin: L.nomLatin || "",
-  zone,
-  sousZone,
-  engin,
-  allergenes,
-  achatId,
-  // lineId sera connu APRÈS addDoc → on le met à null temporairement
-  lineId: null
-});
-}
-    
+        fournisseurCode: FOUR_CODE,
+        refFournisseur: L.refFournisseur,
+        designation: L.designation,
+        designationInterne,
+        aliasFournisseur: L.designation,
+        nomLatin: L.nomLatin,
+        zone,
+        sousZone,
+        engin,
+        allergenes: "",
+        achatId,
+        lineId: null
+      });
+    }
 
     /**************************************************
-     * FALLBACK : FICHE ARTICLE
+     * ART Fallback
      **************************************************/
-    const art = plu ? artMap[plu] : null;
-    if (art && !cleanFromAF) {
+    if (plu && artMap[plu] && !cleanFromAF) {
+      const art = artMap[plu];
 
-      const artDesignation =
-        (art.Designation || art.designation || art.designationInterne || "").trim();
-
+      const artDesignation = (art.Designation || art.designation || "").trim();
       if (artDesignation) {
-        L.designation = artDesignation;
         designationInterne = artDesignation;
+        L.designation = artDesignation;
       }
 
-      if (!zone && (art.Zone || art.zone)) zone = art.Zone || art.zone;
-      if (!sousZone && (art.SousZone || art.sousZone)) sousZone = art.SousZone || art.sousZone;
-      if (!engin && (art.Engin || art.engin)) engin = art.Engin || art.engin;
-
+      if (!zone && art.Zone) zone = art.Zone;
+      if (!sousZone && art.SousZone) sousZone = art.SousZone;
+      if (!engin && art.Engin) engin = art.Engin;
       if (!fao) fao = buildFAO(zone, sousZone);
     }
 
     /**************************************************
-     * ENREGISTRE LIGNE
+     * ENREGISTRE LA LIGNE
      **************************************************/
     const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
       refFournisseur: L.refFournisseur,
@@ -307,19 +284,18 @@ async function saveRoyaleMaree(lines) {
       fournisseurRef: L.refFournisseur,
       montantTTC: L.montantHT,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
 
-    // Après création de la ligne Firestore
-missingRefs.forEach(ref => {
-  if (ref.refFournisseur === L.refFournisseur && ref.lineId === null) {
-    ref.lineId = lineRef.id;
-  }
-});
-
+    // Injecter lineId pour le popup
+    missingRefs.forEach(ref => {
+      if (ref.refFournisseur === L.refFournisseur && ref.lineId === null) {
+        ref.lineId = lineRef.id;
+      }
+    });
 
     /**************************************************
-     * PATCH AUTO — mise à jour après popup AF_MAP
+     * PATCH AUTO (après popup)
      **************************************************/
     if (!M) {
       const refKey = (`10004__${L.refFournisseur}`).toUpperCase();
@@ -327,20 +303,16 @@ missingRefs.forEach(ref => {
       setTimeout(async () => {
         const snap = await getDoc(doc(db, "af_map", refKey));
         if (!snap.exists()) return;
-
         const mapped = snap.data();
 
-        await updateDoc(
-          doc(db, "achats", achatId, "lignes", lineRef.id),
-          {
-            plu: mapped.plu || "",
-            designationInterne: mapped.designationInterne || "",
-            designation: mapped.designationInterne || "",
-            updatedAt: serverTimestamp()
-          }
-        );
+        await updateDoc(doc(db, "achats", achatId, "lignes", lineRef.id), {
+          plu: mapped.plu || "",
+          designationInterne: mapped.designationInterne || "",
+          designation: mapped.designationInterne || "",
+          updatedAt: serverTimestamp()
+        });
 
-        console.log("🔄 Royale Marée — Ligne mise à jour après AF_MAP :", lineRef.id);
+        console.log("🔄 Ligne Royale Marée mise à jour après AF_MAP :", lineRef.id);
       }, 500);
     }
   }
@@ -349,24 +321,23 @@ missingRefs.forEach(ref => {
     montantHT: Number(totalHT.toFixed(2)),
     montantTTC: Number(totalHT.toFixed(2)),
     totalKg: Number(totalKg.toFixed(3)),
-    updatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
 
+  /**************************************************
+   * POPUP OU RELOAD
+   **************************************************/
   if (missingRefs.length > 0) {
-    console.warn("⚠ Réfs non trouvées dans AF_MAP:", missingRefs);
+    const { manageAFMap } = await import("./manage-af-map.js");
+    await manageAFMap(missingRefs);
+  } else {
+    alert(`✅ ${lines.length} lignes importées (Royale Marée)`);
+    location.reload();
   }
-  // Ouvre le popup AF_MAP si nécessaire
-if (missingRefs.length > 0) {
-  const { manageAFMap } = await import("./manage-af-map.js");
-  await manageAFMap(missingRefs);
-} else {
-  alert(`✅ ${lines.length} lignes importées (Royale Marée)`);
-  location.reload();
 }
 
-
 /**************************************************
- * 🧾 Entrée principale
+ * Entrée
  **************************************************/
 export async function importRoyaleMaree(file) {
   const text = await extractTextFromPdf(file);
