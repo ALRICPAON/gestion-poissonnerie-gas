@@ -49,30 +49,55 @@ function normalizeRef(ref) {
 }
 
 /**************************************************
- * Extraction FAO — multi-zones + lettres
- * Prend TOUTES les FAO sans jamais prendre "Ouest"
+ * EXTRACT FAO — handle VIa, IVa, VIb, "et", multi-FAO
  **************************************************/
 function extractFAOs(bio) {
   if (!bio) return [];
 
-  const regex = /FAO\s*([0-9]{1,3})\s*([IVX]{1,4})?\s*([A-Za-z])?/gi;
+  // 1) On isole tout ce qui ressemble à "FAO 27 …"
+  const blocks = bio
+    .split(/FAO/i)
+    .slice(1)
+    .map(b => b.trim());
+
   const out = [];
-  let m;
 
-  while ((m = regex.exec(bio)) !== null) {
-    const num   = m[1];
-    const roman = m[2] ? m[2].toUpperCase() : "";
-    let letter  = m[3] ? m[3].toUpperCase() : "";
+  for (let blk of blocks) {
+    // On coupe quand on retombe sur un séparateur fort
+    blk = blk.split(/[-–]|Chalut|Casier|Ligne|Filet|Mail/i)[0].trim();
 
-    // ❌ NE PAS prendre le "O" de "Ouest / Ecosse"
-    if (letter === "O") letter = "";
+    // Exemple blk = "27 VIa et IVa"
+    // On extrait le numéro FAO : 27
+    const numMatch = blk.match(/^([0-9]{1,3})/);
+    if (!numMatch) continue;
 
-    const entry = `FAO ${num} ${roman}${letter}`.trim();
-    out.push(entry);
+    const num = numMatch[1];
+    let rest = blk.replace(num, "").trim();
+
+    // On split par "et", "/", virgule
+    const parts = rest.split(/et|\/|,/i).map(s => s.trim());
+
+    for (let p of parts) {
+      // p = "VIa" / "IVa" / "VI Ouest Ecosse"
+      const m = p.match(/^([IVX]+)([a-zA-Z]?)?/i);
+      if (!m) continue;
+
+      const roman = (m[1] || "").toUpperCase();
+      let letter = (m[2] || "").toLowerCase();
+
+      // ⚠️ exclusion des faux "O" = Ouest Ecosse
+      if (/ouest|ecosse/i.test(p)) letter = "";
+
+      // On construit proprement
+      const final = `FAO ${num} ${roman}${letter}`.trim();
+      out.push(final);
+    }
   }
 
-  return out;
+  // Nettoyage doublons
+  return [...new Set(out)];
 }
+
 
 /**************************************************
  * Parse Distrimer (PDF → lignes)
