@@ -257,27 +257,35 @@ async function saveRoyaleMaree(lines) {
     }
 
     const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
-      refFournisseur: L.refFournisseur,
-      designation: designationInterne,
-      nomLatin: L.nomLatin,
-      colis: L.colis,
-      poidsColisKg: L.poidsColisKg,
-      poidsTotalKg: L.poidsTotalKg,
-      prixKg: L.prixKg,
-      montantHT: L.montantHT,
-      zone: L.zone,
-      sousZone: L.sousZone,
-      engin: L.engin,
-      lot: L.lot,
-      fao: L.fao,
-      plu,
-      designationInterne,
-      allergenes: "",
-      fournisseurRef: L.refFournisseur,
-      montantTTC: L.montantHT,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+  refFournisseur: L.refFournisseur,
+  designation: L.designation,
+  nomLatin: L.nomLatin,
+  colis: L.colis,
+  poidsColisKg: L.poidsColisKg,
+  poidsTotalKg: L.poidsTotalKg,
+  prixKg: L.prixKg,
+  montantHT: L.montantHT,
+  zone,
+  sousZone,
+  engin,
+  lot: L.lot || "",
+  fao,
+  plu,
+  designationInterne,
+  allergenes,
+  fournisseurRef: L.refFournisseur,
+  montantTTC: L.montantHT,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+});
+
+// 🔗 Fix : associer l’ID de la ligne au tableau missingRefs
+missingRefs.forEach(ref => {
+  if (ref.refFournisseur === L.refFournisseur && ref.lineId === null) {
+    ref.lineId = lineRef.id;
+  }
+});
+
     /**************************************************
  * PATCH AUTO — mise à jour après popup AF_MAP
  **************************************************/
