@@ -112,9 +112,7 @@ tr:hover {
 .actions button {
   margin-right: 0.5em;
 }
-/* ============================
-   🔵 POPUP SANITAIRE (MODAL)
-   ============================ */
+/* ========== POPUP SANITAIRE (FIX COMPLET) ========== */
 
 .modal {
   position: fixed;
@@ -122,11 +120,14 @@ tr:hover {
   top: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 30, 50, 0.55); /* léger voile bleu marine */
-  display: none;                    /* caché par défaut */
+  background: rgba(0, 30, 50, 0.55);
+  display: none; /* ouvert via JS */
   justify-content: center;
   align-items: center;
   z-index: 99999;
+
+  /* 🔥 Correction centrer le contenu */
+  display: flex !important;
 }
 
 .modal-content {
@@ -134,10 +135,18 @@ tr:hover {
   color: var(--text-main);
   width: 90%;
   max-width: 420px;
+
+  /* 🔥 Scroll interne si trop d'infos */
+  max-height: 85vh;
+  overflow-y: auto;
+
   padding: 1.5em;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   animation: popupIn 0.2s ease-out;
+
+  /* 🔥 Centrer le contenu */
+  margin: auto;
 }
 
 .modal-content h3 {
@@ -183,8 +192,8 @@ tr:hover {
   color: white;
 }
 
-/* Animation popup */
 @keyframes popupIn {
   from { transform: scale(0.9); opacity: 0; }
   to   { transform: scale(1); opacity: 1; }
 }
+
