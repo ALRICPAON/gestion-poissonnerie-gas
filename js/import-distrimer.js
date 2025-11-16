@@ -320,18 +320,19 @@ async function saveDistrimer(lines) {
     /******** MAPPING MANQUANT → POPUP ********/
     if (!M) {
       missing.push({
-        fournisseurCode: FOUR_CODE,
-        refFournisseur: L.refFournisseur,
-        designation: L.designation || "",
-        designationInterne,
-        aliasFournisseur: L.designation || "",
-        nomLatin: L.nomLatin || "",
-        zone,
-        sousZone,
-        engin,
-        achatId,
-        ligneId: ligneId
-      });
+  fournisseurCode: FOUR_CODE,
+  refFournisseur: L.refFournisseur,
+  designation: L.designation || "",
+  designationInterne,
+  aliasFournisseur: L.designation || "",
+  nomLatin: L.nomLatin || "",
+  zone: zone || "",
+  sousZone: sousZone || "",
+  engin: engin || "",
+  allergenes: "",          // 🔥 OBLIGATOIRE !
+  achatId,
+  ligneId: ligneId
+});
     }
   }
 
