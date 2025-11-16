@@ -119,6 +119,7 @@ const traca = [
           <button class="btn btn-small btn-article" title="Chercher article (F9)">F9</button>
           <button class="btn btn-small btn-afmap" title="Récupérer via AF_MAP">AF</button>
           <button class="btn btn-small btn-photo" title="Photo sanitaire">📷</button>
+          <button class="btn btn-small btn-sanitaire" title="Lire étiquette">📄</button>
           <button class="btn btn-small btn-del">🗑️</button>
         </td>
       </tr>
@@ -204,7 +205,11 @@ const traca = [
     // Photo sanitaire
     get(".btn-photo")?.addEventListener("click", () => {
   location.href = `/pages/photo-line.html?achatId=${achatId}&lineId=${id}`;
+      // Lecture étiquette sanitaire (OCR)
+get(".btn-sanitaire")?.addEventListener("click", () => {
+  openSanitaireReader(id);
 });
+
 
 
     // Delete
