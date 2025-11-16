@@ -160,6 +160,104 @@
           );
         }
 
+        // 🧠 OCR Tesseract sur l'image
+log("🔍 Lecture OCR en cours…");
+
+const ocr = await Tesseract.recognize(currentFile, "fra", {
+  logger: m => console.log(m),
+});
+
+const text = ocr.data.text;
+log("📄 OCR texte détecté :\n" + text);
+
+// --------------------------------------
+//  🔍 Extracteurs intelligents
+// --------------------------------------
+
+// FAO multiples + zones romaines (IVa, VIII, etc.)
+function findFAOs(txt) {
+  const reg = /FAO\s*([0-9]{1,3})\s*([IVX]+)?/gi;
+  const out = [];
+  let m;
+  while ((m = reg.exec(txt)) !== null) {
+    const num = m[1] || "";
+    const roman = m[2] || "";
+    out.push(`FAO ${num}${roman ? " " + roman : ""}`.trim());
+  }
+  return [...new Set(out)];
+}
+
+// Nom latin : deux mots, premier capitalisé
+function findLatin(txt) {
+  const reg = /\b([A-Z][a-z]+)\s+([a-z]{3,})\b/g;
+  const out = [];
+  let m;
+  while ((m = reg.exec(txt)) !== null) {
+    out.push(`${m[1]} ${m[2]}`);
+  }
+  return [...new Set(out)];
+}
+
+// Formats DLC : 12/11/2025 - 2025-11-12 - 12-11-25
+function findDLC(txt) {
+  const reg = /\b(20[0-9]{2}[-\/][0-9]{1,2}[-\/][0-9]{1,2}|[0-9]{1,2}[-\/][0-9]{1,2}[-\/](20[0-9]{2}))\b/;
+  const m = txt.match(reg);
+  if (!m) return "";
+
+  try {
+    let d = m[0].replace(/-/g, "/");
+    const p = d.split("/");
+
+    // AAAA/MM/JJ
+    if (p[0].length === 4)
+      return `${p[0]}-${p[1].padStart(2,"0")}-${p[2].padStart(2,"0")}`;
+
+    // JJ/MM/AAAA → AAAA-MM-JJ
+    return `${p[2]}-${p[1].padStart(2,"0")}-${p[0].padStart(2,"0")}`;
+
+  } catch (e) {
+    return "";
+  }
+}
+
+// --------------------------------------
+//  🔍 Application des extracteurs
+// --------------------------------------
+const faosDetected  = findFAOs(text);
+const latinDetected = findLatin(text);
+const dlcDetected   = findDLC(text);
+
+log("➡️ FAO détectées : " + (faosDetected.join(", ") || "Aucune"));
+log("➡️ Nom latin détecté : " + (latinDetected.join(", ") || "Aucun"));
+log("➡️ DLC détectée : " + (dlcDetected || "Aucune"));
+
+// --------------------------------------
+//  🟢 Patch Firestore intelligent
+// --------------------------------------
+const patch = {};
+
+// Evite les erreurs → on limite les résultats trop bruités
+if (faosDetected.length > 0 && faosDetected.length <= 5)
+  patch.fao = faosDetected.join(" / ");
+
+if (latinDetected.length > 0 && latinDetected.length <= 4)
+  patch.nomLatin = latinDetected.join(" / ");
+
+if (dlcDetected)
+  patch.dltc = dlcDetected;
+
+if (Object.keys(patch).length > 0) {
+  await setDoc(
+    doc(db, "achats", achatId, "lignes", lineId),
+    { ...patch, updatedAt: Timestamp.now() },
+    { merge: true }
+  );
+  log("✅ Mise à jour traçabilité réalisée");
+} else {
+  log("ℹ️ Aucun champ mis à jour (OCR insuffisant)");
+}
+
+
         location.href = `/pages/photo-batch.html?achatId=${achatId}`;
 
       } catch (e) {
