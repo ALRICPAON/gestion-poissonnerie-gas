@@ -136,9 +136,9 @@ export function parsedistrimer(text) {
     const bio = (lines[i+10] || "").trim();
 
     // FAO multi-zones
-    const faoList = extractFAOs(bio);
-    const fao = faoList.length ? faoList[0] : "";
-    const autresFAO = faoList.length > 1 ? faoList.slice(1) : [];
+   const faoList = extractFAOs(bio);
+const fao = faoList.join(", ");   // => "FAO 27 VIa, FAO 27 IVa"
+
 
     // Nom latin
     let nomLatin = "";
@@ -164,10 +164,10 @@ export function parsedistrimer(text) {
       uv,
       lot,
       nomLatin,
-      fao,
-      autresFAO,
-      zone: fao.split(" ")[1] || "",
-      sousZone: fao.split(" ")[2] || "",
+      fao: faoList.join(", "),
+faos: faoList,  // si tu veux garder un tableau
+zone: "",
+sousZone: "",
       engin
     });
 
@@ -275,18 +275,33 @@ async function savedistrimer(lines) {
     }
 
     // SAVE LIGNE
-    const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), {
-      ...L,
-      plu,
-      designationInterne,
-      fournisseurRef: L.refFournisseur,
-      prixHTKg: L.prixKg,
-      montantTTC: L.montantHT,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+const lineDef = {
+    ...L,
 
-    const lineId = lineRef.id;
+    // 🔥 NOUVEAU : toutes les FAO (string + array)
+    fao: (L.faos && L.faos.length) ? L.faos.join(", ") : (L.fao || ""),
+    faos: L.faos || [],
+
+    plu,
+    designationInterne,
+    fournisseurRef: L.refFournisseur,
+    prixHTKg: L.prixKg,
+    montantTTC: L.montantHT,
+
+    // zone/sous-zone restent, mises à jour par AF_MAP ou Article
+    zone: L.zone || "",
+    sousZone: L.sousZone || "",
+    engin: L.engin || "",
+
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+};
+
+const lineRef = await addDoc(
+  collection(db, "achats", achatId, "lignes"),
+  lineDef
+);
+
 
     // Auto-patch après popup
     if (!M) {
