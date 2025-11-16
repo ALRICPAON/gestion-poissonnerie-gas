@@ -365,4 +365,6 @@ export async function importDistrimer(file) {
   const text = await extractTextFromPdf(file);
   const lines = parsedistrimer(text);
   await savedistrimer(lines);
+  alert("Import terminé !");
+location.reload();
 }
