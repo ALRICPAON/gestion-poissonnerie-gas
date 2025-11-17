@@ -95,10 +95,14 @@ async function loadRealPrice(key) {
  * CLÉ UNIQUE POUR STOCK_SETTINGS/ARTICLES
  **************************************************/
 function makeKey(article) {
+  const desi = (article.designation || "").toString().toUpperCase();
+
   if (article.gencode) return "LS-" + article.gencode;
   if (article.plu)     return "TRAD-" + article.plu;
-  return "NAME-" + article.designation.toUpperCase();
+
+  return "NAME-" + desi;
 }
+
 
 /**************************************************
  * CALCUL DE LA MARQUE RÉELLE (LIVE)
