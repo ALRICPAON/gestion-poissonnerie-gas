@@ -5,40 +5,56 @@ import {
 
 console.log("DEBUG: stock.js chargé !");
 
-/********************************************
- * 1) Catégorie TRAD / FE / LS (SÉCURISÉ)
- ********************************************/
+/************************************************************
+ *   1️⃣  Génère une clé unique pour un article
+ ************************************************************/
+function articleKey(article) {
+  if (article.gencode) return "LS_" + article.gencode;
+  if (article.plu) return "PLU_" + article.plu;
+
+  // fallback designation
+  return "DESC_" + String(article.designation || "")
+    .replace(/\s+/g, "_")
+    .replace(/[^\w]+/g, "")
+    .toUpperCase();
+}
+
+/************************************************************
+ *   2️⃣  Détection catégorie (TRAD / FE / LS)
+ ************************************************************/
 function detectCategory(article) {
   const d = String(article.designation || "").toUpperCase();
-  const plu = String(article.plu || "");
-  const gencode = String(article.gencode || "");
 
-  if (gencode.length >= 12) return "LS";
+  if (article.gencode && article.gencode.length >= 12) return "LS";
   if (d.startsWith("FE")) return "FE";
+
   return "TRAD";
 }
 
-/********************************************
- * 2) PMA FIFO (SÉCURISÉ)
- ********************************************/
-function computePMA(lots) {
+/************************************************************
+ *   3️⃣  PMA GLOBAL SUR TOUS LES LOTS RESTANTS DU MÊME ARTICLE
+ ************************************************************/
+function computeGlobalPMA(lots) {
   let totalKg = 0;
   let totalHT = 0;
 
-  for (const l of lots) {
-    totalKg += Number(l.poidsKg || 0);
-    totalHT += Number(l.montantHT || 0);
+  for (const lot of lots) {
+    const kg = Number(lot.poidsRestant || 0);
+    const prix = Number(lot.prixAchatKg || 0);
+
+    totalKg += kg;
+    totalHT += kg * prix;
   }
 
   return {
-    poids: totalKg,
+    stockKg: totalKg,
     pma: totalKg > 0 ? totalHT / totalKg : 0
   };
 }
 
-/********************************************
- * 3) TABLEAU
- ********************************************/
+/************************************************************
+ *   4️⃣  Construction et affichage des tableaux
+ ************************************************************/
 function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
   tb.innerHTML = "";
@@ -48,39 +64,40 @@ function fillTable(tbodyId, items) {
     currency: "EUR"
   });
 
-  items.forEach(a => {
+  for (const it of items) {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>${a.plu || a.gencode || ""}</td>
-      <td>${a.designation}</td>
-      <td>${a.stockKg.toFixed(2)} kg</td>
-      <td>${fmt(a.pma)}</td>
-      <td>${(a.margeTheo * 100).toFixed(1)}%</td>
-      <td>${fmt(a.pvTTCconseille)}</td>
+      <td>${it.plu || it.gencode || ""}</td>
+      <td>${it.designation}</td>
+      <td>${it.stockKg.toFixed(2)} kg</td>
+      <td>${fmt(it.pma)}</td>
+      <td>${(it.margeTheo * 100).toFixed(1)} %</td>
+      <td>${fmt(it.pvTTCconseille)}</td>
 
       <td>
         <input 
-          type="number" 
+          type="number"
           step="0.01"
-          value="${a.pvTTCreel || ""}"
-          data-key="${a.key}"
+          value="${it.pvTTCreel || ""}"
+          data-key="${it.key}"
           class="pv-reel-input"
           style="width:80px"
         >
       </td>
 
-      <td>${fmt(a.valeurStockHT)}</td>
+      <td>${fmt(it.valeurStockHT)}</td>
     `;
 
     tb.appendChild(tr);
-  });
+  }
 
-  // PV réel → Firestore
+  // Événements pour mise à jour du PV TTC réel
   document.querySelectorAll(".pv-reel-input").forEach(inp => {
     inp.addEventListener("change", async e => {
       const key = e.target.dataset.key;
       const val = Number(e.target.value);
+
       if (isNaN(val)) return;
 
       await setDoc(
@@ -88,102 +105,100 @@ function fillTable(tbodyId, items) {
         { pvTTCreel: val },
         { merge: true }
       );
+
+      console.log("PV réel mis à jour pour", key, "=", val);
     });
   });
 }
 
-/********************************************
- * 4) CHARGEMENT GLOBAL — VERSION SÛRE
- ********************************************/
-
+/************************************************************
+ *   5️⃣  Chargement global du stock (vrai PMA)
+ ************************************************************/
 async function loadStock() {
   console.log("DEBUG: Chargement lots…");
 
-  try {
-    // 1) Charger les lots
-    const snapLots = await getDocs(collection(db, "lots"));
-    console.log("DEBUG: Lots récupérés =", snapLots.size);
+  const snapLots = await getDocs(collection(db, "lots"));
+  const snapPV   = await getDocs(collection(db, "stock_articles"));
 
-    // 2) Charger les PV réels
-    const snapPV = await getDocs(collection(db, "stock_articles"));
-    console.log("DEBUG: PV réels récupérés =", snapPV.size);
+  // Map PV réel stockés
+  const pvMap = {};
+  snapPV.forEach(d => pvMap[d.id] = d.data());
 
-    const pvMap = {};
-    snapPV.forEach(d => pvMap[d.id] = d.data());
+  // Regroupement des lots par article key
+  const regroup = {};
 
-    const trad = [];
-    const fe = [];
-    const ls = [];
+  snapLots.forEach(docLot => {
+    const lot = docLot.data();
 
-    const margeTrad = Number(localStorage.getItem("margeTrad") || 35) / 100;
-    const margeFE = Number(localStorage.getItem("margeFE") || 40) / 100;
-    const margeLS = Number(localStorage.getItem("margeLS") || 30) / 100;
-
-    console.log("DEBUG: Début parsing lots…");
-
-    snapLots.forEach(docLot => {
-      const lot = docLot.data();
-      console.log("DEBUG: Lot =", docLot.id, lot);
-
-      let article = lot.article;
-
-// 🔥 Correction : support des anciens lots (pas de lot.article)
-if (!article) {
-    article = {
-        designation : lot.designation || "",
-        plu         : lot.plu || "", 
-        gencode     : lot.gencode || "",
-        nomLatin    : lot.nomLatin || "",
-        fao         : lot.fao || "",
-        engin       : lot.engin || ""
+    // Génère un objet article compatible
+    const article = {
+      designation : lot.designation || "",
+      plu         : lot.plu || "",
+      gencode     : lot.gencode || "",
+      nomLatin    : lot.nomLatin || "",
+      fao         : lot.fao || "",
+      engin       : lot.engin || ""
     };
-}
 
-      const key = docLot.id;
+    const key = articleKey(article);
 
-      const cat = detectCategory(article);
-      console.log("DEBUG: Cat =", cat, "pour", article.designation);
+    if (!regroup[key]) regroup[key] = { article, lots: [], lotIds: [] };
 
-      const pma = computePMA([lot]);
-      console.log("DEBUG: PMA =", pma);
+    regroup[key].lots.push(lot);
+    regroup[key].lotIds.push(docLot.id);
+  });
 
-      const m = cat === "TRAD" ? margeTrad :
-                cat === "FE"   ? margeFE :
-                margeLS;
+  // Chargement des marges
+  const margeTrad = Number(localStorage.getItem("margeTrad") || 35) / 100;
+  const margeFE   = Number(localStorage.getItem("margeFE") || 40) / 100;
+  const margeLS   = Number(localStorage.getItem("margeLS") || 30) / 100;
 
-      const pvHT = pma.pma * (m + 1);
-      const pvTTC = pvHT * 1.055;
+  const trad = [];
+  const fe   = [];
+  const ls   = [];
 
-      const item = {
-        key,
-        designation: article.designation || "",
-        plu: article.plu || "",
-        gencode: article.gencode || "",
-        stockKg: pma.poids,
-        pma: pma.pma,
-        margeTheo: m,
-        pvTTCconseille: pvTTC,
-        pvTTCreel: pvMap[key]?.pvTTCreel || "",
-        valeurStockHT: pma.pma * pma.poids
-      };
+  // Construction des lignes
+  for (const key in regroup) {
+    const { article, lots, lotIds } = regroup[key];
 
-      if (cat === "TRAD") trad.push(item);
-      else if (cat === "FE") fe.push(item);
-      else ls.push(item);
-    });
+    const pma = computeGlobalPMA(lots);
 
-    console.log("DEBUG: Résultat final =", { trad, fe, ls });
+    const cat = detectCategory(article);
 
-    fillTable("tbody-trad", trad);
-    fillTable("tbody-fe", fe);
-    fillTable("tbody-ls", ls);
-    console.log("DEBUG: Tableaux remplis !");
+    const m = cat === "TRAD" ? margeTrad :
+              cat === "FE"   ? margeFE   :
+                               margeLS;
+
+    const pvHT = pma.pma * (1 + m);
+    const pvTTC = pvHT * 1.055;
+
+    // On prend un PV réel si existant (on prend le premier lot)
+    const pvReal = pvMap[lotIds[0]]?.pvTTCreel || "";
+
+    const item = {
+      key,
+      designation: article.designation,
+      plu: article.plu,
+      gencode: article.gencode,
+      stockKg: pma.stockKg,
+      pma: pma.pma,
+      margeTheo: m,
+      pvTTCconseille: pvTTC,
+      pvTTCreel: pvReal,
+      valeurStockHT: pma.pma * pma.stockKg
+    };
+
+    if (cat === "TRAD") trad.push(item);
+    if (cat === "FE")   fe.push(item);
+    if (cat === "LS")   ls.push(item);
   }
 
-  catch (err) {
-    console.error("🔥 ERREUR DANS loadStock :", err);
-  }
+  // Affichage tableaux
+  fillTable("tbody-trad", trad);
+  fillTable("tbody-fe", fe);
+  fillTable("tbody-ls", ls);
+
+  console.log("DEBUG: Stock affiché !");
 }
 
 loadStock();
-
