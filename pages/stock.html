@@ -1,161 +1,84 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Stock Poissonnerie</title>
+  <meta charset="UTF-8">
+  <title>Stock</title>
   <link rel="stylesheet" href="../css/style.css">
-
 </head>
 
 <body>
 
-  <!-- HEADER PAGE -->
-  <div class="top-bar">
-    <h1>📦 Gestion du Stock</h1>
-  </div>
+<h1>Gestion du Stock</h1>
 
+<!-- BARRE PARAMÈTRES -->
+<div class="top-bar">
+  <input type="number" id="marge-trad" class="search-input" placeholder="Marge TRAD % (ex : 35)">
+  <input type="number" id="marge-fe" class="search-input" placeholder="Marge FE % (ex : 40)">
+  <input type="number" id="marge-ls" class="search-input" placeholder="Marge LS % (ex : 30)">
+  <button class="btn btn-accent" id="save-marges">💾 Enregistrer</button>
+</div>
 
-  <!-- ============================= -->
-  <!--        BANDE HEADER          -->
-  <!-- ============================= -->
-  <div id="stock-header" class="header-box">
+<!-- TOTAUX -->
+<div class="totaux">
+  <h2>TOTAUX STOCK</h2>
+  <p><strong>Valeur TRAD :</strong> <span id="total-trad">0 €</span></p>
+  <p><strong>Valeur FE :</strong> <span id="total-fe">0 €</span></p>
+  <p><strong>Valeur LS :</strong> <span id="total-ls">0 €</span></p>
+</div>
 
-    <h2>⚙️ Paramètres & Résumé du Stock</h2>
+<h2>Produits TRAD</h2>
+<table>
+  <thead>
+  <tr>
+    <th>PLU</th>
+    <th>Désignation</th>
+    <th>Stock (kg)</th>
+    <th>PMA HT</th>
+    <th>Marge %</th>
+    <th>PV TTC conseillé</th>
+    <th>PV TTC (réel)</th>
+    <th>Valeur Stock HT</th>
+  </tr>
+  </thead>
+  <tbody id="tbody-trad"></tbody>
+</table>
 
-    <!-- PARAMÉTRAGE MARGES -->
-    <div class="margin-settings">
+<h2>Frais Emballés (FE)</h2>
+<table>
+  <thead>
+  <tr>
+    <th>PLU</th>
+    <th>Désignation</th>
+    <th>Stock (kg)</th>
+    <th>PMA HT</th>
+    <th>Marge %</th>
+    <th>PV TTC conseillé</th>
+    <th>PV TTC (réel)</th>
+    <th>Valeur Stock HT</th>
+  </tr>
+  </thead>
+  <tbody id="tbody-fe"></tbody>
+</table>
 
-      <label>
-        Marge TRAD (%)
-        <input type="number" id="margeTrad">
-      </label>
+<h2>Libre Service (LS)</h2>
+<table>
+  <thead>
+  <tr>
+    <th>Gencode</th>
+    <th>Désignation</th>
+    <th>Stock (kg)</th>
+    <th>PMA HT</th>
+    <th>Marge %</th>
+    <th>PV TTC conseillé</th>
+    <th>PV TTC (réel)</th>
+    <th>Valeur Stock HT</th>
+  </tr>
+  </thead>
+  <tbody id="tbody-ls"></tbody>
+</table>
 
-      <label>
-        Marge FE (%)
-        <input type="number" id="margeFE">
-      </label>
-
-      <label>
-        Marge LS (%)
-        <input type="number" id="margeLS">
-      </label>
-
-      <button type="button" class="btn btn-accent" id="btnSaveMargins">
-        Enregistrer
-      </button>
-    </div>
-
-    <!-- RÉSUMÉ STOCK -->
-    <div class="stock-resume">
-
-      <div class="resume-item">
-        <h3>🐟 TRAD</h3>
-        <p id="vTrad">Valeur stock : —</p>
-        <p id="mTrad">Marge réelle : —</p>
-      </div>
-
-      <div class="resume-item">
-        <h3>📦 Frais Emballé (FE)</h3>
-        <p id="vFE">Valeur stock : —</p>
-        <p id="mFE">Marge réelle : —</p>
-      </div>
-
-      <div class="resume-item">
-        <h3>🏷️ Libre Service (LS)</h3>
-        <p id="vLS">Valeur stock : —</p>
-        <p id="mLS">Marge réelle : —</p>
-      </div>
-
-      <div class="resume-item total">
-        <h3>📊 TOTAL</h3>
-        <p id="vTotal">Valeur totale : —</p>
-        <p id="mTotal">Marge totale : —</p>
-      </div>
-
-    </div>
-  </div>
-
-
-
-  <!-- ============================= -->
-  <!--        TABLEAU TRAD          -->
-  <!-- ============================= -->
-  <h2>🐟 Produits TRAD</h2>
-
-  <div class="totaux" id="totaux-trad"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>PLU</th>
-        <th>Désignation</th>
-        <th>Stock (kg)</th>
-        <th>PMA HT</th>
-        <th>Marge %</th>
-        <th>PV HT (réel)</th>
-        <th>PV TTC (réel)</th>
-        <th>Valeur Stock HT</th>
-      </tr>
-    </thead>
-    <tbody id="tbody-trad"></tbody>
-  </table>
-
-
-
-  <!-- ============================= -->
-  <!--        TABLEAU FE            -->
-  <!-- ============================= -->
-  <h2>📦 Frais Emballé (FE)</h2>
-
-  <div class="totaux" id="totaux-fe"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>PLU</th>
-        <th>Désignation</th>
-        <th>Stock (kg)</th>
-        <th>PMA HT</th>
-        <th>Marge %</th>
-        <th>PV HT (réel)</th>
-        <th>PV TTC (réel)</th>
-        <th>Valeur Stock HT</th>
-      </tr>
-    </thead>
-    <tbody id="tbody-fe"></tbody>
-  </table>
-
-
-
-  <!-- ============================= -->
-  <!--        TABLEAU LS            -->
-  <!-- ============================= -->
-  <h2>🏷️ Libre Service (LS)</h2>
-
-  <div class="totaux" id="totaux-ls"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Gencode</th>
-        <th>Désignation</th>
-        <th>Stock (kg)</th>
-        <th>PMA HT</th>
-        <th>Marge %</th>
-        <th>PV HT (réel)</th>
-        <th>PV TTC (réel)</th>
-        <th>Valeur Stock HT</th>
-      </tr>
-    </thead>
-    <tbody id="tbody-ls"></tbody>
-  </table>
-
-
-
-
-  <!-- SCRIPT JS -->
+<script type="module" src="../js/firebase-init.js"></script>
 <script type="module" src="../js/stock.js"></script>
-
 
 </body>
 </html>
