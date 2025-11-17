@@ -95,19 +95,18 @@ async function loadRealPrice(key) {
  * CLÉ UNIQUE POUR STOCK_SETTINGS/ARTICLES
  **************************************************/
 function makeKey(article) {
-  let desi = (article.designation || "").toString().toUpperCase();
+  // LS → gencod
+  if (article.gencode && article.gencode.length === 13) {
+    return "LS-" + article.gencode;
+  }
 
-  // 🔥 Nettoyage Firestore
-  desi = desi
-    .replace(/[\/\\#?[\].]/g, "-")     // remplace les interdits par "-"
-    .replace(/\s+/g, "_")              // espaces → "_"
-    .replace(/__+/g, "_")              // pas de doubles
-    .trim();
+  // TRAD & FE → PLU
+  if (article.plu && article.plu !== "") {
+    return "PLU-" + article.plu;
+  }
 
-  if (article.gencode) return "LS-"   + article.gencode;
-  if (article.plu)     return "TRAD-" + article.plu;
-
-  return "NAME-" + desi;
+  // Cas sans PLU ni gencode → identifiant technique
+  return "AUTO-" + (article.achatId || "A") + "-" + (article.ligneId || "L");
 }
 
 
