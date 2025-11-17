@@ -177,4 +177,5 @@ async function loadStock() {
   }
 }
 
+loadStock();
 
