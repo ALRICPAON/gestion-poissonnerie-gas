@@ -125,12 +125,20 @@ async function loadStock() {
       const lot = docLot.data();
       console.log("DEBUG: Lot =", docLot.id, lot);
 
-      if (!lot.article) {
-        console.warn("⚠️ Lot sans article :", docLot.id);
-        return;
-      }
+      let article = lot.article;
 
-      const article = lot.article;
+// 🔥 Correction : support des anciens lots (pas de lot.article)
+if (!article) {
+    article = {
+        designation : lot.designation || "",
+        plu         : lot.plu || "", 
+        gencode     : lot.gencode || "",
+        nomLatin    : lot.nomLatin || "",
+        fao         : lot.fao || "",
+        engin       : lot.engin || ""
+    };
+}
+
       const key = docLot.id;
 
       const cat = detectCategory(article);
