@@ -1,55 +1,82 @@
-<!-- stock.html -->
-<section id="stock-config">
-  <h2>Paramètres de marge</h2>
-  <label>TRAD %:
-    <input type="number" id="margeTrad" step="0.1">
+<div class="top-bar">
+  <h1>📦 Gestion du Stock</h1>
+</div>
+
+<!-- Menu des marges -->
+<form id="stock-config">
+  <label>
+    Marge TRAD (%)  
+    <input type="number" id="margeTrad">
   </label>
-  <label>FE %:
-    <input type="number" id="margeFE" step="0.1">
+
+  <label>
+    Marge FE (%)  
+    <input type="number" id="margeFE">
   </label>
-  <label>LS %:
-    <input type="number" id="margeLS" step="0.1">
+
+  <label>
+    Marge LS (%)  
+    <input type="number" id="margeLS">
   </label>
-  <button id="btnSaveMargins">Enregistrer</button>
-</section>
 
-<hr>
+  <button type="button" class="btn btn-accent" id="btnSaveMargins">Enregistrer</button>
+</form>
 
-<section id="stock-trad">
-  <h2>Stock TRAD</h2>
-  <div class="totaux" id="totaux-trad"></div>
-  <table>
-    <thead>
-      <tr>
-        <th>PLU</th>
-        <th>Désignation</th>
-        <th>Poids (kg)</th>
-        <th>PMA HT</th>
-        <th>Marge %</th>
-        <th>PV HT</th>
-        <th>PV TTC</th>
-        <th>Valeur Stock HT</th>
-      </tr>
-    </thead>
-    <tbody id="tbody-trad"></tbody>
-  </table>
-</section>
+<!-- STOCK TRAD -->
+<h2>🐟 Produits TRAD</h2>
+<div class="totaux" id="totaux-trad"></div>
+<table>
+  <thead>
+    <tr>
+      <th>PLU</th>
+      <th>Désignation</th>
+      <th>Stock (kg)</th>
+      <th>PMA HT</th>
+      <th>Marge %</th>
+      <th>PV HT</th>
+      <th>PV TTC</th>
+      <th>Valeur Stock HT</th>
+    </tr>
+  </thead>
+  <tbody id="tbody-trad"></tbody>
+</table>
 
-<section id="stock-fe">
-  <h2>Stock Frais Emballé</h2>
-  <div class="totaux" id="totaux-fe"></div>
-  <table>
-    <thead>…</thead>
-    <tbody id="tbody-fe"></tbody>
-  </table>
-</section>
+<!-- STOCK FE -->
+<h2>📦 Frais Emballé (FE)</h2>
+<div class="totaux" id="totaux-fe"></div>
+<table>
+  <thead>
+    <tr>
+      <th>PLU</th>
+      <th>Désignation</th>
+      <th>Stock (kg)</th>
+      <th>PMA HT</th>
+      <th>Marge %</th>
+      <th>PV HT</th>
+      <th>PV TTC</th>
+      <th>Valeur Stock HT</th>
+    </tr>
+  </thead>
+  <tbody id="tbody-fe"></tbody>
+</table>
 
-<section id="stock-ls">
-  <h2>Stock LS</h2>
-  <div class="totaux" id="totaux-ls"></div>
-  <table>
-    <thead>…</thead>
-    <tbody id="tbody-ls"></tbody>
-  </table>
-</section>
+<!-- STOCK LS -->
+<h2>🏷️ Libre Service (LS)</h2>
+<div class="totaux" id="totaux-ls"></div>
+<table>
+  <thead>
+    <tr>
+      <th>Gencode</th>
+      <th>Désignation</th>
+      <th>Stock (kg)</th>
+      <th>PMA HT</th>
+      <th>Marge %</th>
+      <th>PV HT</th>
+      <th>PV TTC</th>
+      <th>Valeur Stock HT</th>
+    </tr>
+  </thead>
+  <tbody id="tbody-ls"></tbody>
+</table>
 
+<script type="module" src="js/stock.js"></script>
