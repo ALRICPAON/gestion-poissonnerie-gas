@@ -2,86 +2,111 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Stock</title>
-  <link rel="stylesheet" href="../css/style.css">
-
-
+  <title>Stock – Poissonnerie</title>
+  <link rel="stylesheet" href="../style.css">
 </head>
-
 <body>
 
-<h1>Gestion du Stock</h1>
+  <div class="top-bar">
+    <h1>📦 Stock – Vue Globale PMA</h1>
+  </div>
 
-<!-- BARRE PARAMÈTRES -->
-<div class="top-bar">
-  <input type="number" id="marge-trad" class="search-input" placeholder="Marge TRAD % (ex : 35)">
-  <input type="number" id="marge-fe" class="search-input" placeholder="Marge FE % (ex : 40)">
-  <input type="number" id="marge-ls" class="search-input" placeholder="Marge LS % (ex : 30)">
-  <button class="btn btn-accent" id="save-marges">💾 Enregistrer</button>
-</div>
+  <!-- 🔧 PARAMÈTRES DES MARGES -->
+  <div class="totaux">
+    <h2>Paramètres marges</h2>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
 
-<!-- TOTAUX -->
-<div class="totaux">
-  <h2>TOTAUX STOCK</h2>
-  <p><strong>Valeur TRAD :</strong> <span id="total-trad">0 €</span></p>
-  <p><strong>Valeur FE :</strong> <span id="total-fe">0 €</span></p>
-  <p><strong>Valeur LS :</strong> <span id="total-ls">0 €</span></p>
-</div>
+      <div>
+        <label>Marge TRAD (%)</label><br>
+        <input id="marge-trad" type="number" step="0.1" style="width:80px;">
+      </div>
 
-<h2>Produits TRAD</h2>
-<table>
-  <thead>
-  <tr>
-    <th>PLU</th>
-    <th>Désignation</th>
-    <th>Stock (kg)</th>
-    <th>PMA HT</th>
-    <th>Marge %</th>
-    <th>PV TTC conseillé</th>
-    <th>PV TTC (réel)</th>
-    <th>Valeur Stock HT</th>
-  </tr>
-  </thead>
-  <tbody id="tbody-trad"></tbody>
-</table>
+      <div>
+        <label>Marge FE (%)</label><br>
+        <input id="marge-fe" type="number" step="0.1" style="width:80px;">
+      </div>
 
-<h2>Frais Emballés (FE)</h2>
-<table>
-  <thead>
-  <tr>
-    <th>PLU</th>
-    <th>Désignation</th>
-    <th>Stock (kg)</th>
-    <th>PMA HT</th>
-    <th>Marge %</th>
-    <th>PV TTC conseillé</th>
-    <th>PV TTC (réel)</th>
-    <th>Valeur Stock HT</th>
-  </tr>
-  </thead>
-  <tbody id="tbody-fe"></tbody>
-</table>
+      <div>
+        <label>Marge LS (%)</label><br>
+        <input id="marge-ls" type="number" step="0.1" style="width:80px;">
+      </div>
 
-<h2>Libre Service (LS)</h2>
-<table>
-  <thead>
-  <tr>
-    <th>Gencode</th>
-    <th>Désignation</th>
-    <th>Stock (kg)</th>
-    <th>PMA HT</th>
-    <th>Marge %</th>
-    <th>PV TTC conseillé</th>
-    <th>PV TTC (réel)</th>
-    <th>Valeur Stock HT</th>
-  </tr>
-  </thead>
-  <tbody id="tbody-ls"></tbody>
-</table>
+      <div style="display:flex; align-items:end;">
+        <button id="save-marges" class="btn btn-accent">💾 Enregistrer</button>
+      </div>
 
-<script type="module" src="../js/firebase-init.js"></script>
-<script type="module" src="../js/stock.js"></script>
+    </div>
+  </div>
 
+  <!-- 🐟 STOCK TRAD -->
+  <h2>Rayon TRAD</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>PLU/Gencode</th>
+        <th>Désignation</th>
+        <th>Stock kg</th>
+        <th>PMA</th>
+        <th>Marge théorique</th>
+        <th>PV TTC conseillé</th>
+        <th>PV TTC réel</th>
+        <th>Marge réelle</th>
+        <th>DLC</th>
+        <th>Valeur stock HT</th>
+      </tr>
+    </thead>
+    <tbody id="tbody-trad">
+      <tr><td colspan="10">Chargement…</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 🧊 STOCK FE -->
+  <h2>Rayon FE (Filets / Emballé)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>PLU/Gencode</th>
+        <th>Désignation</th>
+        <th>Stock kg</th>
+        <th>PMA</th>
+        <th>Marge théorique</th>
+        <th>PV TTC conseillé</th>
+        <th>PV TTC réel</th>
+        <th>Marge réelle</th>
+        <th>DLC</th>
+        <th>Valeur stock HT</th>
+      </tr>
+    </thead>
+    <tbody id="tbody-fe">
+      <tr><td colspan="10">Chargement…</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 🛒 STOCK LS -->
+  <h2>Rayon LS</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>PLU/Gencode</th>
+        <th>Désignation</th>
+        <th>Stock kg</th>
+        <th>PMA</th>
+        <th>Marge théorique</th>
+        <th>PV TTC conseillé</th>
+        <th>PV TTC réel</th>
+        <th>Marge réelle</th>
+        <th>DLC</th>
+        <th>Valeur stock HT</th>
+      </tr>
+    </thead>
+    <tbody id="tbody-ls">
+      <tr><td colspan="10">Chargement…</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 🔥 Scripts -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/stock.js"></script>
 
 </body>
 </html>
