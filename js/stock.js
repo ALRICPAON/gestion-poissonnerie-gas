@@ -95,66 +95,86 @@ function fillTable(tbodyId, items) {
 /********************************************
  * 4) CHARGEMENT GLOBAL — VERSION SÛRE
  ********************************************/
+
 async function loadStock() {
   console.log("DEBUG: Chargement lots…");
 
-  const snapLots = await getDocs(collection(db, "lots"));
-  const snapPV = await getDocs(collection(db, "stock_articles"));
+  try {
+    // 1) Charger les lots
+    const snapLots = await getDocs(collection(db, "lots"));
+    console.log("DEBUG: Lots récupérés =", snapLots.size);
 
-  // PV réel déjà enregistrés
-  const pvMap = {};
-  snapPV.forEach(d => {
-    pvMap[d.id] = d.data();
-  });
+    // 2) Charger les PV réels
+    const snapPV = await getDocs(collection(db, "stock_articles"));
+    console.log("DEBUG: PV réels récupérés =", snapPV.size);
 
-  const trad = [];
-  const fe = [];
-  const ls = [];
+    const pvMap = {};
+    snapPV.forEach(d => pvMap[d.id] = d.data());
 
-  const margeTrad = Number(localStorage.getItem("margeTrad") || 35) / 100;
-  const margeFE = Number(localStorage.getItem("margeFE") || 40) / 100;
-  const margeLS = Number(localStorage.getItem("margeLS") || 30) / 100;
+    const trad = [];
+    const fe = [];
+    const ls = [];
 
-  snapLots.forEach(docLot => {
-    const lot = docLot.data();
+    const margeTrad = Number(localStorage.getItem("margeTrad") || 35) / 100;
+    const margeFE = Number(localStorage.getItem("margeFE") || 40) / 100;
+    const margeLS = Number(localStorage.getItem("margeLS") || 30) / 100;
 
-    if (!lot.article) return;
+    console.log("DEBUG: Début parsing lots…");
 
-    const article = lot.article;
-    const key = docLot.id;
+    snapLots.forEach(docLot => {
+      const lot = docLot.data();
+      console.log("DEBUG: Lot =", docLot.id, lot);
 
-    const cat = detectCategory(article);
+      if (!lot.article) {
+        console.warn("⚠️ Lot sans article :", docLot.id);
+        return;
+      }
 
-    const pma = computePMA([lot]);
+      const article = lot.article;
+      const key = docLot.id;
 
-    const m = cat === "TRAD" ? margeTrad :
-              cat === "FE"   ? margeFE :
-              margeLS;
+      const cat = detectCategory(article);
+      console.log("DEBUG: Cat =", cat, "pour", article.designation);
 
-    const pvHT = pma.pma * (1 + m);
-    const pvTTC = pvHT * 1.055;
+      const pma = computePMA([lot]);
+      console.log("DEBUG: PMA =", pma);
 
-    const item = {
-      key,
-      designation: article.designation || "",
-      plu: article.plu || "",
-      gencode: article.gencode || "",
-      stockKg: pma.poids,
-      pma: pma.pma,
-      margeTheo: m,
-      pvTTCconseille: pvTTC,
-      pvTTCreel: pvMap[key]?.pvTTCreel || "",
-      valeurStockHT: pma.pma * pma.poids
-    };
+      const m = cat === "TRAD" ? margeTrad :
+                cat === "FE"   ? margeFE :
+                margeLS;
 
-    if (cat === "TRAD") trad.push(item);
-    else if (cat === "FE") fe.push(item);
-    else ls.push(item);
-  });
+      const pvHT = pma.pma * (m + 1);
+      const pvTTC = pvHT * 1.055;
 
-  fillTable("tbody-trad", trad);
-  fillTable("tbody-fe", fe);
-  fillTable("tbody-ls", ls);
+      const item = {
+        key,
+        designation: article.designation || "",
+        plu: article.plu || "",
+        gencode: article.gencode || "",
+        stockKg: pma.poids,
+        pma: pma.pma,
+        margeTheo: m,
+        pvTTCconseille: pvTTC,
+        pvTTCreel: pvMap[key]?.pvTTCreel || "",
+        valeurStockHT: pma.pma * pma.poids
+      };
+
+      if (cat === "TRAD") trad.push(item);
+      else if (cat === "FE") fe.push(item);
+      else ls.push(item);
+    });
+
+    console.log("DEBUG: Résultat final =", { trad, fe, ls });
+
+    fillTable("tbody-trad", trad);
+    fillTable("tbody-fe", fe);
+    fillTable("tbody-ls", ls);
+    console.log("DEBUG: Tableaux remplis !");
+  }
+
+  catch (err) {
+    console.error("🔥 ERREUR DANS loadStock :", err);
+  }
 }
 
-loadStock();
+
