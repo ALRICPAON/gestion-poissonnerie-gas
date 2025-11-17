@@ -15,7 +15,6 @@ function articleKey(article) {
   if (article.gencode) return "LS_" + article.gencode;
   if (article.plu) return "PLU_" + article.plu;
 
-  // fallback sur la désignation
   return (
     "DESC_" +
     String(article.designation || "")
@@ -38,7 +37,7 @@ function detectCategory(article) {
 }
 
 /************************************************************
- * 3️⃣  Lecture des marges depuis UI ou localStorage
+ * 3️⃣  Lecture des marges UI + stockage
  ************************************************************/
 function getMarginRate(code, def) {
   const idInput = {
@@ -49,7 +48,6 @@ function getMarginRate(code, def) {
 
   let val = null;
 
-  // 1) Priorité aux inputs HTML si présents
   if (idInput) {
     const el = document.getElementById(idInput);
     if (el && el.value !== "") {
@@ -57,7 +55,6 @@ function getMarginRate(code, def) {
     }
   }
 
-  // 2) Sinon localStorage
   if (val == null || isNaN(val)) {
     const stored = localStorage.getItem("marge-" + code);
     if (stored != null && stored !== "") {
@@ -65,16 +62,15 @@ function getMarginRate(code, def) {
     }
   }
 
-  // 3) Sinon valeur par défaut
   if (val == null || isNaN(val)) {
     val = def;
   }
 
-  return val / 100; // retourne le taux (ex: 0.35)
+  return val / 100; // ex: 35% → 0.35
 }
 
 /************************************************************
- * 4️⃣  PMA global : somme de tous les lots restants
+ * 4️⃣  PMA global
  ************************************************************/
 function computeGlobalPMA(lots) {
   let totalKg = 0;
@@ -95,7 +91,7 @@ function computeGlobalPMA(lots) {
 }
 
 /************************************************************
- * 5️⃣  Récupération DLC la plus proche parmi les lots
+ * 5️⃣  DLC la plus proche
  ************************************************************/
 function getClosestDLC(lots) {
   let dlcClosest = null;
@@ -104,27 +100,17 @@ function getClosestDLC(lots) {
     const raw = lot.dlc;
     if (!raw) continue;
 
-    let d = null;
-
-    if (raw.toDate) {
-      // Firestore Timestamp
-      d = raw.toDate();
-    } else {
-      d = new Date(raw);
-    }
-
+    let d = raw.toDate ? raw.toDate() : new Date(raw);
     if (!d || isNaN(d.getTime())) continue;
 
-    if (!dlcClosest || d < dlcClosest) {
-      dlcClosest = d;
-    }
+    if (!dlcClosest || d < dlcClosest) dlcClosest = d;
   }
 
   return dlcClosest;
 }
 
 /************************************************************
- * 6️⃣  Affichage d’un tableau (TRAD / FE / LS)
+ * 6️⃣  Tableau TRAD / FE / LS
  ************************************************************/
 function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
@@ -132,13 +118,10 @@ function fillTable(tbodyId, items) {
 
   tb.innerHTML = "";
 
-  const fmt = (n) =>
-    Number(n).toLocaleString("fr-FR", {
-      style: "currency",
-      currency: "EUR"
-    });
+  const fmt = n =>
+    Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
-  items.forEach((it) => {
+  items.forEach(it => {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
@@ -166,7 +149,7 @@ function fillTable(tbodyId, items) {
       <td>${fmt(it.valeurStockHT)}</td>
     `;
 
-    // ⚠️ Coloration selon DLC
+    // Coloration DLC
     if (it.dlc) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -174,45 +157,35 @@ function fillTable(tbodyId, items) {
       const d = new Date(it.dlc);
       d.setHours(0, 0, 0, 0);
 
-      const diffDays = (d - today) / (1000 * 60 * 60 * 24);
+      const diffDays = (d - today) / 86400000;
 
-      if (diffDays <= 0) {
-        // Jour J ou dépassé
-        tr.style.backgroundColor = "#ffcccc"; // rouge clair
-      } else if (diffDays <= 2) {
-        // J-1, J-2
-        tr.style.backgroundColor = "#ffe7b3"; // orange clair
-      }
+      if (diffDays <= 0) tr.style.backgroundColor = "#ffcccc";
+      else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3";
     }
 
     tb.appendChild(tr);
   });
 
-  // Gestion de la saisie du PV TTC réel
-  document.querySelectorAll(".pv-reel-input").forEach((inp) => {
-    inp.addEventListener("change", async (e) => {
+  // Mise à jour PV réel
+  document.querySelectorAll(".pv-reel-input").forEach(inp => {
+    inp.addEventListener("change", async e => {
       const key = e.target.dataset.key;
       const val = Number(e.target.value);
-
       if (isNaN(val)) return;
 
-      // Stocker le PV TTC réel par article (clé article)
       await setDoc(
         doc(db, "stock_articles", key),
         { pvTTCreel: val },
         { merge: true }
       );
 
-      console.log("PV TTC réel mis à jour pour", key, "=", val);
-
-      // Recharger pour recalculer marges + couleurs
       loadStock();
     });
   });
 }
 
 /************************************************************
- * 7️⃣  Chargement global du stock (PMA + Marges + DLC)
+ * 7️⃣  Chargement du stock
  ************************************************************/
 async function loadStock() {
   console.log("DEBUG: Chargement lots…");
@@ -220,19 +193,14 @@ async function loadStock() {
   const snapLots = await getDocs(collection(db, "lots"));
   const snapPV = await getDocs(collection(db, "stock_articles"));
 
-  // Map des PV réels par clé article
   const pvMap = {};
-  snapPV.forEach((d) => {
-    pvMap[d.id] = d.data();
-  });
+  snapPV.forEach(d => (pvMap[d.id] = d.data()));
 
-  // Regrouper tous les lots par article
   const regroup = {};
 
-  snapLots.forEach((docLot) => {
+  snapLots.forEach(docLot => {
     const lot = docLot.data();
 
-    // Construire un objet article compatible
     const article = {
       designation: lot.designation || "",
       plu: lot.plu || "",
@@ -244,17 +212,10 @@ async function loadStock() {
 
     const key = articleKey(article);
 
-    if (!regroup[key]) {
-      regroup[key] = {
-        article,
-        lots: []
-      };
-    }
-
+    if (!regroup[key]) regroup[key] = { article, lots: [] };
     regroup[key].lots.push(lot);
   });
 
-  // Marges par défaut (TRAD / FE / LS)
   const margeTrad = getMarginRate("trad", 35);
   const margeFE = getMarginRate("fe", 40);
   const margeLS = getMarginRate("ls", 30);
@@ -263,7 +224,6 @@ async function loadStock() {
   const fe = [];
   const ls = [];
 
-  // Construire chaque ligne article
   for (const key in regroup) {
     const { article, lots } = regroup[key];
 
@@ -278,27 +238,18 @@ async function loadStock() {
     const pvHTconseille = pmaData.pma * (1 + m);
     const pvTTCconseille = pvHTconseille * 1.055;
 
-    const pvRealDoc = pvMap[key]?.pvTTCreel;
     const pvTTCreel =
-      pvRealDoc != null && !isNaN(Number(pvRealDoc))
-        ? Number(pvRealDoc)
-        : null;
+      pvMap[key]?.pvTTCreel != null ? Number(pvMap[key].pvTTCreel) : null;
 
-    // Marge théorique basée sur PV conseillé
     const margeTheo =
-      pvHTconseille > 0
-        ? (pvHTconseille - pmaData.pma) / pvHTconseille
-        : 0;
+      pvHTconseille > 0 ? (pvHTconseille - pmaData.pma) / pvHTconseille : 0;
 
-    // Marge réelle basée sur PV réel (si renseigné)
     let margeReelle = null;
-    if (pvTTCreel && pvTTCreel > 0) {
+    if (pvTTCreel) {
       const pvHTReel = pvTTCreel / 1.055;
-      margeReelle =
-        pvHTReel > 0 ? (pvHTReel - pmaData.pma) / pvHTReel : null;
+      margeReelle = (pvHTReel - pmaData.pma) / pvHTReel;
     }
 
-    // DLC la plus proche
     const dlcClosest = getClosestDLC(lots);
     const dlcStr = dlcClosest
       ? dlcClosest.toISOString().split("T")[0]
@@ -324,14 +275,50 @@ async function loadStock() {
     else ls.push(item);
   }
 
-  // Afficher les 3 tableaux
+  // Affichage des 3 tableaux
   fillTable("tbody-trad", trad);
   fillTable("tbody-fe", fe);
   fillTable("tbody-ls", ls);
+
+  // AJOUT : totaux des rayons
+  updateTotaux(trad, fe, ls);
 }
 
 /************************************************************
- * 8️⃣  Initialisation UI marges (si inputs présents)
+ * 🔟 Totaux TRAD / FE / LS
+ ************************************************************/
+function updateTotaux(trad, fe, ls) {
+  const fmt = n =>
+    Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+
+  function calc(arr, divId) {
+    const div = document.getElementById(divId);
+    if (!div) return;
+
+    let achatHT = 0;
+    let venteTTC = 0;
+
+    arr.forEach(it => {
+      achatHT += it.valeurStockHT;
+      const pv = it.pvTTCreel || it.pvTTCconseille || 0;
+      venteTTC += pv * it.stockKg;
+    });
+
+    const venteHT = venteTTC / 1.055;
+    const marge = venteHT > 0 ? ((venteHT - achatHT) / venteHT) * 100 : 0;
+
+    div.querySelector(".aht").textContent = fmt(achatHT);
+    div.querySelector(".vtc").textContent = fmt(venteTTC);
+    div.querySelector(".marge").textContent = marge.toFixed(1) + " %";
+  }
+
+  calc(trad, "totaux-trad");
+  calc(fe,   "totaux-fe");
+  calc(ls,   "totaux-ls");
+}
+
+/************************************************************
+ * 1️⃣1️⃣  UI des marges
  ************************************************************/
 function initMarginUI() {
   const elTrad = document.getElementById("marge-trad");
@@ -339,24 +326,15 @@ function initMarginUI() {
   const elLS = document.getElementById("marge-ls");
   const btnSave = document.getElementById("save-marges");
 
-  if (elTrad) {
-    elTrad.value =
-      localStorage.getItem("marge-trad") || "35";
-  }
-  if (elFE) {
-    elFE.value =
-      localStorage.getItem("marge-fe") || "40";
-  }
-  if (elLS) {
-    elLS.value =
-      localStorage.getItem("marge-ls") || "30";
-  }
+  if (elTrad) elTrad.value = localStorage.getItem("marge-trad") || "35";
+  if (elFE)   elFE.value = localStorage.getItem("marge-fe") || "40";
+  if (elLS)   elLS.value = localStorage.getItem("marge-ls") || "30";
 
   if (btnSave) {
     btnSave.addEventListener("click", () => {
       if (elTrad) localStorage.setItem("marge-trad", elTrad.value || "35");
-      if (elFE) localStorage.setItem("marge-fe", elFE.value || "40");
-      if (elLS) localStorage.setItem("marge-ls", elLS.value || "30");
+      if (elFE)   localStorage.setItem("marge-fe", elFE.value || "40");
+      if (elLS)   localStorage.setItem("marge-ls", elLS.value || "30");
 
       alert("Marges enregistrées");
       loadStock();
@@ -365,7 +343,7 @@ function initMarginUI() {
 }
 
 /************************************************************
- * 9️⃣  Lancement
+ * 1️⃣2️⃣  Lancement
  ************************************************************/
 initMarginUI();
 loadStock();
