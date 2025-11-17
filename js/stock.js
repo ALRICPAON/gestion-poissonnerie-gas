@@ -57,7 +57,7 @@ function makeKey(article) {
     return "PLU-" + article.plu;
   }
 
-  // Sécurité (rare mais possible)
+  // Fallback technique
   return "AUTO-" + (article.achatId || "A") + "-" + (article.ligneId || "L");
 }
 
@@ -71,20 +71,21 @@ function detectCategory(article) {
 
   if (g.length === 13) return "ls";
   if (d.startsWith("FE.")) return "fe";
+
   return "trad";
 }
 
 
 /**************************************************
- * 4)  CALCUL PMA (Prix Moyen d’Achat)
+ * 4)  CALCUL PMA (prix moyen d’achat basé sur lots)
  **************************************************/
 function computePMA(lots) {
   let totalPoids = 0;
   let totalCost  = 0;
 
   for (const lot of lots) {
-    const p = Number(lot.poidsRestant || 0);
-    const pa = Number(lot.prixAchatKg || 0);
+    const p = Number(lot.poidsRestant || lot.poidsKg || 0);
+    const pa = Number(lot.prixHTKg || lot.prixAchatKg || 0);
 
     totalPoids += p;
     totalCost  += p * pa;
@@ -96,17 +97,16 @@ function computePMA(lots) {
 
 
 /**************************************************
- * 5)  Charger PRIX RÉELS depuis Firestore
- *      STOCK_SETTINGS / ARTICLES / {clé}
+ * 5)  LIRE prix réel → stock_articles/{key}
  **************************************************/
 async function loadRealPrice(key) {
-  const r = await getDoc(doc(db, "stock_settings", "articles", key));
+  const r = await getDoc(doc(db, "stock_articles", key));
   return r.exists() ? r.data() : null;
 }
 
 
 /**************************************************
- * 6)  Calcul marge réelle (prix réel HT)
+ * 6)  CALCUL marge réelle HT
  **************************************************/
 function computeRealMargin(pvHT, pma) {
   if (!pvHT || pvHT <= 0) return 0;
@@ -115,7 +115,7 @@ function computeRealMargin(pvHT, pma) {
 
 
 /**************************************************
- * 7)  Mise à jour du HEADER
+ * 7)  Mettre à jour header valeurs & marges totales
  **************************************************/
 function updateHeader(res) {
   const fmt = v => Number(v).toLocaleString("fr-FR", {
@@ -139,7 +139,7 @@ function updateHeader(res) {
 
 
 /**************************************************
- * 8)  Remplissage tableau HTML (TRAD / FE / LS)
+ * 8)  Affichage tableaux TRAD / FE / LS
  **************************************************/
 function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
@@ -170,14 +170,14 @@ function fillTable(tbodyId, items) {
 
 
 /**************************************************
- * 9)  CHARGEMENT GLOBAL DU STOCK
+ * 9)  Charger tout le stock depuis LOTS
  **************************************************/
 async function loadStock() {
 
   const lotsSnap = await getDocs(collection(db, "lots"));
-  const map = {}; // regroupement par article
+  const map = {};
 
-  // Grouper par article
+  // Regroupement par article
   for (const d of lotsSnap.docs) {
     const l = d.data();
     const key = makeKey(l);
@@ -188,8 +188,8 @@ async function loadStock() {
         designation: l.designation || "",
         plu: l.plu || "",
         gencode: l.gencode || "",
-        achatId: l.achatId || "",
-        ligneId: l.ligneId || "",
+        achatId: l.achatId,
+        ligneId: l.ligneId,
         lots: []
       };
     }
@@ -208,7 +208,6 @@ async function loadStock() {
     total: { valeur:0, marge:0 }
   };
 
-  // Calcul pour chaque article
   for (const [key, article] of Object.entries(map)) {
 
     const pma = computePMA(article.lots);
@@ -239,8 +238,6 @@ async function loadStock() {
     if (cat === "trad") groupsTRAD.push(item);
     if (cat === "fe")   groupsFE.push(item);
     if (cat === "ls")   groupsLS.push(item);
-
-    resume.total.valeur += valeurStock;
   }
 
   function computeCatResume(list) {
