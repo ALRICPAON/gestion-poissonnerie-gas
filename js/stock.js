@@ -1,5 +1,5 @@
 /**************************************************
- *  STOCK.JS – Module Stock Poissonnerie (version corrigée)
+ *  STOCK.JS — Version FINALISÉE (PMA + PV TTC conseillé)
  **************************************************/
 
 import { db } from "./firebase-init.js";
@@ -13,7 +13,7 @@ import {
 
 
 /**************************************************
- * 1)   RÉGLAGES MARGES (global)
+ * 1) MARGES PAR DÉFAUT (stock_settings/global)
  **************************************************/
 const marginRef = doc(db, "stock_settings", "global");
 
@@ -36,38 +36,33 @@ async function saveMargins() {
     trad: Number(margeTrad.value),
     fe:   Number(margeFE.value),
     ls:   Number(margeLS.value)
-  }, { merge:true });
+  }, { merge: true });
 
   alert("Marges enregistrées !");
 }
 
 
 /**************************************************
- * 2)  CLÉ ARTICLE FIABLE (PLU / EAN / AUTO)
+ * 2) CLÉ ARTICLE = PLU / GENCODE / AUTO
  **************************************************/
 function makeKey(article) {
 
-  // LS = gencode
-  if (article.gencode && article.gencode.length === 13) {
-    return "LS-" + article.gencode;
-  }
+  const g = String(article.gencode || "");
+  const p = String(article.plu || "");
 
-  // TRAD / FE = PLU
-  if (article.plu && article.plu !== "") {
-    return "PLU-" + article.plu;
-  }
+  if (g.length === 13) return "LS-" + g;
+  if (p !== "") return "PLU-" + p;
 
-  // Fallback technique
   return "AUTO-" + (article.achatId || "A") + "-" + (article.ligneId || "L");
 }
 
 
 /**************************************************
- * 3)  Détection catégorie article
+ * 3) Catégorie article (TRAD / FE / LS)
  **************************************************/
 function detectCategory(article) {
-  const g = article.gencode || "";
-  const d = (article.designation || "").toUpperCase();
+  const g = String(article.gencode || "");
+  const d = String(article.designation || "").toUpperCase();
 
   if (g.length === 13) return "ls";
   if (d.startsWith("FE.")) return "fe";
@@ -77,7 +72,7 @@ function detectCategory(article) {
 
 
 /**************************************************
- * 4)  CALCUL PMA (prix moyen d’achat basé sur lots)
+ * 4) Calcul PMA depuis lots
  **************************************************/
 function computePMA(lots) {
   let totalPoids = 0;
@@ -97,58 +92,40 @@ function computePMA(lots) {
 
 
 /**************************************************
- * 5)  LIRE prix réel → stock_articles/{key}
+ * 5) Fonction formatage €
  **************************************************/
-async function loadRealPrice(key) {
-  const r = await getDoc(doc(db, "stock_articles", key));
-  return r.exists() ? r.data() : null;
-}
+const fmt = v => Number(v).toLocaleString("fr-FR", {
+  style: "currency",
+  currency: "EUR"
+});
 
 
 /**************************************************
- * 6)  CALCUL marge réelle HT
- **************************************************/
-function computeRealMargin(pvHT, pma) {
-  if (!pvHT || pvHT <= 0) return 0;
-  return (pvHT - pma) / pvHT;
-}
-
-
-/**************************************************
- * 7)  Mettre à jour header valeurs & marges totales
+ * 6) Mise à jour du HEADER
  **************************************************/
 function updateHeader(res) {
-  const fmt = v => Number(v).toLocaleString("fr-FR", {
-    style: "currency",
-    currency: "EUR"
-  });
-  const pct = v => (v * 100).toFixed(1) + " %";
+  const pct = x => (x * 100).toFixed(1) + "%";
 
-  vTrad.innerText  = "Valeur stock : " + fmt(res.trad.valeur);
-  mTrad.innerText  = "Marge réelle : " + pct(res.trad.marge);
+  vTrad.innerText  = `Valeur stock : ${fmt(res.trad.valeur)}`;
+  mTrad.innerText  = `Marge théorique : ${pct(res.trad.marge)}`;
 
-  vFE.innerText    = "Valeur stock : " + fmt(res.fe.valeur);
-  mFE.innerText    = "Marge réelle : " + pct(res.fe.marge);
+  vFE.innerText    = `Valeur stock : ${fmt(res.fe.valeur)}`;
+  mFE.innerText    = `Marge théorique : ${pct(res.fe.marge)}`;
 
-  vLS.innerText    = "Valeur stock : " + fmt(res.ls.valeur);
-  mLS.innerText    = "Marge réelle : " + pct(res.ls.marge);
+  vLS.innerText    = `Valeur stock : ${fmt(res.ls.valeur)}`;
+  mLS.innerText    = `Marge théorique : ${pct(res.ls.marge)}`;
 
-  vTotal.innerText = "Valeur totale : " + fmt(res.total.valeur);
-  mTotal.innerText = "Marge totale : "  + pct(res.total.marge);
+  vTotal.innerText = `Valeur totale : ${fmt(res.total.valeur)}`;
+  mTotal.innerText = `Marge totale : ${pct(res.total.marge)}`;
 }
 
 
 /**************************************************
- * 8)  Affichage tableaux TRAD / FE / LS
+ * 7) Remplissage des tableaux HTML
  **************************************************/
 function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
   tb.innerHTML = "";
-
-  const fmt = n => Number(n).toLocaleString("fr-FR", {
-    style:"currency",
-    currency:"EUR"
-  });
 
   items.forEach(a => {
     const tr = document.createElement("tr");
@@ -158,9 +135,9 @@ function fillTable(tbodyId, items) {
       <td>${a.designation}</td>
       <td>${a.stockKg.toFixed(2)} kg</td>
       <td>${fmt(a.pma)}</td>
-      <td>${(a.marginReal * 100).toFixed(1)}%</td>
-      <td>${fmt(a.pvHT || 0)}</td>
-      <td>${fmt(a.pvTTC || 0)}</td>
+      <td>${fmt(a.pvHTc)}</td>
+      <td>${fmt(a.pvTTCc)}</td>
+      <td>${(a.marginTheo * 100).toFixed(1)}%</td>
       <td>${fmt(a.valeurStock)}</td>
     `;
 
@@ -170,7 +147,7 @@ function fillTable(tbodyId, items) {
 
 
 /**************************************************
- * 9)  Charger tout le stock depuis LOTS
+ * 8) Charger TOUT le stock depuis LOTS
  **************************************************/
 async function loadStock() {
 
@@ -213,12 +190,21 @@ async function loadStock() {
     const pma = computePMA(article.lots);
     if (pma.poids === 0) continue;
 
-    const settings = await loadRealPrice(key);
-    const pvHT  = settings?.pvHT  || 0;
-    const pvTTC = settings?.pvTTC || 0;
+    // Catégorie
+    const cat = detectCategory(article);
+
+    // Marge par défaut
+    let m = 35;
+    if (cat === "trad") m = Number(margeTrad.value);
+    if (cat === "fe")   m = Number(margeFE.value);
+    if (cat === "ls")   m = Number(margeLS.value);
+
+    // PV CONSEILLÉ
+    const pvHTc  = pma.pma === 0 ? 0 : pma.pma / (1 - m/100);
+    const pvTTCc = pvHTc * 1.055; // TVA poisson 5,5%
 
     const valeurStock = pma.poids * pma.pma;
-    const marginReal  = computeRealMargin(pvHT, pma.pma);
+    const marginTheo  = pma.pma === 0 ? 0 : (pvHTc - pma.pma) / pvHTc;
 
     const item = {
       key,
@@ -227,27 +213,27 @@ async function loadStock() {
       gencode: article.gencode,
       stockKg: pma.poids,
       pma: pma.pma,
-      pvHT,
-      pvTTC,
+      pvHTc,
+      pvTTCc,
       valeurStock,
-      marginReal
+      marginTheo
     };
-
-    const cat = detectCategory(article);
 
     if (cat === "trad") groupsTRAD.push(item);
     if (cat === "fe")   groupsFE.push(item);
     if (cat === "ls")   groupsLS.push(item);
   }
 
+  // Résumés par catégorie
   function computeCatResume(list) {
     if (!list.length) return { valeur:0, marge:0 };
+
     let totalVal = 0;
     let totalPV  = 0;
 
     list.forEach(a => {
       totalVal += a.valeurStock;
-      totalPV  += a.pvHT * a.stockKg;
+      totalPV  += a.pvHTc * a.stockKg;
     });
 
     const marge = totalPV > 0 ? (totalPV - totalVal) / totalPV : 0;
@@ -268,7 +254,7 @@ async function loadStock() {
 
 
 /**************************************************
- * 10) INIT
+ * 9) INIT
  **************************************************/
 btnSaveMargins.addEventListener("click", saveMargins);
 
