@@ -3,30 +3,32 @@ import {
   collection, getDocs, doc, setDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+console.log("DEBUG: stock.js chargé !");
+
 /********************************************
- * 1) Détection catégorie TRAD / FE / LS
+ * 1) Catégorie TRAD / FE / LS (SÉCURISÉ)
  ********************************************/
 function detectCategory(article) {
-  const d = (article.designation || "").toUpperCase();
-  const plu = article.plu || "";
-  const gencode = article.gencode || "";
+  const d = String(article.designation || "").toUpperCase();
+  const plu = String(article.plu || "");
+  const gencode = String(article.gencode || "");
 
-  if (gencode && gencode.length >= 12) return "LS";
+  if (gencode.length >= 12) return "LS";
   if (d.startsWith("FE")) return "FE";
   return "TRAD";
 }
 
 /********************************************
- * 2) Calcul PMA FIFO
+ * 2) PMA FIFO (SÉCURISÉ)
  ********************************************/
 function computePMA(lots) {
   let totalKg = 0;
   let totalHT = 0;
 
-  lots.forEach(l => {
-    totalKg += l.poidsKg;
-    totalHT += l.montantHT;
-  });
+  for (const l of lots) {
+    totalKg += Number(l.poidsKg || 0);
+    totalHT += Number(l.montantHT || 0);
+  }
 
   return {
     poids: totalKg,
@@ -35,7 +37,7 @@ function computePMA(lots) {
 }
 
 /********************************************
- * 3) Affichage tableau
+ * 3) TABLEAU
  ********************************************/
 function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
@@ -60,11 +62,11 @@ function fillTable(tbodyId, items) {
       <td>
         <input 
           type="number" 
-          step="0.01" 
+          step="0.01"
           value="${a.pvTTCreel || ""}"
           data-key="${a.key}"
           class="pv-reel-input"
-          style="width:90px"
+          style="width:80px"
         >
       </td>
 
@@ -74,7 +76,7 @@ function fillTable(tbodyId, items) {
     tb.appendChild(tr);
   });
 
-  // Enregistrement PV réel
+  // PV réel → Firestore
   document.querySelectorAll(".pv-reel-input").forEach(inp => {
     inp.addEventListener("change", async e => {
       const key = e.target.dataset.key;
@@ -91,14 +93,19 @@ function fillTable(tbodyId, items) {
 }
 
 /********************************************
- * 4) Chargement global
+ * 4) CHARGEMENT GLOBAL — VERSION SÛRE
  ********************************************/
 async function loadStock() {
+  console.log("DEBUG: Chargement lots…");
+
   const snapLots = await getDocs(collection(db, "lots"));
   const snapPV = await getDocs(collection(db, "stock_articles"));
 
+  // PV réel déjà enregistrés
   const pvMap = {};
-  snapPV.forEach(d => pvMap[d.id] = d.data());
+  snapPV.forEach(d => {
+    pvMap[d.id] = d.data();
+  });
 
   const trad = [];
   const fe = [];
@@ -110,12 +117,14 @@ async function loadStock() {
 
   snapLots.forEach(docLot => {
     const lot = docLot.data();
+
     if (!lot.article) return;
 
-    const key = docLot.id;
     const article = lot.article;
+    const key = docLot.id;
 
     const cat = detectCategory(article);
+
     const pma = computePMA([lot]);
 
     const m = cat === "TRAD" ? margeTrad :
@@ -125,48 +134,27 @@ async function loadStock() {
     const pvHT = pma.pma * (1 + m);
     const pvTTC = pvHT * 1.055;
 
-    const pvReal = pvMap[key]?.pvTTCreel || "";
-
     const item = {
       key,
-      designation: article.designation,
-      plu: article.plu,
-      gencode: article.gencode,
+      designation: article.designation || "",
+      plu: article.plu || "",
+      gencode: article.gencode || "",
       stockKg: pma.poids,
       pma: pma.pma,
       margeTheo: m,
       pvTTCconseille: pvTTC,
-      pvTTCreel: pvReal,
+      pvTTCreel: pvMap[key]?.pvTTCreel || "",
       valeurStockHT: pma.pma * pma.poids
     };
 
     if (cat === "TRAD") trad.push(item);
-    if (cat === "FE")   fe.push(item);
-    if (cat === "LS")   ls.push(item);
+    else if (cat === "FE") fe.push(item);
+    else ls.push(item);
   });
 
   fillTable("tbody-trad", trad);
   fillTable("tbody-fe", fe);
   fillTable("tbody-ls", ls);
-
-  // Totaux
-  document.getElementById("total-trad").textContent =
-    trad.reduce((a,b)=>a+b.valeurStockHT,0).toLocaleString("fr-FR",{style:"currency",currency:"EUR"});
-  document.getElementById("total-fe").textContent =
-    fe.reduce((a,b)=>a+b.valeurStockHT,0).toLocaleString("fr-FR",{style:"currency",currency:"EUR"});
-  document.getElementById("total-ls").textContent =
-    ls.reduce((a,b)=>a+b.valeurStockHT,0).toLocaleString("fr-FR",{style:"currency",currency:"EUR"});
 }
-
-/********************************************
- * 5) Sauvegarde des marges
- ********************************************/
-document.getElementById("save-marges").addEventListener("click", () => {
-  localStorage.setItem("margeTrad", document.getElementById("marge-trad").value);
-  localStorage.setItem("margeFE", document.getElementById("marge-fe").value);
-  localStorage.setItem("margeLS", document.getElementById("marge-ls").value);
-  alert("Marges enregistrées !");
-  loadStock();
-});
 
 loadStock();
