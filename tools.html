@@ -1,0 +1,15 @@
+<h1>Outils Poissonnerie</h1>
+
+<button id="btnConvert" class="btn btn-accent">
+  Convertir achats → lots
+</button>
+
+<script type="module">
+  import { convertAchatsToLots } from "./js/convert-achats-to-lots.js";
+
+  document.getElementById("btnConvert").addEventListener("click", () => {
+    if (confirm("Tu veux convertir tous les achats → lots ?")) {
+      convertAchatsToLots();
+    }
+  });
+</script>
