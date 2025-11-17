@@ -3,79 +3,75 @@ import {
   collection, getDocs, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/**
- * Convertit TOUS les achats existants → LOTS
- * À exécuter UNE SEULE FOIS
- */
 export async function convertAchatsToLots() {
+  console.log("=== Conversion achats → lots ===");
+
   const achatsSnap = await getDocs(collection(db, "achats"));
 
   for (const achatDoc of achatsSnap.docs) {
-
     const achatId = achatDoc.id;
     const achat = achatDoc.data();
 
-    // Récup lignes d’achat
+    console.log("Achat :", achatId, "type :", achat.type);
+
+    // 🛑 1) Ne convertir QUE les BL
+    if (achat.type !== "BL") {
+      console.warn(" → Ignoré (pas un BL)");
+      continue;
+    }
+
+    // récupérer les lignes
     const lignesSnap = await getDocs(
       collection(db, "achats", achatId, "lignes")
     );
 
+    if (lignesSnap.empty) {
+      console.warn(" → Pas de lignes !");
+      continue;
+    }
+
     for (const ligneDoc of lignesSnap.docs) {
       const l = ligneDoc.data();
 
-      const poids = Number(l.poidsTotalKg || l.poidsKg || 0);
-      if (!poids || poids <= 0) continue;
+      // 🟦 2) Détection poids fiable
+      const poids = Number(
+        l.poidsTotalKg ||
+        l.poidsKg ||
+        l.poidsColisKg ||
+        0
+      );
 
-      const prixAchatKg = Number(l.prixHTKg || 0);
-
-      // designation propre
-      const desi = l.designationInterne || l.designation || "";
-
-      // PLU peut être vide
-      const plu = (l.plu || "").trim();
-
-      // Détection GENCODE si LS (13 chiffres)
-      let gencode = "";
-      if (/^[0-9]{13}$/.test(plu)) {
-        gencode = plu;
+      if (!poids || poids <= 0) {
+        console.warn("   Ligne ignorée (poids=0) :", l.designation);
+        continue;
       }
 
-      // FAO propre
-      let fao = "";
-      if (l.zone) fao += l.zone;
-      if (l.sousZone) fao += " " + l.sousZone;
+      // 🟦 3) Optional : si tu veux filtrer par réception
+      // if (l.received !== true) {
+      //   console.warn("   Ignorée (non reçue)");
+      //   continue;
+      // }
+
+      console.log("   Lot créé :", l.designation, "poids :", poids);
 
       await addDoc(collection(db, "lots"), {
         achatId,
         ligneId: ligneDoc.id,
 
-        // article info
-        plu: gencode ? "" : plu,
-        gencode,
-        designation: desi,
-
-        // poids/prix
+        plu: (l.plu || "").trim(),
+        designation: l.designationInterne || l.designation || "",
         poidsInitial: poids,
         poidsRestant: poids,
-        prixAchatKg,
+        prixAchatKg: Number(l.prixHTKg || 0),
 
-        // dates
-        lotDate: l.date || achat.date || serverTimestamp(),
-
-        // fournisseur
-        fournisseurCode: achat.fournisseurCode || "",
-        fournisseurNom: achat.fournisseurNom || "",
+        lotDate: l.createdAt || serverTimestamp(),
         fournisseurRef: l.refFournisseur || "",
-
-        // traca
         nomLatin: l.nomLatin || "",
         zone: l.zone || "",
         sousZone: l.sousZone || "",
-        fao: fao.trim(),
         engin: l.engin || "",
-        dlc: l.dlc || "",
+        fao: `${l.zone || ""} ${l.sousZone || ""}`.trim(),
 
-        // flags
         closed: false,
         source: "achat",
         createdAt: serverTimestamp(),
@@ -83,5 +79,6 @@ export async function convertAchatsToLots() {
     }
   }
 
-  alert("Conversion terminée ! Tous les achats → lots");
+  console.log("=== FIN ===");
+  alert("Conversion terminée !");
 }
