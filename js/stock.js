@@ -95,13 +95,21 @@ async function loadRealPrice(key) {
  * CLÉ UNIQUE POUR STOCK_SETTINGS/ARTICLES
  **************************************************/
 function makeKey(article) {
-  const desi = (article.designation || "").toString().toUpperCase();
+  let desi = (article.designation || "").toString().toUpperCase();
 
-  if (article.gencode) return "LS-" + article.gencode;
+  // 🔥 Nettoyage Firestore
+  desi = desi
+    .replace(/[\/\\#?[\].]/g, "-")     // remplace les interdits par "-"
+    .replace(/\s+/g, "_")              // espaces → "_"
+    .replace(/__+/g, "_")              // pas de doubles
+    .trim();
+
+  if (article.gencode) return "LS-"   + article.gencode;
   if (article.plu)     return "TRAD-" + article.plu;
 
   return "NAME-" + desi;
 }
+
 
 
 /**************************************************
