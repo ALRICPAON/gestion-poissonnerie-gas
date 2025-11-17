@@ -1,27 +1,55 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="../css/styles.css" />
-<title>Gestion Poissonnerie</title>
+<!-- stock.html -->
+<section id="stock-config">
+  <h2>Paramètres de marge</h2>
+  <label>TRAD %:
+    <input type="number" id="margeTrad" step="0.1">
+  </label>
+  <label>FE %:
+    <input type="number" id="margeFE" step="0.1">
+  </label>
+  <label>LS %:
+    <input type="number" id="margeLS" step="0.1">
+  </label>
+  <button id="btnSaveMargins">Enregistrer</button>
+</section>
 
-</head>
-<body>
-  <header id="topbar"></header>
-  <main class="container">
-    <h2 class="page-title">Stock</h2>
-    <div class="panel">
-      <p>TODO : intégrer l'interface stock (Apps Script / API) ici.</p>
-      <p class="muted">Cette page est protégée par Firebase Auth.</p>
-    </div>
-  </main>
+<hr>
 
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script type="module" src="../js/auth.js"></script>
-  <script type="module" src="../js/menu.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', () => { window.__requireAuth && window.__requireAuth('stock'); });
-  </script>
-</body>
-</html>
+<section id="stock-trad">
+  <h2>Stock TRAD</h2>
+  <div class="totaux" id="totaux-trad"></div>
+  <table>
+    <thead>
+      <tr>
+        <th>PLU</th>
+        <th>Désignation</th>
+        <th>Poids (kg)</th>
+        <th>PMA HT</th>
+        <th>Marge %</th>
+        <th>PV HT</th>
+        <th>PV TTC</th>
+        <th>Valeur Stock HT</th>
+      </tr>
+    </thead>
+    <tbody id="tbody-trad"></tbody>
+  </table>
+</section>
+
+<section id="stock-fe">
+  <h2>Stock Frais Emballé</h2>
+  <div class="totaux" id="totaux-fe"></div>
+  <table>
+    <thead>…</thead>
+    <tbody id="tbody-fe"></tbody>
+  </table>
+</section>
+
+<section id="stock-ls">
+  <h2>Stock LS</h2>
+  <div class="totaux" id="totaux-ls"></div>
+  <table>
+    <thead>…</thead>
+    <tbody id="tbody-ls"></tbody>
+  </table>
+</section>
+
