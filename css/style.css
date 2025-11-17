@@ -232,4 +232,77 @@ h2 {
   margin-bottom: 0.5em;
 }
 
+/******************************
+ * HEADER STOCK (nouveau)
+ ******************************/
+.header-box {
+  background: var(--bg-box);
+  padding: 1.5em;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  margin-bottom: 2em;
+}
+
+.header-box h2 {
+  margin-top: 0;
+  margin-bottom: 1em;
+  color: var(--text-main);
+}
+
+/* Paramétrage des marges */
+.margin-settings {
+  display: flex;
+  gap: 1em;
+  align-items: flex-end;
+  margin-bottom: 1.5em;
+}
+
+.margin-settings label {
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  color: var(--text-main);
+}
+
+.margin-settings input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text-main);
+}
+
+/* Résumé Stock */
+.stock-resume {
+  display: flex;
+  gap: 2em;
+  flex-wrap: wrap;
+}
+
+.resume-item {
+  background: #f3fbfd;
+  padding: 1em;
+  border-radius: var(--radius);
+  flex: 1 1 200px;
+  border: 1px solid var(--border);
+}
+
+.resume-item h3 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  color: var(--text-main);
+}
+
+.resume-item p {
+  margin: 0.3em 0;
+  color: var(--text-muted);
+}
+
+/* TOTAL */
+.resume-item.total {
+  background: #e3f5f9;
+  border: 2px solid var(--accent);
+}
 
