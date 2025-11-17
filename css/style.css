@@ -219,5 +219,17 @@ tr:hover {
   background: #1293a9;
   color: white;
 }
+.totaux {
+  background: var(--bg-box);
+  border: 1px solid var(--border);
+  padding: 1em;
+  border-radius: var(--radius);
+  margin-bottom: 1em;
+  box-shadow: var(--shadow);
+}
+h2 {
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+}
 
 
