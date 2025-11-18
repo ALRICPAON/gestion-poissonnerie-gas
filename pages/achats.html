@@ -55,6 +55,19 @@
 
     <div style="margin-left:auto; display:flex; gap:.5rem;">
       <button class="btn" id="btnNewCommande">➕ Créer Commande</button>
+      <div id="popup-fournisseurs" class="popup" style="display:none;">
+  <div class="popup-content">
+    <h3>Choisir fournisseur</h3>
+    <input type="text" id="fourn-search" placeholder="🔍 Recherche…" class="search-input" />
+
+    <table class="table-select">
+      <tbody id="fourn-list"></tbody>
+    </table>
+
+    <button class="btn btn-muted" id="fourn-close">Fermer</button>
+  </div>
+</div>
+
       <button class="btn btn-accent" id="btnNewBL">➕ Créer BL</button>
     </div>
 
