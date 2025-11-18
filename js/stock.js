@@ -144,7 +144,7 @@ function fillTable(tbodyId, items) {
       </td>
 
       <td>${it.margeReelle != null ? (it.margeReelle * 100).toFixed(1) + " %" : ""}</td>
-      <td>${it.dlc || ""}</td>
+      <td>${it.dlc ? new Date(it.dlc).toLocaleDateString("fr-FR") : ""}</td>
 
       <td>${fmt(it.valeurStockHT)}</td>
     `;
@@ -160,7 +160,7 @@ function fillTable(tbodyId, items) {
       const diffDays = (d - today) / 86400000;
 
       if (diffDays <= 0) tr.style.backgroundColor = "#ffcccc";
-      else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3";
+else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3";
     }
 
     tb.appendChild(tr);
@@ -174,12 +174,14 @@ function fillTable(tbodyId, items) {
       if (isNaN(val)) return;
 
       await setDoc(
-        doc(db, "stock_articles", key),
-        { pvTTCreel: val },
-        { merge: true }
-      );
+  doc(db, "stock_articles", key),
+  { pvTTCreel: val },
+  { merge: true }
+);
 
-      loadStock();
+// ❌ Surtout PAS de loadStock ici :
+e.target.classList.add("saved");
+setTimeout(() => e.target.classList.remove("saved"), 800);
     });
   });
 }
@@ -235,8 +237,8 @@ async function loadStock() {
     const m =
       cat === "TRAD" ? margeTrad : cat === "FE" ? margeFE : margeLS;
 
-    const pvHTconseille = pmaData.pma * (1 + m);
-    const pvTTCconseille = pvHTconseille * 1.055;
+    const pvHTconseille = pmaData.pma / (1 - m);
+const pvTTCconseille = pvHTconseille * 1.055;
 
     const pvTTCreel =
       pvMap[key]?.pvTTCreel != null ? Number(pvMap[key].pvTTCreel) : null;
