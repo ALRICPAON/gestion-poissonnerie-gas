@@ -168,21 +168,27 @@ window.addEventListener("DOMContentLoaded", () => {
 
 window.__reloadAchats = loadAchats;
 
+/********************************************************************
+ * 📌 POPUP FOURNISSEURS — Création d’une COMMANDE
+ ********************************************************************/
 import {
-  collection, getDocs, addDoc, Timestamp
+  collection as _collection,
+  getDocs as _getDocs,
+  addDoc as _addDoc,
+  Timestamp as _Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { db } from "../js/firebase-init.js";
+import { db as _db } from "../js/firebase-init.js";
 
 const popup = document.getElementById("popup-fournisseurs");
 const list  = document.getElementById("fourn-list");
 const search= document.getElementById("fourn-search");
 const btnNewCommande = document.getElementById("btnNewCommande");
 
+// 🔥 1. OUVERTURE POPUP
 btnNewCommande.addEventListener("click", openFournPopup);
 
-// 🔥 1. OUVERTURE POPUP
 async function openFournPopup() {
-  const snap = await getDocs(collection(db, "fournisseurs"));
+  const snap = await _getDocs(_collection(_db, "fournisseurs"));
 
   window.__fournisseurs = [];
   list.innerHTML = "";
@@ -201,7 +207,7 @@ async function openFournPopup() {
   popup.style.display = "flex";
 }
 
-// 🔥 2. RENDU LISTE
+// 🔥 2. AFFICHAGE LISTE
 function renderFournList(arr) {
   list.innerHTML = arr.map(f => `
     <tr data-id="${f.id}" data-code="${f.code}" data-nom="${f.nom}" data-des="${f.libelle}">
@@ -225,33 +231,32 @@ search.addEventListener("input", () => {
   renderFournList(filtered);
 });
 
-// 🔥 4. CHOIX FOURNISSEUR → CRÉATION ACHAT
+// 🔥 4. VALIDATION → CRÉATION ACHAT
 async function selectFourn(tr) {
   const code = tr.dataset.code;
   const nom  = tr.dataset.nom;
   const des  = tr.dataset.des;
 
-  const ref = await addDoc(collection(db, "achats"), {
-    date: Timestamp.now(),
+  const ref = await _addDoc(_collection(_db, "achats"), {
+    date: _Timestamp.now(),
     fournisseurCode: code,
     fournisseurNom: nom,
     designationFournisseur: des,
-    type: "commande",
+    type: "commande",        // <--- très important
     statut: "new",
     montantHT: 0,
     montantTTC: 0,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now()
+    createdAt: _Timestamp.now(),
+    updatedAt: _Timestamp.now()
   });
 
   popup.style.display = "none";
-  
-  // 🔥 redirection
+
+  // Redirection
   location.href = `/pages/achat-detail.html?id=${ref.id}`;
 }
 
-// 🔥 Fermeture popup
+// 🔥 5. FERMETURE POPUP
 document.getElementById("fourn-close").addEventListener("click", () => {
   popup.style.display = "none";
 });
-
