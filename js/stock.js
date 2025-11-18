@@ -97,7 +97,7 @@ function getClosestDLC(lots) {
   let dlcClosest = null;
 
   for (const lot of lots) {
-    const raw = lot.dlc;
+    const raw = lot.dlc || lot.dltc;
     if (!raw) continue;
 
     let d = raw.toDate ? raw.toDate() : new Date(raw);
@@ -209,6 +209,7 @@ async function loadStock() {
       gencode: lot.gencode || "",
       nomLatin: lot.nomLatin || "",
       fao: lot.fao || lot.zone || "",
+      dlc: lot.dlc || lot.dltc || "",
       engin: lot.engin || ""
     };
 
@@ -228,6 +229,12 @@ async function loadStock() {
 
   for (const key in regroup) {
     const { article, lots } = regroup[key];
+
+    // Injecter la DLC correcte dans chaque lot
+lots.forEach(l => {
+  l.dlc = l.dlc || l.dltc || "";
+});
+
 
     const pmaData = computeGlobalPMA(lots);
     if (pmaData.stockKg <= 0 || pmaData.pma <= 0) continue;
