@@ -106,7 +106,7 @@ async function createAchatHeader(supplier) {
     statut: "new",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    type: "BL"
+    type: "commande"
   });
 
   console.log("✅ Achat header créé:", docRef.id);
