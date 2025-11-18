@@ -100,7 +100,7 @@ async function createAchatHeader(supplier) {
     montantTTC: 0,
     totalKg: 0,
     statut: "new",
-    type: "BL",
+   type: "commande",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
