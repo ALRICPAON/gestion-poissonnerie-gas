@@ -218,7 +218,7 @@ async function saveSogelmer(lines) {
     date: new Date().toISOString().slice(0,10),
     fournisseurCode: FOUR_CODE,
     fournisseurNom: "SOGELMER",
-    type: "BL",
+    type: "commande",
     statut: "new",
     montantHT: 0,
     montantTTC: 0,
