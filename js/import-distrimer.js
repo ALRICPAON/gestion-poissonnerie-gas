@@ -221,7 +221,7 @@ async function saveDistrimer(lines) {
     date: new Date().toISOString().slice(0,10),
     fournisseurCode: FOUR_CODE,
     fournisseurNom: "DISTRIMER",
-    type: "BL",
+    type: "commande",
     statut: "new",
     montantHT: 0,
     montantTTC: 0,
