@@ -166,28 +166,30 @@ function fillTable(tbodyId, items) {
     tb.appendChild(tr);
   });
 
+  
   // Mise à jour PV réel
-    // Mise à jour PV réel
-  document.querySelectorAll(".pv-reel-input").forEach(inp => {
-    inp.addEventListener("change", async e => {
-      const key = e.target.dataset.key;
-      const val = Number(e.target.value);
-      if (isNaN(val)) return;
+document.querySelectorAll(".pv-reel-input").forEach(inp => {
+  inp.addEventListener("change", async e => {
+    const key = e.target.dataset.key;
+    const val = Number(e.target.value);
+    if (isNaN(val)) return;
 
-      await setDoc(
-        doc(db, "stock_articles", key),
-        { pvTTCreel: val },
-        { merge: true }
-      );
+    await setDoc(
+      doc(db, "stock_articles", key),
+      { pvTTCreel: val },
+      { merge: true }
+    );
 
-      // Petit feedback visuel
-      e.target.classList.add("saved");
-      setTimeout(() => e.target.classList.remove("saved"), 800);
+    // Feedback visuel
+    e.target.classList.add("saved");
+    setTimeout(() => e.target.classList.remove("saved"), 800);
 
-      // 🔁 Recalcul complet du stock + marges + totaux
-      await loadStock();
-    });
+    // 🔁 Recalcul sans perdre la position
+    const scrollY = window.scrollY;
+    await loadStock();
+    window.scrollTo(0, scrollY);
   });
+});
 }
 
 /************************************************************
