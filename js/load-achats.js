@@ -260,3 +260,71 @@ async function selectFourn(tr) {
 document.getElementById("fourn-close").addEventListener("click", () => {
   popup.style.display = "none";
 });
+
+/********************************************************************
+ * 📌 POPUP FOURNISSEURS — Création d’un B L
+ ********************************************************************/
+const btnNewBL = document.getElementById("btnNewBL");
+
+btnNewBL.addEventListener("click", openFournPopupBL);
+
+async function openFournPopupBL() {
+  const snap = await _getDocs(_collection(_db, "fournisseurs"));
+
+  window.__fournisseursBL = [];
+  list.innerHTML = "";
+
+  snap.forEach(d => {
+    const f = d.data();
+    window.__fournisseursBL.push({
+      id: d.id,
+      code: f.Code || f.code || "",
+      nom: f.Nom || f.nom || "",
+      libelle: f.Designation || f.designation || ""
+    });
+  });
+
+  renderFournListBL(window.__fournisseursBL);
+  popup.style.display = "flex";
+}
+
+// 🔥 Rendu liste BL
+function renderFournListBL(arr) {
+  list.innerHTML = arr.map(f => `
+    <tr data-id="${f.id}" data-code="${f.code}" data-nom="${f.nom}" data-des="${f.libelle}" data-type="BL">
+      <td><strong>${f.code}</strong></td>
+      <td>${f.nom}</td>
+      <td>${f.libelle}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="3">Aucun fournisseur</td></tr>`;
+
+  document.querySelectorAll("#fourn-list tr[data-id]").forEach(tr => {
+    tr.addEventListener("click", () => selectFournBL(tr));
+  });
+}
+
+// 🔥 Création achat BL
+async function selectFournBL(tr) {
+  const code = tr.dataset.code;
+  const nom  = tr.dataset.nom;
+  const des  = tr.dataset.des;
+
+  const ref = await _addDoc(_collection(_db, "achats"), {
+    date: _Timestamp.now(),
+    fournisseurCode: code,
+    fournisseurNom: nom,
+    designationFournisseur: des,
+    type: "BL",
+    statut: "received",
+    montantHT: 0,
+    montantTTC: 0,
+    createdAt: _Timestamp.now(),
+    updatedAt: _Timestamp.now()
+  });
+
+  popup.style.display = "none";
+
+  // Redirection
+  location.href = `/pages/achat-detail.html?id=${ref.id}`;
+}
+
