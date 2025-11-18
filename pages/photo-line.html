@@ -135,13 +135,14 @@
         const url = await getDownloadURL(sref);
 
         await setDoc(
-          doc(db, "achats", achatId, "lignes", lineId),
-          {
-            photo_url: url,
-            updatedAt: Timestamp.now()
-          },
-          { merge: true }
-        );
+  doc(db, "achats", achatId, "lignes", lineId),
+  {
+    photo_url: url,
+    received: true,            // ✅ VALIDE LA LIGNE
+    updatedAt: Timestamp.now()
+  },
+  { merge: true }
+);
 
         log("✅ Photo enregistrée");
 
