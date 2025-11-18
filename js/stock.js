@@ -167,6 +167,7 @@ function fillTable(tbodyId, items) {
   });
 
   // Mise à jour PV réel
+    // Mise à jour PV réel
   document.querySelectorAll(".pv-reel-input").forEach(inp => {
     inp.addEventListener("change", async e => {
       const key = e.target.dataset.key;
@@ -179,9 +180,12 @@ function fillTable(tbodyId, items) {
         { merge: true }
       );
 
-      // PAS de reload pour éviter de revenir en haut du tableau
+      // Petit feedback visuel
       e.target.classList.add("saved");
       setTimeout(() => e.target.classList.remove("saved"), 800);
+
+      // 🔁 Recalcul complet du stock + marges + totaux
+      await loadStock();
     });
   });
 }
