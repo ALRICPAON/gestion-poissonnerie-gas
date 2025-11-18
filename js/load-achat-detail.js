@@ -388,6 +388,7 @@ async function convertToBL(){
       plu: L.plu || "", lot: L.lot,
       poidsKg: Number(L.poidsTotalKg||0),
       prixKg: Number(L.prixKg||0),
+      dlc: L.dltc || null,
       montantHT: Number(L.montantHT||0)
     });
 
