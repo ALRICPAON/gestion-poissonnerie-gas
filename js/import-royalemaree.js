@@ -255,7 +255,7 @@ async function saveRoyaleMaree(lines) {
     date: new Date().toISOString().slice(0, 10),
     fournisseurCode: supplier.code,
     fournisseurNom: supplier.nom,
-    type: "BL",
+    type: "commande",
     statut: "new",
     montantHT: 0,
     montantTTC: 0,
