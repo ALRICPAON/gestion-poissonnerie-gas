@@ -248,6 +248,27 @@ async function startInlineEditPill(lineId, pillEl){
   });
   input.addEventListener("blur", () => commit(true));
 }
+// Vérifie si toutes les lignes sont reçues → passe l'achat en BL
+async function checkAllReceived() {
+  // Recharge toutes les lignes à jour
+  const snap = await getDocs(linesCol);
+  let allReceived = true;
+
+  snap.forEach(d => {
+    const L = d.data();
+    if (!L.received) allReceived = false;
+  });
+
+  if (allReceived) {
+    await updateDoc(achatRef, {
+      type: "BL",
+      statut: "received",
+      updatedAt: Timestamp.now()
+    });
+    console.log("Achat converti automatiquement en BL");
+  }
+}
+
 
 // ---------- Save/Delete line ----------
 async function saveLine(lineId){
