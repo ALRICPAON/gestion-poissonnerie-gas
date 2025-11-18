@@ -312,7 +312,10 @@ async function saveLine(lineId){
   lines[idx] = { ...lines[idx],
     plu, designation, colis, poidsColisKg:pcolis, poidsTotalKg:ptotal, prixKg:prixkg, montantHT:mht,dltc 
   };
+  await checkAllReceived();
 }
+
+
 
 async function deleteLine(lineId){
   await setDoc(doc(linesCol, lineId), { __deleted:true }, { merge:true }); // soft delete
