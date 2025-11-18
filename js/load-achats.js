@@ -167,3 +167,91 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 window.__reloadAchats = loadAchats;
+
+import {
+  collection, getDocs, addDoc, Timestamp
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { db } from "../js/firebase-init.js";
+
+const popup = document.getElementById("popup-fournisseurs");
+const list  = document.getElementById("fourn-list");
+const search= document.getElementById("fourn-search");
+const btnNewCommande = document.getElementById("btnNewCommande");
+
+btnNewCommande.addEventListener("click", openFournPopup);
+
+// 🔥 1. OUVERTURE POPUP
+async function openFournPopup() {
+  const snap = await getDocs(collection(db, "fournisseurs"));
+
+  window.__fournisseurs = [];
+  list.innerHTML = "";
+
+  snap.forEach(d => {
+    const f = d.data();
+    window.__fournisseurs.push({
+      id: d.id,
+      code: f.Code || f.code || "",
+      nom: f.Nom || f.nom || "",
+      libelle: f.Designation || f.designation || ""
+    });
+  });
+
+  renderFournList(window.__fournisseurs);
+  popup.style.display = "flex";
+}
+
+// 🔥 2. RENDU LISTE
+function renderFournList(arr) {
+  list.innerHTML = arr.map(f => `
+    <tr data-id="${f.id}" data-code="${f.code}" data-nom="${f.nom}" data-des="${f.libelle}">
+      <td><strong>${f.code}</strong></td>
+      <td>${f.nom}</td>
+      <td>${f.libelle}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="3">Aucun fournisseur</td></tr>`;
+
+  document.querySelectorAll("#fourn-list tr[data-id]").forEach(tr => {
+    tr.addEventListener("click", () => selectFourn(tr));
+  });
+}
+
+// 🔥 3. FILTRE LIVE
+search.addEventListener("input", () => {
+  const q = search.value.toLowerCase();
+  const filtered = window.__fournisseurs.filter(f =>
+    `${f.code} ${f.nom} ${f.libelle}`.toLowerCase().includes(q)
+  );
+  renderFournList(filtered);
+});
+
+// 🔥 4. CHOIX FOURNISSEUR → CRÉATION ACHAT
+async function selectFourn(tr) {
+  const code = tr.dataset.code;
+  const nom  = tr.dataset.nom;
+  const des  = tr.dataset.des;
+
+  const ref = await addDoc(collection(db, "achats"), {
+    date: Timestamp.now(),
+    fournisseurCode: code,
+    fournisseurNom: nom,
+    designationFournisseur: des,
+    type: "commande",
+    statut: "new",
+    montantHT: 0,
+    montantTTC: 0,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now()
+  });
+
+  popup.style.display = "none";
+  
+  // 🔥 redirection
+  location.href = `/pages/achat-detail.html?id=${ref.id}`;
+}
+
+// 🔥 Fermeture popup
+document.getElementById("fourn-close").addEventListener("click", () => {
+  popup.style.display = "none";
+});
+
