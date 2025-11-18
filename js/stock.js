@@ -144,7 +144,7 @@ function fillTable(tbodyId, items) {
       </td>
 
       <td>${it.margeReelle != null ? (it.margeReelle * 100).toFixed(1) + " %" : ""}</td>
-      <td>${it.dlc ? new Date(it.dlc).toLocaleDateString("fr-FR") : ""}</td>
+      <td>${it.dlc ? new Date(it.dlc + "T00:00:00").toLocaleDateString("fr-FR") : ""}</td>
 
       <td>${fmt(it.valeurStockHT)}</td>
     `;
@@ -159,8 +159,8 @@ function fillTable(tbodyId, items) {
 
       const diffDays = (d - today) / 86400000;
 
-      if (diffDays <= 0) tr.style.backgroundColor = "#ffcccc";
-else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3";
+      if (diffDays <= 0) tr.style.backgroundColor = "#ffcccc";      // rouge
+      else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3"; // orange
     }
 
     tb.appendChild(tr);
@@ -174,14 +174,14 @@ else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3";
       if (isNaN(val)) return;
 
       await setDoc(
-  doc(db, "stock_articles", key),
-  { pvTTCreel: val },
-  { merge: true }
-);
+        doc(db, "stock_articles", key),
+        { pvTTCreel: val },
+        { merge: true }
+      );
 
-// ❌ Surtout PAS de loadStock ici :
-e.target.classList.add("saved");
-setTimeout(() => e.target.classList.remove("saved"), 800);
+      // PAS de reload pour éviter de revenir en haut du tableau
+      e.target.classList.add("saved");
+      setTimeout(() => e.target.classList.remove("saved"), 800);
     });
   });
 }
@@ -230,11 +230,10 @@ async function loadStock() {
   for (const key in regroup) {
     const { article, lots } = regroup[key];
 
-    // Injecter la DLC correcte dans chaque lot
-lots.forEach(l => {
-  l.dlc = l.dlc || l.dltc || "";
-});
-
+    // Correction DLC : dltc → dlc
+    lots.forEach(l => {
+      l.dlc = l.dlc || l.dltc || "";
+    });
 
     const pmaData = computeGlobalPMA(lots);
     if (pmaData.stockKg <= 0 || pmaData.pma <= 0) continue;
@@ -244,8 +243,9 @@ lots.forEach(l => {
     const m =
       cat === "TRAD" ? margeTrad : cat === "FE" ? margeFE : margeLS;
 
+    // PV conseillé avec marge HT correcte
     const pvHTconseille = pmaData.pma / (1 - m);
-const pvTTCconseille = pvHTconseille * 1.055;
+    const pvTTCconseille = pvHTconseille * 1.055;
 
     const pvTTCreel =
       pvMap[key]?.pvTTCreel != null ? Number(pvMap[key].pvTTCreel) : null;
@@ -284,12 +284,10 @@ const pvTTCconseille = pvHTconseille * 1.055;
     else ls.push(item);
   }
 
-  // Affichage des 3 tableaux
   fillTable("tbody-trad", trad);
   fillTable("tbody-fe", fe);
   fillTable("tbody-ls", ls);
 
-  // AJOUT : totaux des rayons
   updateTotaux(trad, fe, ls);
 }
 
