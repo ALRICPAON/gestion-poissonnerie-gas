@@ -167,7 +167,7 @@ function fillTable(tbodyId, items) {
   });
 
   
-  // Mise à jour PV réel
+ // Mise à jour PV réel
 document.querySelectorAll(".pv-reel-input").forEach(inp => {
   inp.addEventListener("change", async e => {
     const key = e.target.dataset.key;
@@ -184,9 +184,16 @@ document.querySelectorAll(".pv-reel-input").forEach(inp => {
     e.target.classList.add("saved");
     setTimeout(() => e.target.classList.remove("saved"), 800);
 
-    // 🔁 Recalcul sans perdre la position
+    // 🔁 Sauvegarde scroll
     const scrollY = window.scrollY;
+
+    // ⚠️ Effacer focus avant reload
+    document.activeElement.blur();
+
+    // Rechargement
     await loadStock();
+
+    // 🔁 Restaure scroll
     window.scrollTo(0, scrollY);
   });
 });
