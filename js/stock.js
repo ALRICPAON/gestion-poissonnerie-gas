@@ -254,7 +254,7 @@ async function loadStock() {
       pvHTconseille > 0 ? (pvHTconseille - pmaData.pma) / pvHTconseille : 0;
 
     let margeReelle = null;
-    if (pvTTCreel) {
+    if (typeof pvTTCreel === "number" && pvTTCreel > 0) {
       const pvHTReel = pvTTCreel / 1.055;
       margeReelle = (pvHTReel - pmaData.pma) / pvHTReel;
     }
