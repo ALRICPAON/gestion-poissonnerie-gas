@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Patch Articles & Stock</title>
+
+  <!-- Charger Firebase -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module">
+    import { db } from '../js/firebase-init.js';
+    import {
+      getDocs, updateDoc, doc, collection
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    async function patchArticlesAndStock() {
+      console.log("---- PATCH ARTICLES ----");
+
+      // 1️⃣ PATCH ARTICLES
+      const snapArticles = await getDocs(collection(db, "articles"));
+
+      for (const art of snapArticles.docs) {
+        const d = art.data();
+        const id = art.id;
+        const plu = d.PLU || id;
+        const plu4 = String(plu).padStart(4, "0");
+
+        const ean = `020${plu4}000000`;
+        const rayon = "trad";
+
+        await updateDoc(doc(db, "articles", id), { ean, rayon });
+
+        console.log("ARTICLE OK:", id, ean, rayon);
+      }
+
+      console.log("---- PATCH STOCK ----");
+
+      // 2️⃣ PATCH STOCK_ARTICLES
+      const snapStock = await getDocs(collection(db, "stock_articles"));
+
+      for (const st of snapStock.docs) {
+        const stId = st.id; // ex : PLU_3005
+        if (!stId.startsWith("PLU_")) continue;
+
+        const plu = stId.replace("PLU_", "");
+
+        // lire l'article correspondant
+        const artSnap = await getDocs(collection(db, "articles"));
+        const art = artSnap.docs.find(a => a.id === plu);
+        if (!art) continue;
+
+        const artData = art.data();
+
+        await updateDoc(doc(db, "stock_articles", stId), {
+          ean: artData.ean,
+          rayon: artData.rayon
+        });
+
+        console.log("STOCK OK:", stId, artData.ean, artData.rayon);
+      }
+
+      console.log("🔥 PATCH TERMINÉ 🔥");
+      alert("PATCH TERMINÉ – regarde la console !");
+    }
+
+    window.runPatch = patchArticlesAndStock;
+  </script>
+</head>
+
+<body style="padding:20px; font-family:sans-serif;">
+  <h1>Patch Articles & Stock</h1>
+  <button onclick="runPatch()" style="padding:10px 20px; font-size:18px;">
+    🚀 Lancer le patch
+  </button>
+  <p>Ouvre la console (F12) pour suivre la progression.</p>
+</body>
+</html>
