@@ -36,6 +36,10 @@ function toNum(x) {
  * IMPORT CA → AGRÉGATION PAR EAN
  *****************************************************/
 btnImport.addEventListener("click", async () => {
+
+  // 🧹 1️⃣ On efface l'ancien import CA si présent
+  localStorage.removeItem("inventaireCA");
+
   const file = fileInput.files[0];
 
   if (!file) {
