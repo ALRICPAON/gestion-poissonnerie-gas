@@ -35,6 +35,14 @@ dateInput.id = "dateInventaire";
 dateInput.style = "margin-left:20px;";
 btnCharger.insertAdjacentElement("afterend", dateInput);
 
+// 🔥 RESET automatique de l'import CA quand on change la date
+dateInput.addEventListener("change", () => {
+  localStorage.removeItem("inventaireCA");
+  console.log("IMPORT CA RESET (nouvelle date)");
+  const s = document.querySelector("#importStatus");
+  if (s) s.textContent = "⚠️ Import CA requis pour cette date.";
+});
+
 // Mémoire interne
 let dataInventaire = [];
 
