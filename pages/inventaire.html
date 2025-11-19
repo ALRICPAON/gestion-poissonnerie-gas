@@ -2,18 +2,61 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Inventaire CA</title>
+  <title>Inventaire</title>
+
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Firebase + scripts -->
   <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+  <script type="module" src="../js/inventaire.js"></script>
   <script type="module" src="../js/inventaire-import.js"></script>
 </head>
+
 <body>
 
-  <h1>Import fichier CA (ventes)</h1>
+  <div class="top-bar">
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
+    <h2>Inventaire Poissonnerie</h2>
+  </div>
 
-  <input type="file" id="fileCA" accept=".xlsx,.xls,.csv">
-  <button id="btnImport">Importer</button>
+  <section style="margin:20px;">
+    <h3>1️⃣ Import fichier CA (ventes)</h3>
+    <input type="file" id="fileCA" accept=".xlsx,.xls,.csv">
+    <button id="btnImport" class="btn btn-accent">Importer fichier CA</button>
+    <p id="importStatus"></p>
+  </section>
 
-  <pre id="result"></pre>
+  <section style="margin:20px;">
+    <h3>2️⃣ Inventaire du jour</h3>
+    <button id="btnCharger" class="btn btn-primary">Charger inventaire</button>
+  </section>
+
+  <section>
+    <table>
+      <thead>
+        <tr>
+          <th>PLU</th>
+          <th>Désignation</th>
+          <th>Stock théorique (kg)</th>
+          <th>Prix TTC/kg</th>
+          <th>CA TTC</th>
+          <th>Poids vendu (kg)</th>
+          <th>Stock réel (kg)</th>
+          <th>Écart (kg)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="inv-list">
+        <tr><td colspan="9">Import CA requis…</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section style="margin:20px;">
+    <button id="btnValider" class="btn btn-accent">VALIDER INVENTAIRE</button>
+    <p id="valideStatus"></p>
+  </section>
 
 </body>
 </html>
