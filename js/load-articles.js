@@ -6,11 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const tableBody = document.querySelector('#articles-list');
   if (!tableBody) return;
 
-  tableBody.innerHTML = '<tr><td colspan="11">Chargement…</td></tr>';
+  tableBody.innerHTML = '<tr><td colspan="12">Chargement…</td></tr>';
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      tableBody.innerHTML = '<tr><td colspan="11">Non connecté</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="12">Non connecté</td></tr>';
       return;
     }
 
@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${data.Zone || ''}</td>
             <td>${data.SousZone || ''}</td>
             <td>${data.Engin || ''}</td>
+            <td>${data.ean || ''}</td>
+            <td>${data.rayon || ''}</td>
             <td>
               <button class="edit-btn">✏️</button>
               <button class="delete-btn">🗑️</button>
@@ -39,10 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
         rows.push(row);
       });
 
-      tableBody.innerHTML = rows.join('') || '<tr><td colspan="11">Aucun article</td></tr>';
+      tableBody.innerHTML = rows.join('') || '<tr><td colspan="12">Aucun article</td></tr>';
     } catch (err) {
       console.error('[loadArticles] Erreur Firestore:', err);
-      tableBody.innerHTML = '<tr><td colspan="11">Erreur de chargement</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="12">Erreur de chargement</td></tr>';
     }
   });
 });
