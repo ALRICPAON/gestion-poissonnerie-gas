@@ -2,41 +2,47 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Inventaire</title>
+  <title>Inventaire Poissonnerie</title>
 
   <link rel="stylesheet" href="../css/style.css">
 
-  <!-- Firebase + scripts -->
- <script type="module" src="../js/firebase-init.js"></script>
-<script type="module" src="../js/auth.js"></script>
+  <!-- Firebase -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
 
-<!-- Import CA EN PREMIER (car il remplit localStorage) -->
-<script type="module" src="../js/inventaire-import.js"></script>
-
-<!-- Inventaire ensuite -->
-<script type="module" src="../js/inventaire.js"></script>
-
+  <!-- Import CA doit être chargé AVANT inventaire.js -->
+  <script type="module" src="../js/inventaire-import.js"></script>
+  <script type="module" src="../js/inventaire.js"></script>
 </head>
 
 <body>
 
   <div class="top-bar">
     <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
-    <h2>Inventaire Poissonnerie</h2>
+    <h2>📦 Inventaire Poissonnerie</h2>
   </div>
 
+  <!-- 1️⃣ Choix date inventaire -->
   <section style="margin:20px;">
-    <h3>1️⃣ Import fichier CA (ventes)</h3>
+    <label for="invDate"><strong>Date de l’inventaire :</strong></label>
+    <input type="date" id="invDate" style="padding:5px;">
+  </section>
+
+  <!-- 2️⃣ Import CA -->
+  <section style="margin:20px;">
+    <h3>1️⃣ Import des ventes (CA)</h3>
     <input type="file" id="fileCA" accept=".xlsx,.xls,.csv">
     <button id="btnImport" class="btn btn-accent">Importer fichier CA</button>
     <p id="importStatus"></p>
   </section>
 
+  <!-- 3️⃣ Charger Inventaire -->
   <section style="margin:20px;">
-    <h3>2️⃣ Inventaire du jour</h3>
+    <h3>2️⃣ Inventaire du stock</h3>
     <button id="btnCharger" class="btn btn-primary">Charger inventaire</button>
   </section>
 
+  <!-- 4️⃣ Tableau inventaire -->
   <section>
     <table>
       <thead>
@@ -49,15 +55,16 @@
           <th>Poids vendu (kg)</th>
           <th>Stock réel (kg)</th>
           <th>Écart (kg)</th>
-          <th>Action</th>
         </tr>
       </thead>
+
       <tbody id="inv-list">
-        <tr><td colspan="9">Import CA requis…</td></tr>
+        <tr><td colspan="8">Import CA requis…</td></tr>
       </tbody>
     </table>
   </section>
 
+  <!-- 5️⃣ Valider inventaire -->
   <section style="margin:20px;">
     <button id="btnValider" class="btn btn-accent">VALIDER INVENTAIRE</button>
     <p id="valideStatus"></p>
