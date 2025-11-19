@@ -43,7 +43,10 @@ btnImport.addEventListener("click", async () => {
   }
 
   localStorage.setItem("inventaireCA", JSON.stringify(ventes));
-  importStatus.textContent = "✅ Import CA terminé !";
+  // rechargement auto de l’inventaire
+importStatus.textContent = "Import terminé !";
+window.dispatchEvent(new Event("inventaireCAReady"));
+
 
   console.log("VENTES :", ventes);
 });
