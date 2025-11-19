@@ -1,8 +1,9 @@
 /******************************************************
- *  INVENTAIRE – VERSION FINALE FIFO + Mise à jour stock_articles
- *  Source stock : LOTS
- *  Source ventes : CA via inventaire-import.js (localStorage)
- *  Validation : applyInventory(plu, poidsReel, user)
+ *  INVENTAIRE – VERSION AVANCÉE (FIFO + Tableau Excel)
+ *  ✔ Saisie directe dans tableau
+ *  ✔ Poids négatifs autorisés
+ *  ✔ Choix date inventaire
+ *  ✔ Sauvegarde valeur stock HT du jour
  *****************************************************/
 
 import { db, auth } from "./firebase-init.js";
@@ -15,6 +16,7 @@ import {
   query,
   where,
   updateDoc,
+  setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
@@ -26,10 +28,18 @@ const btnValider = document.querySelector("#btnValider");
 const tbody = document.querySelector("#inv-list");
 const valideStatus = document.querySelector("#valideStatus");
 
-let dataInventaire = [];  // mémoire interne
+// Ajout champ date
+const dateInput = document.createElement("input");
+dateInput.type = "date";
+dateInput.id = "dateInventaire";
+dateInput.style = "margin-left:20px;";
+btnCharger.insertAdjacentElement("afterend", dateInput);
+
+// Mémoire interne
+let dataInventaire = [];
 
 //--------------------------------------------------------
-// Utilitaire
+// Format
 //--------------------------------------------------------
 function n2(v) {
   return Number(v || 0).toFixed(2);
@@ -40,15 +50,21 @@ function n2(v) {
 //--------------------------------------------------------
 async function chargerInventaire() {
 
+  const dateInv = dateInput.value;
+  if (!dateInv) {
+    alert("Choisis une date d’inventaire !");
+    return;
+  }
+
   const ventes = JSON.parse(localStorage.getItem("inventaireCA") || "{}");
   tbody.innerHTML = "<tr><td colspan='9'>⏳ Chargement…</td></tr>";
 
-  // 1. Lire TOUS les lots ouverts
+  // 1. Lire tous les lots ouverts
   const snapLots = await getDocs(
     query(collection(db, "lots"), where("closed", "==", false))
   );
 
-  let regroup = {}; // plu → { stockTheo, lots[], designation }
+  let regroup = {};
 
   snapLots.forEach(l => {
     const d = l.data();
@@ -66,17 +82,16 @@ async function chargerInventaire() {
     regroup[d.plu].lots.push({ id: l.id, ...d });
   });
 
-  // 2. Lire prix de vente (stock_articles)
+  // 2. Lire prix vente réel
   const snapStockArticles = await getDocs(collection(db, "stock_articles"));
-  const prixVente = {}; // plu → prix TTC / kg
-
+  const prixVente = {};
   snapStockArticles.forEach(sa => {
     const d = sa.data();
     const plu = d.PLU || sa.id.replace("PLU_", "");
     prixVente[plu] = d.pvTTCreel || 0;
   });
 
-  // 3. Construire tableau
+  // 3. Construction tableau
   const rows = [];
   dataInventaire = [];
 
@@ -92,9 +107,9 @@ async function chargerInventaire() {
     const caTTC = ean && ventes[ean] ? ventes[ean] : 0;
     const prixKg = prixVente[plu] || 0;
 
-    const poidsVendu = (prixKg > 0) ? caTTC / prixKg : 0;
+    const poidsVendu = prixKg > 0 ? caTTC / prixKg : 0;
 
-    const stockReel = Math.max(0, stockTheo - poidsVendu);
+    const stockReel = stockTheo - poidsVendu;
     const ecart = stockReel - stockTheo;
 
     dataInventaire.push({
@@ -109,108 +124,131 @@ async function chargerInventaire() {
     });
 
     rows.push(`
-      <tr>
+      <tr data-plu="${plu}">
         <td>${plu}</td>
         <td>${designation}</td>
-        <td>${n2(stockTheo)} kg</td>
-        <td>${n2(prixKg)} €/kg</td>
-        <td>${n2(caTTC)} €</td>
-        <td>${n2(poidsVendu)} kg</td>
-        <td>${n2(stockReel)} kg</td>
-        <td>${n2(ecart)} kg</td>
+        <td>${n2(stockTheo)}</td>
+        <td>${n2(prixKg)}</td>
+        <td>${n2(caTTC)}</td>
+        <td>${n2(poidsVendu)}</td>
+
         <td>
-          <button class="btn btn-muted ajust-btn" 
-                  data-plu="${plu}" 
-                  data-stock="${stockReel}">
-            Ajuster
-          </button>
+          <input class="stock-reel-input" 
+                 type="number" 
+                 step="0.01"
+                 value="${n2(stockReel)}"
+                 style="width:80px;">
         </td>
+
+        <td class="ecart-cell">${n2(ecart)}</td>
+        <td></td>
       </tr>
     `);
   }
 
   tbody.innerHTML = rows.join("");
-  activerBoutonsAjustement();
+
+  activerSaisieDirecte();
 }
 
 //--------------------------------------------------------
-// 🔧 Ajout manuel
+// ✔ SAISIE DIRECTE DANS LE TABLEAU (COMME EXCEL)
 //--------------------------------------------------------
-function activerBoutonsAjustement() {
-  document.querySelectorAll(".ajust-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const plu = btn.dataset.plu;
-      const valInit = btn.dataset.stock;
-      const nv = prompt(`Poids réel constaté pour PLU ${plu} (kg) :`, valInit);
+function activerSaisieDirecte() {
 
-      if (nv === null) return;
+  document.querySelectorAll(".stock-reel-input").forEach(input => {
+    input.addEventListener("input", e => {
 
-      const ligne = dataInventaire.find(x => x.plu == plu);
-      if (!ligne) return;
+      const tr = e.target.closest("tr");
+      const plu = tr.dataset.plu;
+      const nv = Number(e.target.value);
 
-      ligne.stockReel = Number(nv);
-      ligne.ecart = ligne.stockReel - ligne.stockTheo;
+      const item = dataInventaire.find(x => x.plu === plu);
+      if (!item) return;
 
-      alert("Valeur ajustée ! Elle sera appliquée lors de la validation.");
+      item.stockReel = nv;
+      item.ecart = nv - item.stockTheo;
+
+      tr.querySelector(".ecart-cell").textContent = n2(item.ecart);
     });
   });
 }
 
 //--------------------------------------------------------
-// 🔥 2. VALIDATION INVENTAIRE → FIFO + rebuild stock_articles
+// 🔥 VALIDATION INVENTAIRE
 //--------------------------------------------------------
 btnValider.addEventListener("click", async () => {
 
-  if (!confirm("Valider l’inventaire et appliquer FIFO sur les lots ?")) return;
+  const dateInv = dateInput.value;
+  if (!dateInv) {
+    alert("Choisis une date d’inventaire !");
+    return;
+  }
+
+  if (!confirm("Valider l’inventaire ?")) return;
 
   valideStatus.textContent = "⏳ Application FIFO…";
 
   const user = auth.currentUser ? auth.currentUser.email : "inconnu";
 
-  // 1. FIFO sur LES LOTS
+  // 1. Appliquer FIFO aux lots
   for (const item of dataInventaire) {
     await applyInventory(item.plu, item.stockReel, user);
   }
 
-  //--------------------------------------------------------
-  // 2. REBUILD COMPLET DE stock_articles
-  //--------------------------------------------------------
-  valideStatus.textContent = "⏳ Mise à jour du stock…";
+  // 2. Mise à jour stock_articles
+  valideStatus.textContent = "⏳ Mise à jour stock…";
+
+  let totalHT = 0; // pour tableau de bord
 
   for (const item of dataInventaire) {
 
-    // Lire les lots restants pour ce PLU
+    // Lire lots restants
     const lotsSnap = await getDocs(
-      query(collection(db, "lots"), where("closed", "==", false), where("plu", "==", item.plu))
+      query(collection(db, "lots"),
+        where("closed", "==", false),
+        where("plu", "==", item.plu)
+      )
     );
 
-    let total = 0;
+    let totalKg = 0;
+    let totalAchat = 0;
+
     lotsSnap.forEach(lot => {
       const d = lot.data();
-      total += d.poidsRestant || 0;
+      const kg = d.poidsRestant || 0;
+      const prix = d.prixAchatKg || 0;
+
+      totalKg += kg;
+      totalAchat += kg * prix;
     });
 
-    // Mise à jour du stock réel
+    // Mise à jour stock_articles
     await updateDoc(doc(db, "stock_articles", "PLU_" + item.plu), {
-      poids: total,
+      poids: totalKg,
       updatedAt: serverTimestamp()
     });
+
+    totalHT += totalAchat;
   }
 
   //--------------------------------------------------------
+  // 3. ENREGISTREMENT VALEUR STOCK HT DANS /journal_inventaires
+  //--------------------------------------------------------
+  await setDoc(doc(db, "journal_inventaires", dateInv), {
+    date: dateInv,
+    valeurStockHT: totalHT,
+    createdAt: serverTimestamp()
+  });
 
-  valideStatus.textContent = "✅ Inventaire appliqué + stocks mis à jour !";
+  valideStatus.textContent = "✅ Inventaire validé !";
   alert("Inventaire validé.");
 });
 
 //--------------------------------------------------------
-// Bouton charger
+// Charger inventaire au clic
 //--------------------------------------------------------
 btnCharger.addEventListener("click", chargerInventaire);
 
-//--------------------------------------------------------
-// Rechargement auto après import CA
-//--------------------------------------------------------
-window.addEventListener("inventaireCAReady", () => {
-  chargerInventaire();
-});
+// Auto reload après import CA
+window.addEventListener("inventaireCAReady", chargerInventaire);
