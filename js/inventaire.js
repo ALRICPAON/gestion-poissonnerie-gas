@@ -1,15 +1,11 @@
 /******************************************************
- *  INVENTAIRE – VERSION FINALE FIFO
+ *  INVENTAIRE – VERSION FINALE FIFO + Mise à jour stock_articles
  *  Source stock : LOTS
  *  Source ventes : CA via inventaire-import.js (localStorage)
  *  Validation : applyInventory(plu, poidsReel, user)
  *****************************************************/
 
-
 import { db, auth } from "./firebase-init.js";
-import {
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
 import {
   collection,
@@ -18,7 +14,8 @@ import {
   getDoc,
   query,
   where,
-  orderBy
+  updateDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 import { applyInventory } from "../js/apply-inventory.js";
@@ -32,21 +29,21 @@ const valideStatus = document.querySelector("#valideStatus");
 let dataInventaire = [];  // mémoire interne
 
 //--------------------------------------------------------
-// 🔹 Fonction utilitaire formatage 2 décimales
+// Utilitaire
 //--------------------------------------------------------
 function n2(v) {
   return Number(v || 0).toFixed(2);
 }
 
 //--------------------------------------------------------
-// 🔥 1. CHARGER INVENTAIRE
+// 🔥 CHARGER INVENTAIRE
 //--------------------------------------------------------
 async function chargerInventaire() {
 
   const ventes = JSON.parse(localStorage.getItem("inventaireCA") || "{}");
   tbody.innerHTML = "<tr><td colspan='9'>⏳ Chargement…</td></tr>";
 
-  // ---- 1. Charger TOUS les lots encore ouverts ----
+  // 1. Lire TOUS les lots ouverts
   const snapLots = await getDocs(
     query(collection(db, "lots"), where("closed", "==", false))
   );
@@ -69,7 +66,7 @@ async function chargerInventaire() {
     regroup[d.plu].lots.push({ id: l.id, ...d });
   });
 
-  // ---- 2. Charger prix de vente réel (stock_articles) ----
+  // 2. Lire prix de vente (stock_articles)
   const snapStockArticles = await getDocs(collection(db, "stock_articles"));
   const prixVente = {}; // plu → prix TTC / kg
 
@@ -79,27 +76,24 @@ async function chargerInventaire() {
     prixVente[plu] = d.pvTTCreel || 0;
   });
 
-  // ---- 3. Construction du tableau ----
+  // 3. Construire tableau
   const rows = [];
-  dataInventaire = []; // reset
+  dataInventaire = [];
 
   for (const plu of Object.keys(regroup)) {
 
     const stockTheo = regroup[plu].stockTheo;
-    const lots = regroup[plu].lots;
     const designation = regroup[plu].designation;
 
-    // récupération EAN depuis article
+    // Récup EAN
     const artSnap = await getDoc(doc(db, "articles", plu));
     const ean = artSnap.exists() ? artSnap.data().ean : null;
 
     const caTTC = ean && ventes[ean] ? ventes[ean] : 0;
     const prixKg = prixVente[plu] || 0;
 
-    // poids vendu = CA TTC / prix TTC
     const poidsVendu = (prixKg > 0) ? caTTC / prixKg : 0;
 
-    // stock réel = stock théorique - vendu
     const stockReel = Math.max(0, stockTheo - poidsVendu);
     const ecart = stockReel - stockTheo;
 
@@ -140,7 +134,7 @@ async function chargerInventaire() {
 }
 
 //--------------------------------------------------------
-// 🔧 A. BOUTON AJUSTER (saisie manuelle du poids réel)
+// 🔧 Ajout manuel
 //--------------------------------------------------------
 function activerBoutonsAjustement() {
   document.querySelectorAll(".ajust-btn").forEach(btn => {
@@ -163,7 +157,7 @@ function activerBoutonsAjustement() {
 }
 
 //--------------------------------------------------------
-// 🔥 2. VALIDATION INVENTAIRE → FIFO
+// 🔥 2. VALIDATION INVENTAIRE → FIFO + rebuild stock_articles
 //--------------------------------------------------------
 btnValider.addEventListener("click", async () => {
 
@@ -173,18 +167,50 @@ btnValider.addEventListener("click", async () => {
 
   const user = auth.currentUser ? auth.currentUser.email : "inconnu";
 
+  // 1. FIFO sur LES LOTS
   for (const item of dataInventaire) {
     await applyInventory(item.plu, item.stockReel, user);
   }
 
-  valideStatus.textContent = "✅ Inventaire appliqué avec succès !";
+  //--------------------------------------------------------
+  // 2. REBUILD COMPLET DE stock_articles
+  //--------------------------------------------------------
+  valideStatus.textContent = "⏳ Mise à jour du stock…";
+
+  for (const item of dataInventaire) {
+
+    // Lire les lots restants pour ce PLU
+    const lotsSnap = await getDocs(
+      query(collection(db, "lots"), where("closed", "==", false), where("plu", "==", item.plu))
+    );
+
+    let total = 0;
+    lotsSnap.forEach(lot => {
+      const d = lot.data();
+      total += d.poidsRestant || 0;
+    });
+
+    // Mise à jour du stock réel
+    await updateDoc(doc(db, "stock_articles", "PLU_" + item.plu), {
+      poids: total,
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  //--------------------------------------------------------
+
+  valideStatus.textContent = "✅ Inventaire appliqué + stocks mis à jour !";
   alert("Inventaire validé.");
 });
 
 //--------------------------------------------------------
-// 🔥 3. CHARGER L’INVENTAIRE AU CLIC
+// Bouton charger
 //--------------------------------------------------------
 btnCharger.addEventListener("click", chargerInventaire);
+
+//--------------------------------------------------------
+// Rechargement auto après import CA
+//--------------------------------------------------------
 window.addEventListener("inventaireCAReady", () => {
   chargerInventaire();
 });
