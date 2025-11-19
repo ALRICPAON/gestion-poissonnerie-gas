@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Construction de l’objet complet à enregistrer
+      const plu4 = id.padStart(4, "0");
+
       const article = {
         PLU: id,
         Designation: data.designation || '',
@@ -30,15 +31,18 @@ document.addEventListener('DOMContentLoaded', () => {
         Allergenes: '',
         Zone: '',
         SousZone: '',
-        Engin: ''
+        Engin: '',
+        ean: `020${plu4}000000`,
+        rayon: 'trad'
       };
 
       try {
         await setDoc(doc(db, 'articles', id), article);
         console.log('✅ Article ajouté :', id);
-       if (typeof window.reloadArticles === 'function') {
-  window.reloadArticles();
-}
+
+        if (typeof window.reloadArticles === 'function') {
+          window.reloadArticles();
+        }
         form.reset();
       } catch (err) {
         console.error('❌ Erreur ajout article :', err);
