@@ -5,6 +5,7 @@
  *  Validation : applyInventory(plu, poidsReel, user)
  *****************************************************/
 
+
 import { db, auth } from "./firebase-init.js";
 import {
   onAuthStateChanged
@@ -184,3 +185,6 @@ btnValider.addEventListener("click", async () => {
 // 🔥 3. CHARGER L’INVENTAIRE AU CLIC
 //--------------------------------------------------------
 btnCharger.addEventListener("click", chargerInventaire);
+window.addEventListener("inventaireCAReady", () => {
+  chargerInventaire();
+});
