@@ -15,25 +15,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ok) {
         await deleteDoc(doc(db, 'articles', articleId));
         tr.remove();
-        console.log(`✅ Article ${articleId} supprimé`);
+        console.log(`🗑️ Article ${articleId} supprimé`);
       }
+      return;
     }
 
     // ✏️ Édition
     if (e.target.classList.contains('edit-btn')) {
       const cells = tr.querySelectorAll('td');
-      const champs = ['PLU', 'Designation', 'NomLatin', 'Categorie', 'Unite', 'Allergenes', 'Zone', 'SousZone', 'Engin'];
-      const data = {};
+      const fields = [
+        'PLU', 'Designation', 'NomLatin', 'Categorie', 'Unite',
+        'Allergenes', 'Zone', 'SousZone', 'Engin',
+        'ean', 'rayon'
+      ];
 
-      champs.forEach((champ, i) => {
+      const data = {};
+      fields.forEach((field, i) => {
         const oldVal = cells[i]?.textContent?.trim() || '';
-        const newVal = prompt(`Modifier ${champ} :`, oldVal);
-        if (newVal !== null) data[champ] = newVal;
+        const newVal = prompt(`Modifier ${field} :`, oldVal);
+        if (newVal !== null) data[field] = newVal;
       });
 
       await updateDoc(doc(db, 'articles', articleId), data);
       console.log(`✏️ Article ${articleId} modifié`);
-      window.reloadArticles();
+      window.location.reload();
     }
   });
 });
