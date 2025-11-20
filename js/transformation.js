@@ -1,40 +1,53 @@
 /**************************************************
- * TRANSFORMATION – Version complète et fonctionnelle
+ * TRANSFORMATION – Version complète et stable
  **************************************************/
 import { db } from "./firebase-init.js";
 import {
   collection, addDoc, getDocs, doc, updateDoc, deleteDoc,
-  serverTimestamp, getDoc, increment
+  serverTimestamp, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**************************************************
- * 🟦 UTIL - Sécurisation number.toFixed
+ * UTILITAIRE : sécuriser un toFixed
  **************************************************/
-const safeFixed = (n, d = 2) =>
-  n == null || isNaN(Number(n)) ? "—" : Number(n).toFixed(d);
+function safeFixed(n, d = 2) {
+  if (n == null || isNaN(Number(n))) return "—";
+  return Number(n).toFixed(d);
+}
 
 /**************************************************
- * 🟦 F9 – Popup articles
+ * F9 – POPUP ARTICLES
  **************************************************/
 let f9Target = null;
 
-function openF9(input) {
-  f9Target = input;
+function openF9(target) {
+  f9Target = target;
   document.getElementById("popup-f9").style.display = "flex";
   loadF9Articles();
 }
 
+document.addEventListener("keydown", (e) => {
+  if (e.key === "F9" && document.activeElement.tagName === "INPUT") {
+    e.preventDefault();
+    openF9(document.activeElement);
+  }
+});
+
+document.getElementById("f9-close").addEventListener("click", () => {
+  document.getElementById("popup-f9").style.display = "none";
+});
+
 async function loadF9Articles() {
+  const snap = await getDocs(collection(db, "articles"));
   const tbody = document.querySelector("#popup-f9 tbody");
   tbody.innerHTML = "";
 
-  const snap = await getDocs(collection(db, "articles"));
-
-  snap.forEach(d => {
+  snap.forEach((d) => {
     const a = d.data();
+
     const plu = a.PLU || a.plu || "";
     const des = a.Designation || a.designation || "";
-    const latin = a.NomLatin || "";
+    const latin = a.NomLatin || a.nomLatin || "";
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -46,28 +59,54 @@ async function loadF9Articles() {
       f9Target.value = plu;
       document.getElementById("popup-f9").style.display = "none";
     };
-
     tbody.appendChild(tr);
   });
 }
 
-document.addEventListener("keydown", e => {
-  if (e.key === "F9" && document.activeElement.tagName === "INPUT") {
-    e.preventDefault();
-    openF9(document.activeElement);
-  }
-});
+/**************************************************
+ * CHANGEMENT TYPE FORMULAIRE
+ **************************************************/
+const selector = document.getElementById("type-transformation");
+const formContainer = document.getElementById("form-container");
 
-document.getElementById("f9-close")?.addEventListener("click", () => {
-  document.getElementById("popup-f9").style.display = "none";
-});
+selector.addEventListener("change", renderForm);
+renderForm();
 
 /**************************************************
- * 🟦 FORMULAIRE TRANSFORMATION SIMPLE
+ * FORMULAIRE TRANSFO SIMPLE
  **************************************************/
-const formSimple = document.getElementById("form-trans-simple");
-formSimple?.addEventListener("submit", handleSimpleTransformation);
+function renderForm() {
+  const type = selector.value;
 
+  if (type === "simple") {
+    formContainer.innerHTML = `
+      <form id="form-simple" class="header-box">
+
+        <h2>Transformation simple</h2>
+
+        <label>PLU source</label>
+        <input type="text" id="plu-source" placeholder="PLU source (F9)" required>
+
+        <label>Poids consommé (kg)</label>
+        <input type="number" id="poids-source" step="0.001" required>
+
+        <label>PLU final</label>
+        <input type="text" id="plu-final" placeholder="PLU final (F9)" required>
+
+        <label>Poids final obtenu (kg)</label>
+        <input type="number" id="poids-final" step="0.001" required>
+
+        <button class="btn btn-accent" type="submit">Valider</button>
+      </form>
+    `;
+
+    document.getElementById("form-simple").addEventListener("submit", handleSimpleTransformation);
+  }
+}
+
+/**************************************************
+ * TRAITEMENT TRANSFORMATION SIMPLE
+ **************************************************/
 async function handleSimpleTransformation(e) {
   e.preventDefault();
 
@@ -77,60 +116,60 @@ async function handleSimpleTransformation(e) {
   const poidsFinal = Number(document.getElementById("poids-final").value);
 
   if (!pluSource || !poidsSource || !pluFinal || !poidsFinal) {
-    return alert("Champs manquants.");
+    alert("Champs manquants");
+    return;
   }
 
-  /**************************************************
-   * 1️⃣ Chercher le lot disponible pour le PLU source
-   **************************************************/
+  // 1️⃣ Récupérer le lot source
   const snapLots = await getDocs(collection(db, "lots"));
   let sourceLot = null;
 
-  snapLots.forEach(d => {
+  snapLots.forEach((d) => {
     const l = d.data();
     if (l.plu == pluSource && (l.poidsRestant || 0) > 0) {
       sourceLot = { id: d.id, ...l };
     }
   });
 
-  if (!sourceLot) return alert("Aucun lot disponible pour ce PLU.");
-  if (poidsSource > sourceLot.poidsRestant)
-    return alert("Poids consommé supérieur au restant !");
+  if (!sourceLot) {
+    alert("Aucun lot disponible pour ce PLU.");
+    return;
+  }
 
-  /**************************************************
-   * 2️⃣ Récupérer la désignation du PLU final
-   **************************************************/
-  const artSnap = await getDoc(doc(db, "articles", pluFinal));
-  const art = artSnap.exists() ? artSnap.data() : {};
-  const desFinal = art.Designation || art.designation || "Produit transformé";
+  if (poidsSource > sourceLot.poidsRestant) {
+    alert("Poids consommé supérieur au restant !");
+    return;
+  }
 
-  /**************************************************
-   * 3️⃣ Calcul des coûts
-   **************************************************/
-  const prixSourceKg = Number(sourceLot.prixAchatKg);
+  const prixSourceKg = sourceLot.prixAchatKg;
   const coutTotal = prixSourceKg * poidsSource;
   const prixFinalKg = coutTotal / poidsFinal;
 
   /**************************************************
-   * 4️⃣ Mouvement sortie (pour TRAÇABILITÉ)
+   * 2️⃣ Stock mouvement (sortie)
    **************************************************/
   await addDoc(collection(db, "stock_mouvements"), {
-    lotId: sourceLot.id,
     plu: pluSource,
+    lotId: sourceLot.id,
     poids: poidsSource,
     sens: "sortie",
-    type: "TRANSFORMATION",
-    createdAt: serverTimestamp()
+    type: "transformation",
+    createdAt: serverTimestamp(),
   });
 
-  // MAJ lot source
+  // Mise à jour lot source
   await updateDoc(doc(db, "lots", sourceLot.id), {
-    poidsRestant: sourceLot.poidsRestant - poidsSource
+    poidsRestant: sourceLot.poidsRestant - poidsSource,
   });
 
   /**************************************************
-   * 5️⃣ Nouveau lot créé (entrée)
+   * 3️⃣ Création lot final
    **************************************************/
+  const finalArticle = await getDoc(doc(db, "articles", pluFinal));
+  const desFinal = finalArticle.exists()
+    ? finalArticle.data().Designation || finalArticle.data().designation
+    : "Transformation";
+
   const newLotRef = await addDoc(collection(db, "lots"), {
     plu: pluFinal,
     designation: desFinal,
@@ -138,23 +177,11 @@ async function handleSimpleTransformation(e) {
     prixAchatKg: prixFinalKg,
     type: "transformation",
     origineLot: sourceLot.id,
-    createdAt: serverTimestamp()
+    createdAt: serverTimestamp(),
   });
 
   /**************************************************
-   * 6️⃣ Mouvement entrée (pour TRAÇABILITÉ)
-   **************************************************/
-  await addDoc(collection(db, "stock_mouvements"), {
-    lotId: newLotRef.id,
-    plu: pluFinal,
-    poids: poidsFinal,
-    sens: "entrée",
-    type: "TRANSFORMATION",
-    createdAt: serverTimestamp()
-  });
-
-  /**************************************************
-   * 7️⃣ Historique transformation
+   * 4️⃣ Ajout historique transformation
    **************************************************/
   await addDoc(collection(db, "transformations"), {
     type: "simple",
@@ -163,9 +190,10 @@ async function handleSimpleTransformation(e) {
     pluFinal,
     poidsFinal,
     prixFinalKg,
-    lotSourceId: sourceLot.id,
     lotFinalId: newLotRef.id,
-    createdAt: serverTimestamp()
+    designationSource: sourceLot.designation || "",
+    designationFinal: desFinal,
+    createdAt: serverTimestamp(),
   });
 
   alert("Transformation enregistrée !");
@@ -173,28 +201,15 @@ async function handleSimpleTransformation(e) {
 }
 
 /**************************************************
- * 🟦 Chargement historique
+ * 🔎 HISTORIQUE TRANSFORMATIONS
  **************************************************/
-async function getDesignation(plu) {
-  const snap = await getDoc(doc(db, "articles", plu));
-  if (!snap.exists()) return "";
-  const a = snap.data();
-  return a.Designation || a.designation || "";
-}
-
 async function loadHistorique() {
+  const snap = await getDocs(collection(db, "transformations"));
   const tbody = document.getElementById("transfo-list");
-  if (!tbody) return;
-
   tbody.innerHTML = "";
 
-  const snap = await getDocs(collection(db, "transformations"));
-
-  for (const d of snap.docs) {
+  snap.forEach((d) => {
     const t = d.data();
-
-    const desSource = await getDesignation(t.pluSource);
-    const desFinal = await getDesignation(t.pluFinal);
 
     const date = t.createdAt?.toDate
       ? t.createdAt.toDate().toLocaleDateString("fr-FR")
@@ -204,8 +219,8 @@ async function loadHistorique() {
     tr.innerHTML = `
       <td>${date}</td>
       <td>${t.type}</td>
-      <td>${t.pluSource} – ${desSource} (${safeFixed(t.poidsSource)} kg)</td>
-      <td>${t.pluFinal} – ${desFinal} (${safeFixed(t.poidsFinal)} kg)</td>
+      <td>${t.pluSource} – ${t.designationSource} (${safeFixed(t.poidsSource)} kg)</td>
+      <td>${t.pluFinal} – ${t.designationFinal} (${safeFixed(t.poidsFinal)} kg)</td>
       <td>${safeFixed(t.prixFinalKg)} €/kg</td>
       <td>
         <button class="btn btn-danger" data-id="${d.id}" data-action="delete">🗑️</button>
@@ -213,42 +228,21 @@ async function loadHistorique() {
     `;
 
     tbody.appendChild(tr);
-  }
+  });
 
-  document.querySelectorAll("[data-action='delete']").forEach(btn => {
-    btn.addEventListener("click", () => deleteTransformation(btn.dataset.id));
+  document.querySelectorAll("[data-action='delete']").forEach((btn) => {
+    btn.onclick = () => deleteTransformation(btn.dataset.id);
   });
 }
 
 loadHistorique();
 
 /**************************************************
- * 🟦 Suppression transformation + restauration stock
+ * ❌ SUPPRIMER TRANSFORMATION
  **************************************************/
 async function deleteTransformation(id) {
   if (!confirm("Supprimer cette transformation ?")) return;
 
-  const snap = await getDoc(doc(db, "transformations", id));
-  if (!snap.exists()) return;
-
-  const t = snap.data();
-
-  // Restaure le lot source
-  if (t.lotSourceId) {
-    await updateDoc(doc(db, "lots", t.lotSourceId), {
-      poidsRestant: increment(Number(t.poidsSource))
-    });
-  }
-
-  // Vide le lot final
-  if (t.lotFinalId) {
-    await updateDoc(doc(db, "lots", t.lotFinalId), {
-      poidsRestant: 0
-    });
-  }
-
   await deleteDoc(doc(db, "transformations", id));
-
-  alert("Transformation supprimée.");
   loadHistorique();
 }
