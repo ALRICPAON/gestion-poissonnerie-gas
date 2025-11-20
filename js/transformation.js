@@ -162,7 +162,11 @@ async function handleSimple(e) {
    ***********************/
   const newLot = await addDoc(collection(db, "lots"), {
     plu: pluFinal,
-    designation: "Transformation",
+    // Chercher désignation du PLU final
+const artSnap = await getDoc(doc(db, "articles", pluFinal));
+const art = artSnap.exists() ? artSnap.data() : {};
+
+designation: art.Designation || art.designation || "Transformation",
     poidsRestant: poidsFinal,
     prixAchatKg: prixFinalKg,
     origineLot: lot.id,
@@ -427,6 +431,8 @@ loadHistorique();
 /**************************************************
  * SUPPRESSION (avec restauration stock)
  **************************************************/
+import { increment } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
 async function deleteTransformation(id) {
   if (!confirm("Supprimer cette transformation ?")) return;
 
@@ -435,14 +441,25 @@ async function deleteTransformation(id) {
 
   const t = snap.data();
 
-  // restauration selon le type
+  // 🔄 Restauration selon type
   if (t.type === "simple") {
+    // Rendre au lot source
     await updateDoc(doc(db, "lots", t.lotSourceId), {
       poidsRestant: increment(Number(t.poidsSource))
     });
-    await updateDoc(doc(db, "lots", t.lotFinalId), { poidsRestant: 0 });
+
+    // Annule le lot final (stock = 0)
+    await updateDoc(doc(db, "lots", t.lotFinalId), {
+      poidsRestant: 0
+    });
   }
 
+  // TODO: ajouter restauration cuisine/plateau si souhaité
+  // (je te le fais après validation)
+
   await deleteDoc(doc(db, "transformations", id));
+
   loadHistorique();
+  alert("Transformation supprimée.");
 }
+
