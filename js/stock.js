@@ -3,17 +3,32 @@ import {
   collection,
   getDocs,
   doc,
+  getDoc,
   setDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 console.log("DEBUG: stock.js chargé !");
 
 /************************************************************
- * 🔍 Clé d’article
+ * 1️⃣  Détection rayon TRAD / FE / LS (basé sur Firestore)
+ ************************************************************/
+function detectCategory(article) {
+  if (article.rayon) {
+    const r = String(article.rayon).toLowerCase();
+    if (r === "trad") return "TRAD";
+    if (r === "fe")   return "FE";
+    if (r === "ls")   return "LS";
+  }
+  return "TRAD"; // fallback sécurité
+}
+
+/************************************************************
+ * 2️⃣  Clé d'article (inchangé)
  ************************************************************/
 function articleKey(article) {
   if (article.gencode) return "LS_" + article.gencode;
   if (article.plu) return "PLU_" + article.plu;
+
   return (
     "DESC_" +
     String(article.designation || "")
@@ -24,25 +39,34 @@ function articleKey(article) {
 }
 
 /************************************************************
- * 🧭 Détermination du rayon TRAD / FE / LS
+ * 3️⃣  Lecture des marges UI + stockage
  ************************************************************/
-function detectCategory(article) {
+function getMarginRate(code, def) {
+  const idInput = {
+    trad: "marge-trad",
+    fe: "marge-fe",
+    ls: "marge-ls"
+  }[code];
 
-  // 🔥 Rayon défini dans la fiche Article → PRIORITAIRE
-  if (article.rayon) return article.rayon.toUpperCase();
+  let val = null;
 
-  // Si Gencode long → LS
-  if (article.gencode && String(article.gencode).length >= 12) return "LS";
+  if (idInput) {
+    const el = document.getElementById(idInput);
+    if (el && el.value !== "") val = Number(el.value);
+  }
 
-  // Si désignation commence par FE → FE
-  if (String(article.designation || "").toUpperCase().startsWith("FE"))
-    return "FE";
+  if (val == null || isNaN(val)) {
+    const stored = localStorage.getItem("marge-" + code);
+    if (stored != null && stored !== "") val = Number(stored);
+  }
 
-  return "TRAD";
+  if (val == null || isNaN(val)) val = def;
+
+  return val / 100;
 }
 
 /************************************************************
- * 📦 PMA global
+ * 4️⃣  PMA global
  ************************************************************/
 function computeGlobalPMA(lots) {
   let totalKg = 0;
@@ -63,7 +87,7 @@ function computeGlobalPMA(lots) {
 }
 
 /************************************************************
- * ⏳ DLC la plus proche
+ * 5️⃣  DLC la plus proche
  ************************************************************/
 function getClosestDLC(lots) {
   let dlcClosest = null;
@@ -82,7 +106,7 @@ function getClosestDLC(lots) {
 }
 
 /************************************************************
- * 📝 Tableau TRAD / FE / LS
+ * 6️⃣  TABLEAU final TRAD / FE / LS
  ************************************************************/
 function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
@@ -121,6 +145,20 @@ function fillTable(tbodyId, items) {
       <td>${fmt(it.valeurStockHT)}</td>
     `;
 
+    // Coloration DLC
+    if (it.dlc) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const d = new Date(it.dlc);
+      d.setHours(0, 0, 0, 0);
+
+      const diffDays = (d - today) / 86400000;
+
+      if (diffDays <= 0) tr.style.backgroundColor = "#ffcccc";      // rouge
+      else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3"; // orange
+    }
+
     tb.appendChild(tr);
   });
 
@@ -131,115 +169,111 @@ function fillTable(tbodyId, items) {
       const val = Number(e.target.value);
       if (isNaN(val)) return;
 
-      await setDoc(
-        doc(db, "stock_articles", key),
-        { pvTTCreel: val },
-        { merge: true }
-      );
+      await setDoc(doc(db, "stock_articles", key), { pvTTCreel: val }, { merge: true });
 
+      const scrollY = window.scrollY;
+
+      document.activeElement.blur();
       await loadStock();
+
+      window.scrollTo(0, scrollY);
     });
   });
 }
 
 /************************************************************
- * 📚 Chargement du stock complet
+ * 7️⃣  CHARGEMENT du STOCK
  ************************************************************/
 async function loadStock() {
+  console.log("DEBUG: Chargement lots…");
+
   const snapLots = await getDocs(collection(db, "lots"));
-  const snapArticles = await getDocs(collection(db, "articles"));
   const snapPV = await getDocs(collection(db, "stock_articles"));
 
   const pvMap = {};
   snapPV.forEach(d => (pvMap[d.id] = d.data()));
 
-  // On charge toutes les fiches articles
-  const articles = {};
-  snapArticles.forEach(docA => {
-    const a = docA.data();
-    const plu = a.PLU || a.plu || docA.id;
-
-    articles[plu] = {
-      plu,
-      designation: a.Designation || a.designation || "",
-      nomLatin: a.NomLatin || a.nomLatin || "",
-      categorie: a.Categorie || a.categorie || "",
-      zone: a.Zone || a.zone || "",
-      sousZone: a.SousZone || a.sousZone || "",
-      engin: a.Engin || a.engin || "",
-      allergenes: a.Allergenes || a.allergenes || "",
-      rayon: a.rayon || a.Rayon || "",
-      gencode: a.EAN || a.ean || ""
-    };
-  });
-
   const regroup = {};
 
-  snapLots.forEach(docLot => {
-    const lot = docLot.data();
-    const plu = lot.plu;
+  // --- Correction DESIGNATION & RAYON depuis FICHE ARTICLE ---
+  async function enrichArticle(lot) {
+    let art = { ...lot };
 
-    // Rattacher la fiche article
-    const art = articles[plu] || {};
+    if (!art.designation || !art.rayon) {
+      if (lot.plu) {
+        const snapArt = await getDoc(doc(db, "articles", String(lot.plu)));
+        if (snapArt.exists()) {
+          const A = snapArt.data();
+          art.designation = art.designation || A.Designation || A.designation || "";
+          art.rayon       = art.rayon       || A.rayon || "";
+        }
+      }
+    }
+
+    return art;
+  }
+
+  for (const docLot of snapLots.docs) {
+    const lot = docLot.data();
+    const art = await enrichArticle(lot);
 
     const article = {
-      plu,
+      designation: art.designation || "",
+      plu: art.plu || "",
       gencode: art.gencode || "",
-      designation: art.designation || lot.designation || "",
-      nomLatin: art.nomLatin || lot.nomLatin || "",
-      categorie: art.categorie || "",
-      zone: art.zone || lot.zone || "",
-      sousZone: art.sousZone || lot.sousZone || "",
-      engin: art.engin || lot.engin || "",
-      rayon: art.rayon || ""
+      rayon: art.rayon || "",
+      nomLatin: art.nomLatin || "",
+      dlc: art.dlc || art.dltc || ""
     };
 
     const key = articleKey(article);
 
     if (!regroup[key]) regroup[key] = { article, lots: [] };
-    regroup[key].lots.push(lot);
-  });
+    regroup[key].lots.push(art);
+  }
 
-  // Marges
-  const margeTrad = Number(localStorage.getItem("marge-trad") || 35) / 100;
-  const margeFE = Number(localStorage.getItem("marge-fe") || 40) / 100;
-  const margeLS = Number(localStorage.getItem("marge-ls") || 30) / 100;
+  const margeTrad = getMarginRate("trad", 35);
+  const margeFE = getMarginRate("fe", 40);
+  const margeLS = getMarginRate("ls", 30);
 
-  const trad = [];
-  const fe = [];
-  const ls = [];
+  let trad = [];
+  let fe = [];
+  let ls = [];
 
   for (const key in regroup) {
     const { article, lots } = regroup[key];
 
-    // Correction DLC
     lots.forEach(l => (l.dlc = l.dlc || l.dltc || ""));
 
     const pmaData = computeGlobalPMA(lots);
-    if (pmaData.stockKg <= 0) continue;
+    if (pmaData.stockKg <= 0 || pmaData.pma <= 0) continue;
 
     const cat = detectCategory(article);
 
-    const m =
-      cat === "TRAD" ? margeTrad : cat === "FE" ? margeFE : margeLS;
+    const marge =
+      cat === "TRAD" ? margeTrad :
+      cat === "FE"   ? margeFE :
+                       margeLS;
 
-    const pvHTconseille = pmaData.pma / (1 - m);
+    const pvHTconseille = pmaData.pma / (1 - marge);
     const pvTTCconseille = pvHTconseille * 1.055;
 
     const pvTTCreel =
       pvMap[key]?.pvTTCreel != null ? Number(pvMap[key].pvTTCreel) : null;
 
     const margeTheo =
-      pvHTconseille ? (pvHTconseille - pmaData.pma) / pvHTconseille : 0;
+      pvHTconseille > 0 ? (pvHTconseille - pmaData.pma) / pvHTconseille : 0;
 
     let margeReelle = null;
-    if (pvTTCreel) {
-      const pvHTreel = pvTTCreel / 1.055;
-      margeReelle = (pvHTreel - pmaData.pma) / pvHTreel;
+    if (pvTTCreel > 0) {
+      const pvHT = pvTTCreel / 1.055;
+      margeReelle = (pvHT - pmaData.pma) / pvHT;
     }
 
     const dlcClosest = getClosestDLC(lots);
-    const dlcStr = dlcClosest ? dlcClosest.toISOString().split("T")[0] : "";
+    const dlcStr = dlcClosest
+      ? dlcClosest.toISOString().split("T")[0]
+      : "";
 
     const item = {
       key,
@@ -261,7 +295,7 @@ async function loadStock() {
     else ls.push(item);
   }
 
-  // 🔤 TRI ALPHABÉTIQUE
+  // 📌 TRI ALPHABÉTIQUE
   trad.sort((a, b) => a.designation.localeCompare(b.designation));
   fe.sort((a, b) => a.designation.localeCompare(b.designation));
   ls.sort((a, b) => a.designation.localeCompare(b.designation));
@@ -269,9 +303,70 @@ async function loadStock() {
   fillTable("tbody-trad", trad);
   fillTable("tbody-fe", fe);
   fillTable("tbody-ls", ls);
+
+  updateTotaux(trad, fe, ls);
 }
 
 /************************************************************
- * 🚀 Lancement
+ * 8️⃣  Totaux TRAD / FE / LS
  ************************************************************/
+function updateTotaux(trad, fe, ls) {
+  const fmt = n =>
+    Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+
+  function calc(arr, divId) {
+    const div = document.getElementById(divId);
+    if (!div) return;
+
+    let achatHT = 0;
+    let venteTTC = 0;
+
+    arr.forEach(it => {
+      achatHT += it.valeurStockHT;
+      const pv = it.pvTTCreel || it.pvTTCconseille || 0;
+      venteTTC += pv * it.stockKg;
+    });
+
+    const venteHT = venteTTC / 1.055;
+    const marge = venteHT > 0 ? ((venteHT - achatHT) / venteHT) * 100 : 0;
+
+    div.querySelector(".aht").textContent = fmt(achatHT);
+    div.querySelector(".vtc").textContent = fmt(venteTTC);
+    div.querySelector(".marge").textContent = marge.toFixed(1) + " %";
+  }
+
+  calc(trad, "totaux-trad");
+  calc(fe,   "totaux-fe");
+  calc(ls,   "totaux-ls");
+}
+
+/************************************************************
+ * 9️⃣  UI des marges
+ ************************************************************/
+function initMarginUI() {
+  const elTrad = document.getElementById("marge-trad");
+  const elFE = document.getElementById("marge-fe");
+  const elLS = document.getElementById("marge-ls");
+  const btnSave = document.getElementById("save-marges");
+
+  if (elTrad) elTrad.value = localStorage.getItem("marge-trad") || "35";
+  if (elFE)   elFE.value = localStorage.getItem("marge-fe") || "40";
+  if (elLS)   elLS.value = localStorage.getItem("marge-ls") || "30";
+
+  if (btnSave) {
+    btnSave.addEventListener("click", () => {
+      if (elTrad) localStorage.setItem("marge-trad", elTrad.value || "35");
+      if (elFE)   localStorage.setItem("marge-fe", elFE.value || "40");
+      if (elLS)   localStorage.setItem("marge-ls", elLS.value || "30");
+
+      alert("Marges enregistrées");
+      loadStock();
+    });
+  }
+}
+
+/************************************************************
+ * 🔟 Lancement
+ ************************************************************/
+initMarginUI();
 loadStock();
