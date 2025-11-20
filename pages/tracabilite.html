@@ -5,98 +5,90 @@
   <title>Traçabilité lots</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <link rel="stylesheet" href="css/style.css">
+
   <style>
-    body {
+    /* Compléments spécifiques à la page tracabilité */
+
+    .trace-header {
+      margin-bottom: 1.5em;
+    }
+
+    .trace-header h1 {
       margin: 0;
-      padding: 15px;
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
     }
 
-    h2 {
-      margin-top: 0;
-      margin-bottom: 10px;
+    .trace-filters {
+      background: var(--bg-box);
+      padding: 1em;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 1.5em;
     }
 
-    .filters {
-      background: #ffffff;
-      padding: 10px 12px;
-      border-radius: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      margin-bottom: 15px;
-      font-size: 14px;
-    }
-
-    .filters-row {
+    .trace-filters-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
+      gap: 0.75em;
+      margin-bottom: 0.75em;
     }
 
-    .filters label {
+    .trace-filters label {
       font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
       display: block;
       margin-bottom: 2px;
     }
 
-    .filters input,
-    .filters select {
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+    .trace-filters input,
+    .trace-filters select {
+      padding: 0.4em 0.6em;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text-main);
       font-size: 14px;
-      width: 100%;
-      box-sizing: border-box;
+      min-width: 130px;
     }
 
-    .filters .field {
-      flex: 1 1 120px;
-      min-width: 120px;
+    .trace-actions {
+      display: flex;
+      gap: 0.5em;
+      align-items: center;
     }
 
-    .filters button {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: none;
-      background: #0366d6;
-      color: #fff;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .filters button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-
-    #trace-list {
-      margin-top: 10px;
+    .trace-list {
+      margin-top: 1em;
     }
 
     .achat-card {
-      background: #ffffff;
-      padding: 12px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-      margin-bottom: 15px;
+      background: var(--bg-box);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1em;
+      margin-bottom: 1em;
     }
 
     .achat-header {
-      border-bottom: 1px solid #eee;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5em;
+      margin-bottom: 0.5em;
     }
 
     .achat-title {
-      font-weight: bold;
-      margin-bottom: 4px;
+      font-weight: 600;
       font-size: 15px;
+      margin-bottom: 0.25em;
+      color: var(--text-main);
     }
 
     .achat-meta {
       font-size: 13px;
-      color: #555;
+      color: var(--text-muted);
+      line-height: 1.4;
     }
 
     .badge {
@@ -104,32 +96,39 @@
       padding: 2px 8px;
       border-radius: 999px;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 600;
       color: #fff;
       margin-top: 4px;
     }
 
-    .badge-open { background: #28a745; }   /* EN COURS DE VENTE */
-    .badge-closed { background: #dc3545; } /* CONSOMMÉ */
+    .badge-open {
+      background: #28a745; /* EN COURS */
+    }
+
+    .badge-closed {
+      background: var(--danger); /* CONSOMMÉ */
+    }
 
     .photo-mini {
       width: 90px;
-      border-radius: 6px;
+      border-radius: var(--radius);
       margin-top: 6px;
-      display: block;
+      border: 1px solid var(--border);
     }
 
     .movements-title {
       font-size: 13px;
-      font-weight: bold;
+      font-weight: 600;
       margin-bottom: 4px;
+      color: var(--text-main);
     }
 
     .movement-line {
       font-size: 13px;
       padding: 3px 0;
-      border-bottom: 1px dashed #eee;
-      margin-left: 10px;
+      border-bottom: 1px dotted var(--border);
+      margin-left: 0.5em;
+      color: var(--text-main);
     }
 
     .movement-line:last-child {
@@ -138,59 +137,76 @@
 
     .no-movements {
       font-size: 12px;
-      color: #777;
-      margin-left: 10px;
+      color: var(--text-muted);
+      margin-left: 0.5em;
     }
 
     .empty-msg {
       font-size: 14px;
-      color: #666;
+      color: var(--text-muted);
       text-align: center;
-      margin-top: 20px;
+      margin-top: 2em;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1em;
+      }
     }
   </style>
 </head>
 
 <body>
-  <h2>Traçabilité lots</h2>
 
-  <div class="filters">
-    <div class="filters-row">
-      <div class="field">
+  <!-- Barre haut avec retour -->
+  <div class="top-bar trace-header">
+    <h1>Traçabilité des lots</h1>
+    <button class="btn btn-muted" onclick="location.href='index.html'">
+      ← Retour au menu
+    </button>
+  </div>
+
+  <!-- Filtres -->
+  <div class="trace-filters">
+    <div class="trace-filters-row">
+      <div>
         <label for="filter-from">Du</label>
         <input type="date" id="filter-from">
       </div>
-      <div class="field">
+      <div>
         <label for="filter-to">Au</label>
         <input type="date" id="filter-to">
       </div>
-    </div>
-
-    <div class="filters-row">
-      <div class="field">
+      <div>
         <label for="filter-plu">PLU</label>
         <input type="text" id="filter-plu" placeholder="3598…">
       </div>
-      <div class="field">
+      <div>
         <label for="filter-fournisseur">Fournisseur</label>
         <input type="text" id="filter-fournisseur" placeholder="Scapmarée…">
       </div>
-      <div class="field">
-        <label for="filter-type">Type mouvement</label>
-        <select id="filter-type">
-          <option value="all">Tous</option>
-          <option value="achat">Achats uniquement</option>
-          <option value="vente">Ventes (CA)</option>
-          <option value="transformation">Transformations</option>
-          <option value="inventaire">Inventaires / écarts</option>
-        </select>
-      </div>
     </div>
 
-    <button id="btn-apply">Appliquer</button>
+    <div class="trace-filters-row trace-actions">
+      <div>
+        <label for="filter-type">Type de tracabilité</label>
+        <select id="filter-type">
+          <option value="all">Tous les mouvements</option>
+          <option value="achat">Achats (lots consommés)</option>
+          <option value="vente">Ventes & sorties</option>
+          <option value="inventaire">Inventaires / écarts</option>
+          <option value="transformation">Transformations</option>
+        </select>
+      </div>
+
+      <button id="btn-apply" class="btn btn-accent">
+        Rechercher
+      </button>
+    </div>
   </div>
 
-  <div id="trace-list"></div>
+  <!-- Résultats -->
+  <div id="trace-list" class="trace-list"></div>
 
   <script type="module" src="../js/tracabilite.js"></script>
 </body>
