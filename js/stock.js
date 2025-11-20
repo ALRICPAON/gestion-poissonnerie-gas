@@ -112,11 +112,37 @@ function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
   if (!tb) return;
 
+  /* --------------------------------------------------------
+   * 🔒 1) Sauvegarde de l’input actif (pour TAB)
+   * ------------------------------------------------------ */
+  const active = document.activeElement;
+  let restore = null;
+
+  if (active && active.classList.contains("pv-reel-input")) {
+    restore = {
+      key: active.dataset.key,
+      value: active.value
+    };
+  }
+
+  /* --------------------------------------------------------
+   * 🔤 2) Tri alphabétique AVANT affichage
+   * ------------------------------------------------------ */
+  items.sort((a, b) =>
+    (a.designation || "").localeCompare(b.designation || "", "fr", { sensitivity: "base" })
+  );
+
+  /* --------------------------------------------------------
+   * 🧽 3) Reset tableau
+   * ------------------------------------------------------ */
   tb.innerHTML = "";
 
   const fmt = n =>
     Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
+  /* --------------------------------------------------------
+   * 🖨️ 4) Impression lignes
+   * ------------------------------------------------------ */
   items.forEach(it => {
     const tr = document.createElement("tr");
 
@@ -145,7 +171,7 @@ function fillTable(tbodyId, items) {
       <td>${fmt(it.valeurStockHT)}</td>
     `;
 
-    // Coloration DLC
+    // 🔥 Coloration DLC
     if (it.dlc) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -162,7 +188,9 @@ function fillTable(tbodyId, items) {
     tb.appendChild(tr);
   });
 
-  // Sauvegarde PV réel
+  /* --------------------------------------------------------
+   * 💾 5) Sauvegarde PV réel
+   * ------------------------------------------------------ */
   document.querySelectorAll(".pv-reel-input").forEach(inp => {
     inp.addEventListener("change", async e => {
       const key = e.target.dataset.key;
@@ -179,6 +207,17 @@ function fillTable(tbodyId, items) {
       window.scrollTo(0, scrollY);
     });
   });
+
+  /* --------------------------------------------------------
+   * 🔁 6) Restauration du focus (TAB correct)
+   * ------------------------------------------------------ */
+  if (restore) {
+    const elem = document.querySelector(`.pv-reel-input[data-key="${restore.key}"]`);
+    if (elem) {
+      elem.focus();
+      elem.select();
+    }
+  }
 }
 
 /************************************************************
