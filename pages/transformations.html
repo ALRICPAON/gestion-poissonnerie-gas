@@ -33,5 +33,26 @@
 <script src="../js/firebase-init.js" type="module"></script>
 <script src="../js/transformation-simple.js" type="module"></script>
 
+  <!-- Popup F9 -->
+<div class="popup" id="popup-f9" style="display:none;">
+  <div class="popup-content">
+    <h3>Choisir un article</h3>
+    <input type="text" id="f9-search" class="search-input" placeholder="Rechercher...">
+
+    <table class="table-select" id="f9-table">
+      <thead>
+        <tr>
+          <th>PLU</th>
+          <th>Désignation</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button id="f9-close" class="btn btn-muted" style="margin-top:10px;width:100%;">Fermer</button>
+  </div>
+</div>
+
+
 </body>
 </html>
