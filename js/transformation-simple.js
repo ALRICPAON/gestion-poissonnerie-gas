@@ -1,192 +1,229 @@
-// ----------------------------------------------
-// IMPORTS
-// ----------------------------------------------
+/**************************************************
+ * TRANSFORMATION – Version complète
+ **************************************************/
 import { db } from "./firebase-init.js";
 import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  addDoc,
-  serverTimestamp
+  collection, addDoc, getDocs, doc, updateDoc, deleteDoc,
+  serverTimestamp, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 
-// ----------------------------------------------
-// POPUP F9
-// ----------------------------------------------
+/**************************************************
+ * 🔵 F9 → Liste articles
+ **************************************************/
+let f9Target = null;
 
-const popupF9 = document.getElementById("popup-f9");
-const f9Search = document.getElementById("f9-search");
-const f9TableBody = document.querySelector("#f9-table tbody");
-const f9Close = document.getElementById("f9-close");
+function openF9(targetInput) {
+  f9Target = targetInput;
+  document.getElementById("popup-f9").style.display = "flex";
+  loadF9Articles();
+}
 
-let f9CurrentInput = null;
-let articlesCache = [];
-
-// Charger ARTICLES une seule fois
-async function loadArticlesOnce() {
-  if (articlesCache.length > 0) return;
-
+async function loadF9Articles() {
   const snap = await getDocs(collection(db, "articles"));
-  snap.forEach(docu => {
-    const a = docu.data();
-    articlesCache.push({
-      plu: a.PLU || a.plu || docu.id,
-      designation: a.Designation || a.designation || ""
-    });
+  const tbody = document.querySelector("#popup-f9 tbody");
+  tbody.innerHTML = "";
+
+  snap.forEach(d => {
+    const a = d.data();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${a.PLU || ""}</td>
+      <td>${a.Designation || ""}</td>
+    `;
+    tr.onclick = () => {
+      f9Target.value = a.PLU;
+      document.getElementById("popup-f9").style.display = "none";
+    };
+    tbody.appendChild(tr);
   });
 }
 
-// Ouvre popup sur input ciblé
-async function openF9Popup(inputEl) {
-  f9CurrentInput = inputEl;
-
-  await loadArticlesOnce();
-  renderF9List("");
-
-  popupF9.style.display = "block";
-  f9Search.value = "";
-  f9Search.focus();
-}
-
-// Fermer popup
-function closeF9Popup() {
-  popupF9.style.display = "none";
-  f9CurrentInput = null;
-}
-
-// Affiche la liste filtrée
-function renderF9List(filter) {
-  const q = filter.toLowerCase().trim();
-
-  const rows = articlesCache.filter(a =>
-    `${a.plu} ${a.designation}`.toLowerCase().includes(q)
-  );
-
-  if (rows.length === 0) {
-    f9TableBody.innerHTML = `<tr><td colspan="2">Aucun résultat</td></tr>`;
-    return;
-  }
-
-  f9TableBody.innerHTML = rows.map(a => `
-    <tr data-plu="${a.plu}" data-des="${a.designation}">
-      <td>${a.plu}</td>
-      <td>${a.designation}</td>
-    </tr>
-  `).join("");
-
-  // double-clic pour choisir
-  f9TableBody.querySelectorAll("tr").forEach(tr => {
-    tr.addEventListener("dblclick", () => {
-      const plu = tr.dataset.plu;
-      const des = tr.dataset.des;
-
-      if (f9CurrentInput) {
-        f9CurrentInput.value = plu;
-        f9CurrentInput.dispatchEvent(new Event("change"));
-      }
-
-      closeF9Popup();
-    });
-  });
-}
-
-f9Search.addEventListener("input", () => renderF9List(f9Search.value));
-f9Close.addEventListener("click", closeF9Popup);
-
-
-// ----------------------------------------------
-// GESTION DES F9 SUR LES CHAMPS
-// ----------------------------------------------
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "F9") {
+document.addEventListener("keydown", e => {
+  if (e.key === "F9" && document.activeElement.tagName === "INPUT") {
     e.preventDefault();
-    const active = document.activeElement;
-
-    if (active && (active.id === "plu-source" || active.id === "plu-final")) {
-      openF9Popup(active);
-    }
+    openF9(document.activeElement);
   }
 });
 
+document.getElementById("f9-close")?.addEventListener("click", () => {
+  document.getElementById("popup-f9").style.display = "none";
+});
 
-// -------------------------------------------------
-// AUTO-AFFICHAGE INFOS PRODUIT
-// -------------------------------------------------
 
-async function loadArticleInfo(plu, box) {
-  if (!plu) {
-    box.innerHTML = "";
-    return;
-  }
+/**************************************************
+ * 🔷 Chargement dynamique du formulaire
+ **************************************************/
+const formContainer = document.getElementById("form-container");
+const selector = document.getElementById("type-transformation");
 
-  const snap = await getDoc(doc(db, "articles", plu));
-  if (!snap.exists()) {
-    box.innerHTML = `<div class="pill pill-red">PLU introuvable</div>`;
-    return;
-  }
+selector.addEventListener("change", renderForm);
+renderForm();
 
-  const a = snap.data();
 
-  box.innerHTML = `
-    <div class="pill">${a.Designation || a.designation || ""}</div>
-    <div class="pill">${a.NomLatin || a.nomLatin || ""}</div>
-    <div class="pill">${a.Zone || a.zone || ""} ${a.SousZone || a.sousZone || ""}</div>
-    <div class="pill">${a.Engin || a.engin || ""}</div>
-  `;
+function renderForm() {
+  const type = selector.value;
+
+  if (type === "simple") renderSimple();
+  if (type === "cuisine") renderCuisine();
+  if (type === "plateau") renderPlateau();
 }
 
 
-// ----------------------------------------------
-// CALCUL TRANSFORMATION SIMPLE
-// ----------------------------------------------
+/**************************************************
+ * 🟦 FORMULAIRE – Transformation simple
+ **************************************************/
+function renderSimple() {
+  formContainer.innerHTML = `
+    <form id="form-simple" class="header-box">
+      <h2>Transformation simple</h2>
 
-document.getElementById("plu-source").addEventListener("change", async (e) => {
-  await loadArticleInfo(e.target.value.trim(), document.getElementById("src-info"));
-});
+      <input type="text" id="plu-source" placeholder="PLU source (F9)" required>
+      <input type="number" id="poids-source" step="0.001" placeholder="Poids consommé (kg)" required>
 
-document.getElementById("plu-final").addEventListener("change", async (e) => {
-  await loadArticleInfo(e.target.value.trim(), document.getElementById("final-info"));
-});
+      <input type="text" id="plu-final" placeholder="PLU final (F9)" required>
+      <input type="number" id="poids-final" step="0.001" placeholder="Poids final obtenu (kg)" required>
+
+      <button class="btn btn-accent" type="submit">Valider</button>
+    </form>
+  `;
+
+  document.getElementById("form-simple").addEventListener("submit", handleSimpleTransformation);
+}
 
 
-document.getElementById("form-trans-simple").addEventListener("submit", async (e) => {
+/**************************************************
+ * 🟦 Traitement de la transformation simple
+ **************************************************/
+async function handleSimpleTransformation(e) {
   e.preventDefault();
 
   const pluSource = document.getElementById("plu-source").value.trim();
-  const poidsSource = parseFloat(document.getElementById("poids-source").value);
-
+  const poidsSource = Number(document.getElementById("poids-source").value);
   const pluFinal = document.getElementById("plu-final").value.trim();
-  const poidsFinal = parseFloat(document.getElementById("poids-final").value);
+  const poidsFinal = Number(document.getElementById("poids-final").value);
 
-  if (!pluSource || !pluFinal || !poidsSource || !poidsFinal) {
-    alert("Complète tous les champs.");
+  if (!pluSource || !poidsSource || !pluFinal || !poidsFinal) {
+    alert("Champs manquants.");
     return;
   }
 
-  // Récupération du prix moyen du stock pour calculer le nouveau CUMP
-  const snap = await getDoc(doc(db, "stock_articles", pluSource));
-  const stock = snap.exists() ? snap.data() : null;
+  // 1️⃣ Chercher le lot en stock
+  const snapLots = await getDocs(collection(db, "lots"));
+  let sourceLot = null;
 
-  const prixSource = stock?.prixKg || 0;
-  const coutTotal = prixSource * poidsSource;
+  snapLots.forEach(d => {
+    const l = d.data();
+    if (l.plu == pluSource && (l.poidsRestant || 0) > 0) {
+      sourceLot = { id: d.id, ...l };
+    }
+  });
 
-  const newPrixFinal = +(coutTotal / poidsFinal).toFixed(2);
+  if (!sourceLot) {
+    alert("Aucun lot disponible pour ce PLU.");
+    return;
+  }
 
-  // On enregistre la transformation dans Firestore
+  if (poidsSource > sourceLot.poidsRestant) {
+    alert("Poids consommé supérieur au restant !");
+    return;
+  }
+
+  // Calcul du coût final
+  const prixSourceKg = sourceLot.prixAchatKg;
+  const coûtTotal = poidsSource * prixSourceKg;
+  const prixFinalKg = coûtTotal / poidsFinal;
+
+  // 2️⃣ Écriture mouvement sortie
+  await addDoc(collection(db, "stock_mouvements"), {
+    plu: pluSource,
+    lotId: sourceLot.id,
+    poids: poidsSource,
+    sens: "sortie",
+    type: "transformation",
+    createdAt: serverTimestamp()
+  });
+
+  // MAJ lot source
+  await updateDoc(doc(db, "lots", sourceLot.id), {
+    poidsRestant: sourceLot.poidsRestant - poidsSource
+  });
+
+  // 3️⃣ Création nouveau lot final
+  const newLotRef = await addDoc(collection(db, "lots"), {
+    plu: pluFinal,
+    designation: "Produit transformé",
+    poidsRestant: poidsFinal,
+    prixAchatKg: prixFinalKg,
+    type: "transformation",
+    origineLot: `Transformation depuis ${sourceLot.plu}`,
+    createdAt: serverTimestamp()
+  });
+
+  // 4️⃣ Historique
   await addDoc(collection(db, "transformations"), {
     type: "simple",
     pluSource,
     poidsSource,
+    prixSourceKg,
     pluFinal,
     poidsFinal,
-    prixFinal: newPrixFinal,
+    prixFinalKg,
+    lotFinalId: newLotRef.id,
     createdAt: serverTimestamp()
   });
 
-  alert(`Transformation enregistrée.\nNouveau prix moyen : ${newPrixFinal} €/kg`);
+  alert("Transformation enregistrée !");
+  loadHistorique();
+}
 
-  location.reload();
-});
+
+
+/**************************************************
+ * 📜 HISTORIQUE
+ **************************************************/
+async function loadHistorique() {
+  const snap = await getDocs(collection(db, "transformations"));
+  const tbody = document.getElementById("transfo-list");
+
+  tbody.innerHTML = "";
+
+  snap.forEach(d => {
+    const t = d.data();
+    const tr = document.createElement("tr");
+
+    const date = t.createdAt?.toDate
+      ? t.createdAt.toDate().toLocaleDateString("fr-FR")
+      : "";
+
+    tr.innerHTML = `
+      <td>${date}</td>
+      <td>${t.type}</td>
+      <td>${t.pluSource} → ${t.poidsSource} kg</td>
+      <td>${t.pluFinal} → ${t.poidsFinal} kg</td>
+      <td>${t.prixFinalKg.toFixed(2)} €/kg</td>
+      <td>
+        <button class="btn btn-muted" data-id="${d.id}" data-action="edit">✏️</button>
+        <button class="btn btn-danger" data-id="${d.id}" data-action="delete">🗑️</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll("[data-action='delete']").forEach(btn => {
+    btn.addEventListener("click", () => deleteTransformation(btn.dataset.id));
+  });
+}
+
+loadHistorique();
+
+
+/**************************************************
+ * ❌ Suppression transformation
+ **************************************************/
+async function deleteTransformation(id) {
+  if (!confirm("Supprimer cette transformation ?")) return;
+  await deleteDoc(doc(db, "transformations", id));
+  loadHistorique();
+}
