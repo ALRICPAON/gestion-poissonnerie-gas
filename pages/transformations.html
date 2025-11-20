@@ -1,27 +1,37 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="../css/styles.css" />
-<title>Gestion Poissonnerie</title>
-
+  <meta charset="UTF-8">
+  <title>Transformation – Gestion Poissonnerie</title>
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-  <header id="topbar"></header>
-  <main class="container">
-    <h2 class="page-title">Transformations</h2>
-    <div class="panel">
-      <p>TODO : intégrer l'interface transformations (Apps Script / API) ici.</p>
-      <p class="muted">Cette page est protégée par Firebase Auth.</p>
-    </div>
-  </main>
 
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script type="module" src="../js/auth.js"></script>
-  <script type="module" src="../js/menu.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', () => { window.__requireAuth && window.__requireAuth('transformations'); });
-  </script>
+<div class="top-bar">
+  <h1>Transformation simple</h1>
+  <a href="index.html" class="btn btn-muted">← Retour menu</a>
+</div>
+
+<form id="form-trans-simple">
+  <h2>Produit source</h2>
+
+  <input type="text" id="plu-source" placeholder="PLU source (F9)" required>
+  <input type="number" step="0.001" id="poids-source" placeholder="Poids consommé (kg)" required>
+
+  <div id="src-info"></div>
+
+  <h2>Produit final</h2>
+
+  <input type="text" id="plu-final" placeholder="PLU final (F9)" required>
+  <input type="number" step="0.001" id="poids-final" placeholder="Poids final obtenu (kg)" required>
+
+  <div id="final-info"></div>
+
+  <button class="btn btn-accent" type="submit">Valider transformation</button>
+</form>
+
+<script src="../js/firebase-init.js" type="module"></script>
+<script src="../js/transformation-simple.js" type="module"></script>
+
 </body>
 </html>
