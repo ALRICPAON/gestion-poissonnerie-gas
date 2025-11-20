@@ -1,48 +1,197 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Traçabilité</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>Traçabilité lots</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<style>
-  body { margin:0; padding:15px; background:#f2f2f2; font-family:Arial; }
-  h2 { margin-top:0; }
-  input {
-    width:100%; padding:12px; font-size:18px;
-    border-radius:6px; border:1px solid #ccc; margin-bottom:20px;
-  }
-  .card {
-    background:#fff; padding:15px; border-radius:10px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.08); margin-bottom:20px;
-  }
-  .card-title {
-    font-size:18px; font-weight:bold; margin-bottom:10px;
-  }
-  .item {
-    padding:10px 0; border-bottom:1px solid #eee;
-  }
-  .item:last-child { border-bottom:none; }
-  .mini-photo {
-    width:90px; border-radius:6px; margin-top:8px;
-  }
-  a.btn {
-    display:inline-block; padding:8px 12px; background:#0366d6;
-    color:white; border-radius:6px; text-decoration:none; margin-top:8px;
-  }
-</style>
+  <style>
+    body {
+      margin: 0;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+    }
 
+    h2 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .filters {
+      background: #ffffff;
+      padding: 10px 12px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .filters label {
+      font-size: 12px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .filters input,
+    .filters select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .filters .field {
+      flex: 1 1 120px;
+      min-width: 120px;
+    }
+
+    .filters button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #0366d6;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .filters button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    #trace-list {
+      margin-top: 10px;
+    }
+
+    .achat-card {
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      margin-bottom: 15px;
+    }
+
+    .achat-header {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .achat-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    .achat-meta {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    .badge-open { background: #28a745; }   /* EN COURS DE VENTE */
+    .badge-closed { background: #dc3545; } /* CONSOMMÉ */
+
+    .photo-mini {
+      width: 90px;
+      border-radius: 6px;
+      margin-top: 6px;
+      display: block;
+    }
+
+    .movements-title {
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .movement-line {
+      font-size: 13px;
+      padding: 3px 0;
+      border-bottom: 1px dashed #eee;
+      margin-left: 10px;
+    }
+
+    .movement-line:last-child {
+      border-bottom: none;
+    }
+
+    .no-movements {
+      font-size: 12px;
+      color: #777;
+      margin-left: 10px;
+    }
+
+    .empty-msg {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
 </head>
+
 <body>
+  <h2>Traçabilité lots</h2>
 
-<h2>Traçabilité par PLU</h2>
+  <div class="filters">
+    <div class="filters-row">
+      <div class="field">
+        <label for="filter-from">Du</label>
+        <input type="date" id="filter-from">
+      </div>
+      <div class="field">
+        <label for="filter-to">Au</label>
+        <input type="date" id="filter-to">
+      </div>
+    </div>
 
-<input id="input-plu" type="number" placeholder="Saisir un PLU…">
+    <div class="filters-row">
+      <div class="field">
+        <label for="filter-plu">PLU</label>
+        <input type="text" id="filter-plu" placeholder="3598…">
+      </div>
+      <div class="field">
+        <label for="filter-fournisseur">Fournisseur</label>
+        <input type="text" id="filter-fournisseur" placeholder="Scapmarée…">
+      </div>
+      <div class="field">
+        <label for="filter-type">Type mouvement</label>
+        <select id="filter-type">
+          <option value="all">Tous</option>
+          <option value="achat">Achats uniquement</option>
+          <option value="vente">Ventes (CA)</option>
+          <option value="transformation">Transformations</option>
+          <option value="inventaire">Inventaires / écarts</option>
+        </select>
+      </div>
+    </div>
 
-<div id="stock" class="card" style="display:none;"></div>
-<div id="achats" class="card" style="display:none;"></div>
-<div id="moves"  class="card" style="display:none;"></div>
+    <button id="btn-apply">Appliquer</button>
+  </div>
 
-<script type="module" src="../js/tracabilite-plu.js"></script>
+  <div id="trace-list"></div>
+
+  <script type="module" src="js/tracabilite.js"></script>
 </body>
 </html>
