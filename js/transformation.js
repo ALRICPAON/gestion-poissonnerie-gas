@@ -162,13 +162,42 @@ async function handleSimpleTransformation(e) {
     poidsRestant: sourceLot.poidsRestant - poidsSource,
   });
 
+ /**************************************************
+ * 3️⃣ Création lot final avec traçabilité
+ **************************************************/
+const finalArticleDoc = await getDoc(doc(db, "articles", pluFinal));
+const desFinal = finalArticleDoc.exists()
+  ? finalArticleDoc.data().Designation || finalArticleDoc.data().designation
+  : "Transformation";
+
+const newLotRef = await addDoc(collection(db, "lots"), {
+  plu: pluFinal,
+  designation: desFinal,
+  poidsRestant: poidsFinal,
+  prixAchatKg: prixFinalKg,
+  type: "transformation",
+
+  // 🔥 Propagation traçabilité complète du lot source
+  ...traca,
+
+  origineLot: sourceLot.id,
+  createdAt: serverTimestamp()
+});
+
+
   /**************************************************
-   * 3️⃣ Création lot final
-   **************************************************/
-  const finalArticle = await getDoc(doc(db, "articles", pluFinal));
-  const desFinal = finalArticle.exists()
-    ? finalArticle.data().Designation || finalArticle.data().designation
-    : "Transformation";
+ * 3️⃣ Propagation traçabilité du lot source
+ **************************************************/
+const traca = {
+  nomLatin: sourceLot.nomLatin || "",
+  zone: sourceLot.zone || "",
+  sousZone: sourceLot.sousZone || "",
+  engin: sourceLot.engin || "",
+  allergenes: sourceLot.allergenes || "",
+  fao: sourceLot.fao || "",
+  dlc: sourceLot.dlc || sourceLot.dltc || ""
+};
+
 
   const newLotRef = await addDoc(collection(db, "lots"), {
     plu: pluFinal,
