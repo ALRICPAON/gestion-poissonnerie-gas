@@ -122,7 +122,7 @@ async function loadLotsFIFO(plu) {
   return snap.docs;
 }
 /***********************************************
- * F9 = Recherche Article
+ * F9 Articles — Version officielle (même que Achats)
  ***********************************************/
 import {
   collection as colArticles,
@@ -134,6 +134,7 @@ const f9Search = document.getElementById("f9-search");
 const f9TableBody = document.querySelector("#f9-table tbody");
 const f9Close = document.getElementById("f9-close");
 
+let f9Cache = [];
 let currentF9Target = null;
 
 // OUVERTURE AVEC F9
@@ -143,10 +144,12 @@ document.addEventListener("keydown", (e) => {
 
     if (document.activeElement.id === "plu-source") {
       currentF9Target = "plu-source";
+
     } else if (document.activeElement.id === "plu-final") {
       currentF9Target = "plu-final";
+
     } else {
-      return;
+      return; // pas dans un champ PLU → ne rien faire
     }
 
     openF9();
@@ -158,50 +161,64 @@ async function openF9() {
   f9Search.value = "";
   f9Search.focus();
 
-  // Charger articles
-  const snap = await getDocsArticles(colArticles(db, "articles"));
-  let rows = "";
+  if (f9Cache.length === 0) {
+    const snap = await getDocsArticles(colArticles(db, "articles"));
 
-  snap.forEach((d) => {
-    const a = d.data();
-    rows += `
-  <tr data-plu="${a.PLU}" data-des="${a.Designation}">
-    <td>${a.PLU}</td>
-    <td>${a.Designation}</td>
-  </tr>
-`;
-  });
+    snap.forEach(d => {
+      const a = d.data();
+      f9Cache.push({
+        plu: a.PLU || a.plu || d.id,
+        designation: a.Designation || a.designation || "",
+        nomLatin: a.NomLatin || a.nomLatin || "",
+        categorie: a.Categorie || a.categorie || ""
+      });
+    });
+  }
 
-  f9TableBody.innerHTML = rows;
+  renderF9Table();
 }
 
-// Clic sur un article
-f9TableBody.addEventListener("click", (e) => {
-  const tr = e.target.closest("tr");
-  if (!tr) return;
+// Affichage des lignes
+function renderF9Table(filter = "") {
+  const q = filter.toLowerCase();
 
+  const rows = f9Cache.filter(a =>
+    (`${a.plu} ${a.designation} ${a.nomLatin}`).toLowerCase().includes(q)
+  );
+
+  f9TableBody.innerHTML = rows.map(a => `
+    <tr data-plu="${a.plu}" data-des="${a.designation}">
+      <td>${a.plu}</td>
+      <td>${a.designation}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="2">Aucun article</td></tr>`;
+
+  // Choix article
+  f9TableBody.querySelectorAll("tr[data-plu]").forEach(tr => {
+    tr.addEventListener("dblclick", () => selectF9(tr));
+  });
+}
+
+function selectF9(tr) {
   const plu = tr.dataset.plu;
+  const des = tr.dataset.des;
 
   if (currentF9Target === "plu-source") {
-    pluSrcInput.value = plu;
+    document.getElementById("plu-source").value = plu;
+
   } else if (currentF9Target === "plu-final") {
-    pluFinalInput.value = plu;
+    document.getElementById("plu-final").value = plu;
   }
 
   popupF9.style.display = "none";
-});
+}
 
-// Filtre en live
+// Filtre live
 f9Search.addEventListener("input", () => {
-  const term = f9Search.value.toLowerCase();
-  [...f9TableBody.querySelectorAll("tr")].forEach(tr => {
-    const txt = tr.innerText.toLowerCase();
-    tr.style.display = txt.includes(term) ? "" : "none";
-  });
+  renderF9Table(f9Search.value);
 });
 
 // Fermer
 f9Close.addEventListener("click", () => {
   popupF9.style.display = "none";
 });
-
