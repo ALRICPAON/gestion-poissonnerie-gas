@@ -121,3 +121,87 @@ async function loadLotsFIFO(plu) {
   const snap = await getDocs(qRef);
   return snap.docs;
 }
+/***********************************************
+ * F9 = Recherche Article
+ ***********************************************/
+import {
+  collection as colArticles,
+  getDocs as getDocsArticles
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const popupF9 = document.getElementById("popup-f9");
+const f9Search = document.getElementById("f9-search");
+const f9TableBody = document.querySelector("#f9-table tbody");
+const f9Close = document.getElementById("f9-close");
+
+let currentF9Target = null;
+
+// OUVERTURE AVEC F9
+document.addEventListener("keydown", (e) => {
+  if (e.key === "F9") {
+    e.preventDefault();
+
+    if (document.activeElement.id === "plu-source") {
+      currentF9Target = "plu-source";
+    } else if (document.activeElement.id === "plu-final") {
+      currentF9Target = "plu-final";
+    } else {
+      return;
+    }
+
+    openF9();
+  }
+});
+
+async function openF9() {
+  popupF9.style.display = "flex";
+  f9Search.value = "";
+  f9Search.focus();
+
+  // Charger articles
+  const snap = await getDocsArticles(colArticles(db, "articles"));
+  let rows = "";
+
+  snap.forEach((d) => {
+    const a = d.data();
+    rows += `
+      <tr data-plu="${a.plu}" data-des="${a.designation}">
+        <td>${a.plu}</td>
+        <td>${a.designation}</td>
+      </tr>
+    `;
+  });
+
+  f9TableBody.innerHTML = rows;
+}
+
+// Clic sur un article
+f9TableBody.addEventListener("click", (e) => {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+
+  const plu = tr.dataset.plu;
+
+  if (currentF9Target === "plu-source") {
+    pluSrcInput.value = plu;
+  } else if (currentF9Target === "plu-final") {
+    pluFinalInput.value = plu;
+  }
+
+  popupF9.style.display = "none";
+});
+
+// Filtre en live
+f9Search.addEventListener("input", () => {
+  const term = f9Search.value.toLowerCase();
+  [...f9TableBody.querySelectorAll("tr")].forEach(tr => {
+    const txt = tr.innerText.toLowerCase();
+    tr.style.display = txt.includes(term) ? "" : "none";
+  });
+});
+
+// Fermer
+f9Close.addEventListener("click", () => {
+  popupF9.style.display = "none";
+});
+
