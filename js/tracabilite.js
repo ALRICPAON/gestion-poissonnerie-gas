@@ -208,6 +208,23 @@ async function fetchMovementsForLot(lotId, typeFilter) {
 
 // -------- Affichage ----------
 function renderCards(cards, typeFilter) {
+    // 🔥 Tri décroissant par date d’achat
+  cards.sort((a, b) => {
+    const dateA =
+      a.achat?.date?.toDate ? a.achat.date.toDate() :
+      a.achat?.createdAt?.toDate ? a.achat.createdAt.toDate() :
+      a.lot?.createdAt?.toDate ? a.lot.createdAt.toDate() :
+      new Date(a.achat?.date || a.lot?.createdAt);
+
+    const dateB =
+      b.achat?.date?.toDate ? b.achat.date.toDate() :
+      b.achat?.createdAt?.toDate ? b.achat.createdAt.toDate() :
+      b.lot?.createdAt?.toDate ? b.lot.createdAt.toDate() :
+      new Date(b.achat?.date || b.lot?.createdAt);
+
+    return dateB - dateA; // plus récent en premier
+  });
+
   let html = "";
 
   for (const { lotId, lot, achat, ligne, mouvements } of cards) {
@@ -250,8 +267,12 @@ function renderCards(cards, typeFilter) {
 
     html += `<div class="movements-title">Mouvements du lot</div>`;
 
-    if (!mouvements.length) {
-      html += `<div class="no-movements">Aucun mouvement enregistré pour ce lot.</div>`;
+        if (!mouvements.length) {
+      if (closed) {
+        html += `<div class="no-movements">Lot consommé — aucun mouvement enregistré.</div>`;
+      } else {
+        html += `<div class="no-movements">Aucun mouvement encore enregistré.</div>`;
+      }
     } else {
       for (const m of mouvements) {
         const type = m.type || "";
