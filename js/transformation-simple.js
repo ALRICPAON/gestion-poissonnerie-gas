@@ -165,11 +165,11 @@ async function openF9() {
   snap.forEach((d) => {
     const a = d.data();
     rows += `
-      <tr data-plu="${a.plu}" data-des="${a.designation}">
-        <td>${a.plu}</td>
-        <td>${a.designation}</td>
-      </tr>
-    `;
+  <tr data-plu="${a.PLU}" data-des="${a.Designation}">
+    <td>${a.PLU}</td>
+    <td>${a.Designation}</td>
+  </tr>
+`;
   });
 
   f9TableBody.innerHTML = rows;
