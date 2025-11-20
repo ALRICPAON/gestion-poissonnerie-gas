@@ -2,43 +2,42 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Transformation – Poissonnerie</title>
+  <title>Transformation</title>
   <link rel="stylesheet" href="../css/style.css">
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/transformation.js"></script>
 </head>
-
 <body>
 
 <div class="top-bar">
   <h1>🔧 Transformation</h1>
-  <button class="btn btn-muted" onclick="location.href='/pages/home.html'">← Retour menu</button>
+  <button class="btn btn-muted" onclick="window.location.href='home.html'">← Retour menu</button>
 </div>
 
 <div class="header-box">
-  <label><strong>Type de transformation</strong></label>
-  <select id="type-transformation" class="search-input">
+  <label>Type de transformation</label>
+  <select id="type-transformation">
     <option value="simple">Transformation simple (1 → 1)</option>
-    <option value="cuisine">Préparation cuisine (multi → 1)</option>
-    <option value="plateau">Plateau / Barquette (multi → multi)</option>
   </select>
 </div>
 
-<!-- Formulaire rendu dynamiquement -->
 <div id="form-container"></div>
 
-<h2 style="margin-top:40px;">📜 Historique des transformations</h2>
+<h2>🧾 Historique des transformations</h2>
 
-<table>
+<table class="table">
   <thead>
     <tr>
       <th>Date</th>
       <th>Type</th>
-      <th>Détail</th>
+      <th>Source</th>
+      <th>Résultat</th>
       <th>Coût final</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody id="transfo-list">
-    <tr><td colspan="5">Chargement…</td></tr>
+    <tr><td colspan="6">Chargement…</td></tr>
   </tbody>
 </table>
 
@@ -46,19 +45,22 @@
 <div class="popup" id="popup-f9" style="display:none;">
   <div class="popup-content">
     <h3>Choisir un article</h3>
-    <input type="text" id="f9-search" class="search-input" placeholder="Rechercher…">
+    <input type="text" id="f9-search" class="search-input" placeholder="Rechercher...">
+
     <table class="table-select">
       <thead>
-        <tr><th>PLU</th><th>Désignation</th><th>Nom latin</th></tr>
+        <tr>
+          <th>PLU</th>
+          <th>Désignation</th>
+          <th>Nom latin</th>
+        </tr>
       </thead>
       <tbody></tbody>
     </table>
+
     <button id="f9-close" class="btn btn-muted" style="margin-top:10px;width:100%;">Fermer</button>
   </div>
 </div>
-
-<script type="module" src="../js/firebase-init.js"></script>
-<script type="module" src="../js/transformation.js"></script>
 
 </body>
 </html>
