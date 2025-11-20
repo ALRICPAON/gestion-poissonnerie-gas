@@ -1,60 +1,58 @@
 /**************************************************
- * TRANSFORMATION – Version complète
+ * TRANSFORMATION PRO – SIMPLE + CUISINE + PLATEAU
  **************************************************/
 import { db } from "./firebase-init.js";
 import {
-  collection, addDoc, getDocs, doc, updateDoc, deleteDoc,
-  serverTimestamp, getDoc
+  collection, addDoc, getDocs, getDoc,
+  doc, updateDoc, deleteDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-// --- Sécurise l'affichage des nombres (évite crash .toFixed sur undefined) ---
-function safeFixed(n, decimals = 2) {
-  if (n == null || isNaN(Number(n))) return "—";
-  return Number(n).toFixed(decimals);
-}
-
 
 
 /**************************************************
- * 🔵 F9 → Liste articles
+ * Utils
+ **************************************************/
+function safe(n, d = 2) {
+  if (n == null || isNaN(Number(n))) return "—";
+  return Number(n).toFixed(d);
+}
+function uuid() { return Math.random().toString(36).slice(2); }
+
+
+/**************************************************
+ * POPUP F9
  **************************************************/
 let f9Target = null;
-
-function openF9(targetInput) {
-  f9Target = targetInput;
+function openF9(target) {
+  f9Target = target;
   document.getElementById("popup-f9").style.display = "flex";
   loadF9Articles();
 }
 
 async function loadF9Articles() {
-  const snap = await getDocs(collection(db, "articles"));
   const tbody = document.querySelector("#popup-f9 tbody");
+  const snap = await getDocs(collection(db, "articles"));
   tbody.innerHTML = "";
 
   snap.forEach(d => {
-  const a = d.data();
+    const a = d.data();
+    const plu = a.PLU || a.plu || "";
+    const des = a.Designation || a.designation || "";
 
-  // Sécurisation : toujours lower-case pour éviter undefined
-  const plu = a.PLU || a.plu || "";
-  const des = a.Designation || a.designation || "";
-  const nomLatin = a.NomLatin || a.nomLatin || "";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${plu}</td><td>${des}</td><td>${a.NomLatin || ""}</td>`;
 
-  const tr = document.createElement("tr");
+    tr.onclick = () => {
+      f9Target.value = plu;
+      document.getElementById("popup-f9").style.display = "none";
+    };
 
-  tr.innerHTML = `
-    <td>${plu}</td>
-    <td>${des}</td>
-    <td>${nomLatin}</td>
-  `;
+    tbody.appendChild(tr);
+  });
 
-  tr.onclick = () => {
-    f9Target.value = plu;
-    document.getElementById("popup-f9").style.display = "none";
-  };
-
-  tbody.appendChild(tr);
-});
-
+  document.getElementById("f9-close").onclick = () =>
+    (document.getElementById("popup-f9").style.display = "none");
+}
 
 document.addEventListener("keydown", e => {
   if (e.key === "F9" && document.activeElement.tagName === "INPUT") {
@@ -63,23 +61,18 @@ document.addEventListener("keydown", e => {
   }
 });
 
-document.getElementById("f9-close")?.addEventListener("click", () => {
-  document.getElementById("popup-f9").style.display = "none";
-});
-
 
 /**************************************************
- * 🔷 Chargement dynamique du formulaire
+ * RENDU FORMULAIRE PAR TYPE
  **************************************************/
 const formContainer = document.getElementById("form-container");
-const selector = document.getElementById("type-transformation");
+const selectType = document.getElementById("type-transformation");
 
-selector.addEventListener("change", renderForm);
+selectType.addEventListener("change", renderForm);
 renderForm();
 
-
 function renderForm() {
-  const type = selector.value;
+  const type = selectType.value;
 
   if (type === "simple") renderSimple();
   if (type === "cuisine") renderCuisine();
@@ -88,31 +81,47 @@ function renderForm() {
 
 
 /**************************************************
- * 🟦 FORMULAIRE – Transformation simple
+ * FORMULAIRE SIMPLE
  **************************************************/
 function renderSimple() {
   formContainer.innerHTML = `
-    <form id="form-simple" class="header-box">
+    <form id="t-simple" class="header-box">
       <h2>Transformation simple</h2>
 
-      <input type="text" id="plu-source" placeholder="PLU source (F9)" required>
-      <input type="number" id="poids-source" step="0.001" placeholder="Poids consommé (kg)" required>
-
-      <input type="text" id="plu-final" placeholder="PLU final (F9)" required>
-      <input type="number" id="poids-final" step="0.001" placeholder="Poids final obtenu (kg)" required>
-
-      <button class="btn btn-accent" type="submit">Valider</button>
+      <input id="plu-source" placeholder="PLU source (F9)">
+      <input id="poids-source" type="number" step="0.001" placeholder="Poids consommé (kg)">
+      <hr>
+      <input id="plu-final" placeholder="PLU final (F9)">
+      <input id="poids-final" type="number" step="0.001" placeholder="Poids final obtenu (kg)">
+      <button class="btn btn-accent" type="submit">Enregistrer</button>
     </form>
   `;
 
-  document.getElementById("form-simple").addEventListener("submit", handleSimpleTransformation);
+  document.getElementById("t-simple").addEventListener("submit", handleSimple);
 }
 
 
 /**************************************************
- * 🟦 Traitement de la transformation simple
+ * LECTURE STOCK (LOTS)
  **************************************************/
-async function handleSimpleTransformation(e) {
+async function getAvailableLot(plu) {
+  const snap = await getDocs(collection(db, "lots"));
+  let found = null;
+
+  snap.forEach(d => {
+    const L = d.data();
+    if (L.plu == plu && Number(L.poidsRestant) > 0)
+      found = { id: d.id, ...L };
+  });
+
+  return found;
+}
+
+
+/**************************************************
+ * TRAITEMENT SIMPLE
+ **************************************************/
+async function handleSimple(e) {
   e.preventDefault();
 
   const pluSource = document.getElementById("plu-source").value.trim();
@@ -121,72 +130,57 @@ async function handleSimpleTransformation(e) {
   const poidsFinal = Number(document.getElementById("poids-final").value);
 
   if (!pluSource || !poidsSource || !pluFinal || !poidsFinal) {
-    alert("Champs manquants.");
-    return;
+    return alert("Champs manquants");
   }
 
-  // 1️⃣ Chercher le lot en stock
-  const snapLots = await getDocs(collection(db, "lots"));
-  let sourceLot = null;
+  const lot = await getAvailableLot(pluSource);
+  if (!lot) return alert("Aucun lot disponible pour ce PLU");
 
-  snapLots.forEach(d => {
-    const l = d.data();
-    if (l.plu == pluSource && (l.poidsRestant || 0) > 0) {
-      sourceLot = { id: d.id, ...l };
-    }
-  });
+  if (poidsSource > lot.poidsRestant)
+    return alert("Attention : poids > stock restant");
 
-  if (!sourceLot) {
-    alert("Aucun lot disponible pour ce PLU.");
-    return;
-  }
+  const prixFinalKg = (poidsSource * lot.prixAchatKg) / poidsFinal;
 
-  if (poidsSource > sourceLot.poidsRestant) {
-    alert("Poids consommé supérieur au restant !");
-    return;
-  }
-
-  // Calcul du coût final
-  const prixSourceKg = sourceLot.prixAchatKg;
-  const coûtTotal = poidsSource * prixSourceKg;
-  const prixFinalKg = coûtTotal / poidsFinal;
-
-  // 2️⃣ Écriture mouvement sortie
+  /***********************
+   * 1. Sortie du lot source
+   ***********************/
   await addDoc(collection(db, "stock_mouvements"), {
+    type: "sortie",
+    mode: "transformation",
     plu: pluSource,
-    lotId: sourceLot.id,
+    lotId: lot.id,
     poids: poidsSource,
-    sens: "sortie",
-    type: "transformation",
     createdAt: serverTimestamp()
   });
 
-  // MAJ lot source
-  await updateDoc(doc(db, "lots", sourceLot.id), {
-    poidsRestant: sourceLot.poidsRestant - poidsSource
+  await updateDoc(doc(db, "lots", lot.id), {
+    poidsRestant: lot.poidsRestant - poidsSource
   });
 
-  // 3️⃣ Création nouveau lot final
-  const newLotRef = await addDoc(collection(db, "lots"), {
+  /***********************
+   * 2. Nouveau lot final
+   ***********************/
+  const newLot = await addDoc(collection(db, "lots"), {
     plu: pluFinal,
-    designation: "Produit transformé",
+    designation: "Transformation",
     poidsRestant: poidsFinal,
     prixAchatKg: prixFinalKg,
-    type: "transformation",
-    origineLot: `Transformation depuis ${sourceLot.plu}`,
+    origineLot: lot.id,
     createdAt: serverTimestamp()
   });
 
-  // 4️⃣ Historique
+  /***********************
+   * 3. Historique
+   ***********************/
   await addDoc(collection(db, "transformations"), {
     type: "simple",
     pluSource,
     poidsSource,
-    prixSourceKg,
     pluFinal,
     poidsFinal,
     prixFinalKg,
-    lotFinalId: newLotRef.id,
+    lotSourceId: lot.id,
+    lotFinalId: newLot.id,
     createdAt: serverTimestamp()
   });
 
@@ -195,9 +189,194 @@ async function handleSimpleTransformation(e) {
 }
 
 
+/**************************************************
+ * FORMULAIRE CUISINE (multi → 1)
+ **************************************************/
+function renderCuisine() {
+  formContainer.innerHTML = `
+    <form id="t-cuisine" class="header-box">
+      <h2>Préparation cuisine</h2>
+
+      <div id="ingredients"></div>
+
+      <button type="button" class="btn btn-muted" id="add-ing">+ Ajouter ingrédient</button>
+
+      <hr>
+      <input id="plu-final" placeholder="PLU final (F9)">
+      <input id="poids-final" type="number" step="0.001" placeholder="Poids total obtenu (kg)">
+      <button class="btn btn-accent" type="submit">Enregistrer</button>
+    </form>
+  `;
+
+  const box = document.getElementById("ingredients");
+  document.getElementById("add-ing").onclick = () => {
+    const id = uuid();
+    box.insertAdjacentHTML("beforeend", `
+      <div class="ing" data-id="${id}">
+        <input placeholder="PLU ingrédient (F9)" class="plu">
+        <input type="number" step="0.001" placeholder="Poids (kg)" class="poids">
+      </div>
+    `);
+  };
+
+  document.getElementById("t-cuisine").addEventListener("submit", handleCuisine);
+}
+
+
 
 /**************************************************
- * 📜 HISTORIQUE
+ * TRAITEMENT CUISINE
+ **************************************************/
+async function handleCuisine(e) {
+  e.preventDefault();
+
+  const ingredients = [...document.querySelectorAll(".ing")].map(div => ({
+    plu: div.querySelector(".plu").value.trim(),
+    poids: Number(div.querySelector(".poids").value)
+  })).filter(i => i.plu && i.poids);
+
+  const pluFinal = document.getElementById("plu-final").value.trim();
+  const poidsFinal = Number(document.getElementById("poids-final").value);
+
+  if (!ingredients.length) return alert("Aucun ingrédient");
+  if (!pluFinal || !poidsFinal) return alert("PLU final manquant");
+
+  let coutTotal = 0;
+  const movements = [];
+
+  for (const ing of ingredients) {
+    const lot = await getAvailableLot(ing.plu);
+    if (!lot) return alert("Lot manquant pour " + ing.plu);
+
+    if (ing.poids > lot.poidsRestant)
+      return alert("Poids > stock pour " + ing.plu);
+
+    const cout = ing.poids * lot.prixAchatKg;
+    coutTotal += cout;
+
+    movements.push({ lot, poids: ing.poids });
+
+    // sortie stock
+    await addDoc(collection(db, "stock_mouvements"), {
+      type: "sortie",
+      mode: "cuisine",
+      plu: ing.plu,
+      lotId: lot.id,
+      poids: ing.poids,
+      createdAt: serverTimestamp()
+    });
+
+    await updateDoc(doc(db, "lots", lot.id), {
+      poidsRestant: lot.poidsRestant - ing.poids
+    });
+  }
+
+  const prixFinalKg = coutTotal / poidsFinal;
+
+  // nouveau lot
+  const newLot = await addDoc(collection(db, "lots"), {
+    plu: pluFinal,
+    poidsRestant: poidsFinal,
+    prixAchatKg: prixFinalKg,
+    type: "cuisine",
+    createdAt: serverTimestamp()
+  });
+
+  await addDoc(collection(db, "transformations"), {
+    type: "cuisine",
+    ingredients,
+    pluFinal,
+    poidsFinal,
+    prixFinalKg,
+    lotFinalId: newLot.id,
+    createdAt: serverTimestamp()
+  });
+
+  alert("Préparation enregistrée !");
+  loadHistorique();
+}
+
+
+/**************************************************
+ * FORMULAIRE PLATEAU (multi → multi)
+ **************************************************/
+function renderPlateau() {
+  formContainer.innerHTML = `
+    <form id="t-plateau" class="header-box">
+      <h2>Plateau – Composition</h2>
+      <div id="plat-items"></div>
+
+      <button type="button" class="btn btn-muted" id="add-plat">+ Ajouter composant</button>
+      <hr>
+
+      <button class="btn btn-accent" type="submit">Enregistrer</button>
+    </form>
+  `;
+
+  const box = document.getElementById("plat-items");
+  document.getElementById("add-plat").onclick = () => {
+    const id = uuid();
+    box.insertAdjacentHTML("beforeend", `
+      <div class="ing" data-id="${id}">
+        <input class="plu" placeholder="PLU (F9)">
+        <input class="poids" type="number" step="0.001" placeholder="Quantité (kg)">
+      </div>
+    `);
+  };
+
+  document.getElementById("t-plateau").addEventListener("submit", handlePlateau);
+}
+
+
+/**************************************************
+ * TRAITEMENT PLATEAU
+ **************************************************/
+async function handlePlateau(e) {
+  e.preventDefault();
+
+  const items = [...document.querySelectorAll("#plat-items .ing")].map(div => ({
+    plu: div.querySelector(".plu").value.trim(),
+    poids: Number(div.querySelector(".poids").value)
+  })).filter(x => x.plu && x.poids);
+
+  if (!items.length) return alert("Plateau vide.");
+
+  let coutTotal = 0;
+
+  for (const it of items) {
+    const lot = await getAvailableLot(it.plu);
+    if (!lot) return alert("Lot manquant pour " + it.plu);
+
+    coutTotal += it.poids * lot.prixAchatKg;
+
+    await addDoc(collection(db, "stock_mouvements"), {
+      type: "sortie",
+      mode: "plateau",
+      lotId: lot.id,
+      plu: it.plu,
+      poids: it.poids,
+      createdAt: serverTimestamp()
+    });
+
+    await updateDoc(doc(db, "lots", lot.id), {
+      poidsRestant: lot.poidsRestant - it.poids
+    });
+  }
+
+  await addDoc(collection(db, "transformations"), {
+    type: "plateau",
+    items,
+    coutTotal,
+    createdAt: serverTimestamp()
+  });
+
+  alert("Plateau enregistré !");
+  loadHistorique();
+}
+
+
+/**************************************************
+ * HISTORIQUE
  **************************************************/
 async function loadHistorique() {
   const snap = await getDocs(collection(db, "transformations"));
@@ -207,20 +386,29 @@ async function loadHistorique() {
 
   snap.forEach(d => {
     const t = d.data();
-    const tr = document.createElement("tr");
 
     const date = t.createdAt?.toDate
       ? t.createdAt.toDate().toLocaleDateString("fr-FR")
       : "";
 
+    let detail = "";
+
+    if (t.type === "simple") {
+      detail = `${t.pluSource} (${t.poidsSource} kg) → ${t.pluFinal} (${t.poidsFinal} kg)`;
+    } else if (t.type === "cuisine") {
+      detail = t.ingredients.map(i => `${i.plu} (${i.poids}kg)`).join(" + ") +
+               ` → ${t.pluFinal} (${t.poidsFinal}kg)`;
+    } else if (t.type === "plateau") {
+      detail = t.items.map(i => `${i.plu} (${i.poids}kg)`).join(" + ");
+    }
+
+    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${date}</td>
       <td>${t.type}</td>
-      <td>${t.pluSource} → ${t.poidsSource} kg</td>
-      <td>${t.pluFinal} → ${t.poidsFinal} kg</td>
-      <td>${safeFixed(t.prixFinalKg, 2)} €/kg</td>
+      <td>${detail}</td>
+      <td>${safe(t.prixFinalKg)}</td>
       <td>
-        <button class="btn btn-muted" data-id="${d.id}" data-action="edit">✏️</button>
         <button class="btn btn-danger" data-id="${d.id}" data-action="delete">🗑️</button>
       </td>
     `;
@@ -229,7 +417,7 @@ async function loadHistorique() {
   });
 
   document.querySelectorAll("[data-action='delete']").forEach(btn => {
-    btn.addEventListener("click", () => deleteTransformation(btn.dataset.id));
+    btn.onclick = () => deleteTransformation(btn.dataset.id);
   });
 }
 
@@ -237,10 +425,24 @@ loadHistorique();
 
 
 /**************************************************
- * ❌ Suppression transformation
+ * SUPPRESSION (avec restauration stock)
  **************************************************/
 async function deleteTransformation(id) {
   if (!confirm("Supprimer cette transformation ?")) return;
+
+  const snap = await getDoc(doc(db, "transformations", id));
+  if (!snap.exists()) return;
+
+  const t = snap.data();
+
+  // restauration selon le type
+  if (t.type === "simple") {
+    await updateDoc(doc(db, "lots", t.lotSourceId), {
+      poidsRestant: increment(Number(t.poidsSource))
+    });
+    await updateDoc(doc(db, "lots", t.lotFinalId), { poidsRestant: 0 });
+  }
+
   await deleteDoc(doc(db, "transformations", id));
   loadHistorique();
 }
