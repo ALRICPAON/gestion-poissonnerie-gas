@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Fiche Lot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="../css/style.css">
+
+  <style>
+    body {
+      background:#f7f7f7;
+      font-family: Arial;
+      margin:0; padding:20px;
+    }
+
+    .card {
+      background:white;
+      padding:15px;
+      border-radius:10px;
+      margin-bottom:20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .title {
+      font-size:20px;
+      font-weight:bold;
+      margin-bottom:8px;
+    }
+
+    .subtitle {
+      font-size:15px;
+      color:#666;
+      margin-bottom:10px;
+    }
+
+    .row {
+      margin:6px 0;
+      font-size:15px;
+    }
+
+    .row span {
+      font-weight:bold;
+    }
+
+    img.photo {
+      width:100%;
+      max-width:300px;
+      border-radius:8px;
+      margin-top:10px;
+    }
+
+    .movement {
+      padding:10px;
+      border-bottom:1px solid #eee;
+    }
+
+    .movement:last-child {
+      border-bottom:none;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Fiche traçabilité du lot</h2>
+
+  <div id="lot-info" class="card">Chargement…</div>
+
+  <div id="lot-photo" class="card"></div>
+
+  <div id="lot-movements" class="card">
+    <div class="title">Historique FIFO</div>
+    <div id="movement-list">Chargement…</div>
+  </div>
+
+  <script type="module" src="../js/lot.js"></script>
+</body>
+</html>
