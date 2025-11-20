@@ -188,7 +188,7 @@ async function fetchAchatAndLine(lot) {
 async function fetchMovementsForLot(lotId, typeFilter) {
   const col = collection(db, "stock_movements");
   // ⚠️ Cette requête (where lotId + orderBy date) peut demander un index composé
-  const qRef = query(col, where("lotId", "==", lotId), orderBy("date", "asc"));
+  const qRef = query(col, where("lotId", "==", lotId), orderBy("createdAt", "asc"));
   const snap = await getDocs(qRef);
 
   const out = [];
@@ -198,7 +198,7 @@ async function fetchMovementsForLot(lotId, typeFilter) {
     // Filtre par type si besoin (vente / transformation / inventaire)
     if (typeFilter === "vente" && m.type !== "VENTE") return;
     if (typeFilter === "transformation" && m.type !== "TRANSFORMATION") return;
-    if (typeFilter === "inventaire" && !m.type?.toUpperCase().includes("INVENTAIRE")) return;
+    if (typeFilter === "inventaire" && m.type !== "inventory") return;
 
     out.push(m);
   });
@@ -280,7 +280,7 @@ function renderCards(cards, typeFilter) {
         const rest = m.poidsRestant ?? "";
         html += `
           <div class="movement-line">
-            → ${fmtDate(m.date)} • ${type}
+            → ${fmtDate(m.createdAt)} • ${type}
             &nbsp;|&nbsp; ${poids > 0 ? "+" : ""}${poids} kg
             ${rest !== "" ? `&nbsp;|&nbsp; Reste : ${rest} kg` : ""}
           </div>
