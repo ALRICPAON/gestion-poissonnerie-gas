@@ -148,7 +148,7 @@ async function handleSimpleTransformation(e) {
   /**************************************************
    * 2️⃣ Stock mouvement (sortie)
    **************************************************/
-  await addDoc(collection(db, "stock_mouvements"), {
+  await addDoc(collection(db, "stock_movements"), {
     plu: pluSource,
     lotId: sourceLot.id,
     poids: poidsSource,
