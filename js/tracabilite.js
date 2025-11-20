@@ -41,16 +41,14 @@ function fmtDate(val) {
     return val.toLocaleDateString("fr-FR");
   }
 
-  // String "2025-11-22"
+  // String
   const asDate = new Date(val);
   if (!isNaN(asDate.getTime())) {
     return asDate.toLocaleDateString("fr-FR");
   }
 
-  // Format inconnu -> on renvoie tel quel
   return String(val);
 }
-
 
 function normStr(s) {
   return (s || "").toString().toLowerCase();
@@ -64,18 +62,28 @@ els.btn.addEventListener("click", () => {
   });
 });
 
-// Option : charger avec un filtre par défaut (ex: 7 derniers jours)
+// Au chargement : on met "Au" = aujourd'hui, et on charge
 window.addEventListener("load", () => {
-  // Exemple : remplir automatiquement la date "Au" à aujourd'hui
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
   els.to.value = `${yyyy}-${mm}-${dd}`;
 
-  // Tu peux aussi mettre un "Du" par défaut (ex: -7 jours) si tu veux
   loadTraceability().catch(console.error);
 });
+
+// Fonction utilitaire : détecter si un mouvement est "vente / sortie"
+function isSaleLikeMovement(m) {
+  const t = (m.type || "").toString().toUpperCase();
+  const sens = (m.sens || "").toString().toLowerCase();
+
+  // On considère "VENTE", "inventory" (écarts de stock) et toute sortie
+  if (t.includes("VENTE")) return true;
+  if (m.type === "inventory") return true;
+  if (sens === "sortie") return true;
+  return false;
+}
 
 async function loadTraceability() {
   els.btn.disabled = true;
@@ -85,7 +93,7 @@ async function loadTraceability() {
   const toDate = toDateOrNull(els.to.value);
   const pluFilter = els.plu.value.trim();
   const fournFilter = normStr(els.fourn.value.trim());
-  const typeFilter = els.type.value; // all | achat | vente | transformation | inventaire
+  const typeFilter = els.type.value; // all | achat | vente | inventaire | transformation
 
   // 1️⃣ Charger les lots
   const lots = await fetchLots({ fromDate, toDate, pluFilter });
@@ -103,12 +111,12 @@ async function loadTraceability() {
     const lotId = lotDoc.id;
     const lot = lotDoc.data();
 
-    // Filtre fournisseur via achat (si demandé)
     const achatInfo = await fetchAchatAndLine(lot);
-    if (!achatInfo) continue; // si achat introuvable, on skip
+    if (!achatInfo) continue;
 
     const { achat, ligne } = achatInfo;
 
+    // Filtre fournisseur (texte libre)
     if (fournFilter) {
       const nomFourn = normStr(achat?.fournisseurNom || achat?.fournisseur || "");
       if (!nomFourn.includes(fournFilter)) {
@@ -116,8 +124,27 @@ async function loadTraceability() {
       }
     }
 
-    // 3️⃣ Mouvements du lot
-    const mouvements = await fetchMovementsForLot(lotId, typeFilter);
+    // Mouvements du lot
+    const mouvements = await fetchMovementsForLot(lotId);
+
+    // Filtre métier par type
+    const poidsRestant = lot.poidsRestant ?? 0;
+    const closed = !!lot.closed || poidsRestant <= 0;
+
+    let include = true;
+
+    if (typeFilter === "achat") {
+      // On veut surtout les lots consommés
+      include = closed;
+    } else if (typeFilter === "vente") {
+      include = mouvements.some(m => isSaleLikeMovement(m));
+    } else if (typeFilter === "inventaire") {
+      include = mouvements.some(m => m.type === "inventory");
+    } else if (typeFilter === "transformation") {
+      include = mouvements.some(m => (m.type || "").toString().toUpperCase().includes("TRANSFORMATION"));
+    }
+
+    if (!include) continue;
 
     cards.push({ lotId, lot, achat, ligne, mouvements });
   }
@@ -127,6 +154,21 @@ async function loadTraceability() {
     els.btn.disabled = false;
     return;
   }
+
+  // 3️⃣ Tri des cartes par date d'achat (plus récent en premier)
+  cards.sort((a, b) => {
+    const getD = (obj) => {
+      const aData = obj.achat;
+      const l = obj.lot;
+
+      if (aData?.date?.toDate) return aData.date.toDate();
+      if (aData?.createdAt?.toDate) return aData.createdAt.toDate();
+      if (l?.createdAt?.toDate) return l.createdAt.toDate();
+      return new Date(aData?.date || l?.createdAt || 0);
+    };
+
+    return getD(b) - getD(a);
+  });
 
   // 4️⃣ Affichage
   renderCards(cards, typeFilter);
@@ -140,20 +182,17 @@ async function fetchLots({ fromDate, toDate, pluFilter }) {
   let qRef;
 
   if (pluFilter) {
-    // Si PLU renseigné : on filtre sur le PLU uniquement
     qRef = query(lotsCol, where("plu", "==", pluFilter));
   } else if (fromDate || toDate) {
     const constraints = [];
     if (fromDate) constraints.push(where("createdAt", ">=", fromDate));
     if (toDate) {
-      // inclure le jour entier
       const end = new Date(toDate);
       end.setHours(23, 59, 59, 999);
       constraints.push(where("createdAt", "<=", end));
     }
     qRef = query(lotsCol, ...constraints, orderBy("createdAt", "desc"));
   } else {
-    // Pas de filtres → on prend les lots les plus récents
     qRef = query(lotsCol, orderBy("createdAt", "desc"));
   }
 
@@ -185,22 +224,15 @@ async function fetchAchatAndLine(lot) {
 }
 
 // -------- Fetch mouvements FIFO pour 1 lot ----------
-async function fetchMovementsForLot(lotId, typeFilter) {
+async function fetchMovementsForLot(lotId) {
   const col = collection(db, "stock_movements");
-  // ⚠️ Cette requête (where lotId + orderBy date) peut demander un index composé
+  // Nécessite un index composite (lotId + createdAt)
   const qRef = query(col, where("lotId", "==", lotId), orderBy("createdAt", "asc"));
   const snap = await getDocs(qRef);
 
   const out = [];
   snap.forEach((doc) => {
-    const m = doc.data();
-
-    // Filtre par type si besoin (vente / transformation / inventaire)
-    if (typeFilter === "vente" && m.type !== "VENTE") return;
-    if (typeFilter === "transformation" && m.type !== "TRANSFORMATION") return;
-    if (typeFilter === "inventaire" && m.type !== "inventory") return;
-
-    out.push(m);
+    out.push(doc.data());
   });
 
   return out;
@@ -208,23 +240,6 @@ async function fetchMovementsForLot(lotId, typeFilter) {
 
 // -------- Affichage ----------
 function renderCards(cards, typeFilter) {
-    // 🔥 Tri décroissant par date d’achat
-  cards.sort((a, b) => {
-    const dateA =
-      a.achat?.date?.toDate ? a.achat.date.toDate() :
-      a.achat?.createdAt?.toDate ? a.achat.createdAt.toDate() :
-      a.lot?.createdAt?.toDate ? a.lot.createdAt.toDate() :
-      new Date(a.achat?.date || a.lot?.createdAt);
-
-    const dateB =
-      b.achat?.date?.toDate ? b.achat.date.toDate() :
-      b.achat?.createdAt?.toDate ? b.achat.createdAt.toDate() :
-      b.lot?.createdAt?.toDate ? b.lot.createdAt.toDate() :
-      new Date(b.achat?.date || b.lot?.createdAt);
-
-    return dateB - dateA; // plus récent en premier
-  });
-
   let html = "";
 
   for (const { lotId, lot, achat, ligne, mouvements } of cards) {
@@ -259,29 +274,51 @@ function renderCards(cards, typeFilter) {
         </div>
     `;
 
-    // Si filtre "achat" seul → on n'affiche pas les mouvements
+    // Si on ne veut que les achats → pas besoin de détailler les mouvements
     if (typeFilter === "achat") {
+      // On peut afficher les mouvements aussi si tu veux, mais tu avais demandé surtout les lots consommés
       html += `</div>`;
       continue;
     }
 
+    // Filtrage d'affichage des mouvements suivant typeFilter
+    let filteredMovements = mouvements;
+
+    if (typeFilter === "vente") {
+      filteredMovements = mouvements.filter(m => isSaleLikeMovement(m));
+    } else if (typeFilter === "inventaire") {
+      filteredMovements = mouvements.filter(m => m.type === "inventory");
+    } else if (typeFilter === "transformation") {
+      filteredMovements = mouvements.filter(m =>
+        (m.type || "").toString().toUpperCase().includes("TRANSFORMATION")
+      );
+    }
+
     html += `<div class="movements-title">Mouvements du lot</div>`;
 
-        if (!mouvements.length) {
-      if (closed) {
-        html += `<div class="no-movements">Lot consommé — aucun mouvement enregistré.</div>`;
-      } else {
-        html += `<div class="no-movements">Aucun mouvement encore enregistré.</div>`;
+    if (!filteredMovements.length) {
+      let msg = "Aucun mouvement enregistré pour ce lot.";
+
+      if (typeFilter === "vente") {
+        msg = "Aucun mouvement de vente/sortie pour ce lot.";
+      } else if (typeFilter === "inventaire") {
+        msg = "Aucun mouvement d'inventaire pour ce lot.";
+      } else if (typeFilter === "transformation") {
+        msg = "Aucune transformation pour ce lot.";
+      } else if (closed) {
+        msg = "Lot consommé — aucun mouvement détaillé disponible.";
       }
+
+      html += `<div class="no-movements">${msg}</div>`;
     } else {
-      for (const m of mouvements) {
+      for (const m of filteredMovements) {
         const type = m.type || "";
         const poids = m.poids || 0;
         const rest = m.poidsRestant ?? "";
         html += `
           <div class="movement-line">
             → ${fmtDate(m.createdAt)} • ${type}
-            &nbsp;|&nbsp; ${poids > 0 ? "+" : ""}${poids} kg
+            &nbsp;|&nbsp; ${poids > 0 ? "+" : ""}${poids.toFixed ? poids.toFixed(3) : poids} kg
             ${rest !== "" ? `&nbsp;|&nbsp; Reste : ${rest} kg` : ""}
           </div>
         `;
