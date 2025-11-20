@@ -7,6 +7,13 @@ import {
   serverTimestamp, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+// --- Sécurise l'affichage des nombres (évite crash .toFixed sur undefined) ---
+function safeFixed(n, decimals = 2) {
+  if (n == null || isNaN(Number(n))) return "—";
+  return Number(n).toFixed(decimals);
+}
+
+
 
 /**************************************************
  * 🔵 F9 → Liste articles
@@ -25,19 +32,29 @@ async function loadF9Articles() {
   tbody.innerHTML = "";
 
   snap.forEach(d => {
-    const a = d.data();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${a.PLU || ""}</td>
-      <td>${a.Designation || ""}</td>
-    `;
-    tr.onclick = () => {
-      f9Target.value = a.PLU;
-      document.getElementById("popup-f9").style.display = "none";
-    };
-    tbody.appendChild(tr);
-  });
-}
+  const a = d.data();
+
+  // Sécurisation : toujours lower-case pour éviter undefined
+  const plu = a.PLU || a.plu || "";
+  const des = a.Designation || a.designation || "";
+  const nomLatin = a.NomLatin || a.nomLatin || "";
+
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>${plu}</td>
+    <td>${des}</td>
+    <td>${nomLatin}</td>
+  `;
+
+  tr.onclick = () => {
+    f9Target.value = plu;
+    document.getElementById("popup-f9").style.display = "none";
+  };
+
+  tbody.appendChild(tr);
+});
+
 
 document.addEventListener("keydown", e => {
   if (e.key === "F9" && document.activeElement.tagName === "INPUT") {
@@ -201,7 +218,7 @@ async function loadHistorique() {
       <td>${t.type}</td>
       <td>${t.pluSource} → ${t.poidsSource} kg</td>
       <td>${t.pluFinal} → ${t.poidsFinal} kg</td>
-      <td>${t.prixFinalKg.toFixed(2)} €/kg</td>
+      <td>${safeFixed(t.prixFinalKg, 2)} €/kg</td>
       <td>
         <button class="btn btn-muted" data-id="${d.id}" data-action="edit">✏️</button>
         <button class="btn btn-danger" data-id="${d.id}" data-action="delete">🗑️</button>
