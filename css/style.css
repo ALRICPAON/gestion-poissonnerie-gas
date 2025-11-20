@@ -329,4 +329,113 @@ h2 {
   background:#f0f0f0;
 }
 </style>
+/*************************************
+ * TRACABILITÉ – Style spécifique
+ *************************************/
+
+.trace-card {
+  background: var(--bg-box);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 1em 1.2em;
+  margin-bottom: 1.4em;
+  color: var(--text-main);
+}
+
+.trace-title {
+  border-left: 4px solid var(--accent);
+  padding-left: 0.6em;
+  margin-bottom: 0.7em;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.trace-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 0.8em;
+}
+
+.trace-photo {
+  width: 90px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-top: 6px;
+}
+
+.badge-open {
+  background: #2aa83b;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-closed {
+  background: var(--danger);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.movements-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 0.3em;
+  margin-top: 0.5em;
+  color: var(--text-main);
+}
+
+.movement-line {
+  background: #f6fdff;
+  border-left: 3px solid var(--accent);
+  padding: 6px 8px;
+  margin-bottom: 5px;
+  font-size: 13px;
+  border-radius: var(--radius);
+  color: var(--text-main);
+}
+
+.no-movements {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 0.5em;
+}
+
+/* Filtres tracabilité */
+.trace-filters {
+  background: var(--bg-box);
+  padding: 1em;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5em;
+}
+
+.trace-filters input,
+.trace-filters select {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 0.4em 0.6em;
+  border-radius: var(--radius);
+  color: var(--text-main);
+}
+
+/* Bouton retour */
+.btn-return {
+  background: #d9eff2;
+  color: var(--text-main);
+  border-radius: var(--radius);
+  padding: 0.5em 1em;
+  border: none;
+  cursor: pointer;
+}
+.btn-return:hover {
+  background: #bee4ea;
+}
 
