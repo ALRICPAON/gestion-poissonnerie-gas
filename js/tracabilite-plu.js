@@ -4,163 +4,114 @@ import {
   query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// Shortcuts
-const qs = (s) => document.querySelector(s);
+const qs = s => document.querySelector(s);
+const fmt = d => (d?.toDate ? d.toDate().toLocaleDateString("fr-FR") : "");
 
-// Format date
-function fmt(d) {
-  if (!d) return "";
-  const x = d.toDate ? d.toDate() : new Date(d);
-  return x.toLocaleDateString('fr-FR');
-}
-
-// Input listener
-qs("#input-plu").addEventListener("input", (e) => {
+qs("#input-plu").addEventListener("input", e => {
   const plu = e.target.value.trim();
-  if (plu.length >= 3) loadAll(plu);
+  if (plu.length >= 3) loadPLU(plu);
 });
 
-// ============ LOAD EVERYTHING ============
-async function loadAll(plu) {
+async function loadPLU(plu) {
   loadStock(plu);
   loadAchats(plu);
-  loadVentes(plu);
   loadMovements(plu);
 }
 
-// =================== STOCK ===================
+// 🟢 STOCK ACTUEL
 async function loadStock(plu) {
-  const col = collection(db, "lots");
-  const q = query(col,
-    where("plu", "==", plu),
-    where("closed", "==", false),
-    orderBy("createdAt", "asc")
+  const ref = query(
+    collection(db,"lots"),
+    where("plu","==",plu),
+    where("closed","==",false),
+    orderBy("createdAt","asc")
   );
+  const snap = await getDocs(ref);
 
-  const snap = await getDocs(q);
-  const el = qs("#stock-block");
+  const el = qs("#stock");
+  el.innerHTML = `<div class="card-title">Stock actuel</div>`;
+  el.style.display = "block";
 
   if (snap.empty) {
-    el.style.display = "block";
-    el.innerHTML = `<div class="title">Stock actuel</div>
-    Aucun lot ouvert.`;
+    el.innerHTML += `<div>Aucun lot ouvert</div>`;
     return;
   }
 
-  let html = `<div class="title">Stock actuel</div>`;
-
   snap.forEach(doc => {
     const d = doc.data();
-    html += `
-      <div class="row">
+    el.innerHTML += `
+      <div class="item">
         <b>Lot ${doc.id}</b><br>
-        ${d.poidsRestant} / ${d.poidsInitial} kg<br>
+        Restant : ${d.poidsRestant} kg<br>
         DLC : ${fmt(d.dlc)}<br>
-        ${d.zone || ""} ${d.sousZone || ""}<br>
-        ${d.engin || ""}<br>
-        <a class="btn" href="lot.html?lot=${doc.id}">Voir lot</a>
-      </div>
-      <hr>
-    `;
+        FAO : ${d.zone || ""} ${d.sousZone || ""}<br>
+        Engin : ${d.engin || ""}<br>
+        ${d.photo_url ? `<img class="mini-photo" src="${d.photo_url}">` : ""}
+        <br><a class="btn" href="lot.html?lot=${doc.id}">Voir le lot</a>
+      </div>`;
   });
-
-  el.style.display = "block";
-  el.innerHTML = html;
 }
 
-// =================== ACHATS ===================
+// 🟡 ACHATS – ORIGINE
 async function loadAchats(plu) {
-  const achatsCol = collection(db, "achats");
-  const achatsSnap = await getDocs(achatsCol);
+  const el = qs("#achats");
+  el.innerHTML = `<div class="card-title">Achats</div>`;
+  el.style.display = "block";
 
-  const el = qs("#achats-block");
-  let html = `<div class="title">Achats</div>`;
   let found = false;
 
-  for (const achat of achatsSnap.docs) {
-    const id = achat.id;
-    const lignesCol = collection(db, `achats/${id}/lignes`);
+  const achats = await getDocs(collection(db,"achats"));
+  for (const a of achats.docs) {
+    const lignes = await getDocs(
+      query(collection(db,`achats/${a.id}/lignes`), where("plu","==",plu))
+    );
 
-    const q = query(lignesCol, where("plu", "==", plu));
-    const lignesSnap = await getDocs(q);
-
-    lignesSnap.forEach(l => {
+    lignes.forEach(l => {
       found = true;
       const d = l.data();
-
-      html += `
-        <div class="row">
-          <b>Lot ${d.lotId}</b><br>
-          Poids : ${d.poidsKg} kg<br>
-          Prix : ${d.prixHTKg} €/kg<br>
-          DLC : ${fmt(d.dlc)}<br>
-          ${d.zone || ""} ${d.sousZone || ""}<br>
-          ${d.engin || ""}<br>
-          ${d.photo_url ? `<img src="${d.photo_url}" class="mini-photo">` : ""}
-        </div>
-        <hr>
-      `;
+      el.innerHTML += `
+        <div class="item">
+          <b>Achat du ${fmt(d.createdAt)}</b><br>
+          Poids : ${d.poidsKg} kg — Prix : ${d.prixHTKg} €/kg<br>
+          Lot : ${d.lotId}<br>
+          FAO : ${d.zone || ""} ${d.sousZone || ""}<br>
+          Engin : ${d.engin || ""}<br>
+          ${d.photo_url ? `<img class="mini-photo" src="${d.photo_url}">` : ""}
+        </div>`;
     });
   }
 
-  if (!found) html += `<i>Aucun achat trouvé</i>`;
-
-  el.style.display = "block";
-  el.innerHTML = html;
+  if (!found) {
+    el.innerHTML += `<div>Aucun achat trouvé</div>`;
+  }
 }
 
-// =================== VENTES ===================
-async function loadVentes(plu) {
-  const el = qs("#ventes-block");
-
-  // CA importé dans inventaireCA
-  const snap = await getDocs(collection(db, "inventaireCA"));
-  let html = `<div class="title">Ventes (poids estimé via CA)</div>`;
-  let totalVendu = 0;
-
-  snap.forEach(doc => {
-    const d = doc.data();
-    if (d.plu == plu) {
-      html += `
-        <div class="row">
-          ${fmt(d.date)} : ${d.poidsVendu} kg
-        </div>
-      `;
-      totalVendu += d.poidsVendu;
-    }
-  });
-
-  html += `<div class="row"><b>Total vendu :</b> ${totalVendu} kg</div>`;
-
-  el.style.display = "block";
-  el.innerHTML = html;
-}
-
-// =================== MOUVEMENTS FIFO ===================
+// 🔴 FIFO – CONSOMMATIONS & VENTES
 async function loadMovements(plu) {
-  const col = collection(db, "stock_movements");
-  const q = query(col, where("plu", "==", plu), orderBy("date", "asc"));
-  const snap = await getDocs(q);
+  const ref = query(
+    collection(db,"stock_movements"),
+    where("plu","==",plu),
+    orderBy("date","asc")
+  );
+  const snap = await getDocs(ref);
 
-  const el = qs("#mouvements-block");
-  let html = `<div class="title">Mouvements FIFO</div>`;
+  const el = qs("#moves");
+  el.innerHTML = `<div class="card-title">Mouvements</div>`;
+  el.style.display = "block";
 
   if (snap.empty) {
-    html += `<i>Aucun mouvement</i>`;
-  } else {
-    snap.forEach(doc => {
-      const m = doc.data();
-      html += `
-        <div class="movement">
-          <b>${fmt(m.date)}</b> — ${m.type}<br>
-          ${m.poids > 0 ? "+" : ""}${m.poids} kg<br>
-          Lot : ${m.lotId}<br>
-          Poids restant : ${m.poidsRestant} kg
-        </div>
-      `;
-    });
+    el.innerHTML += `<div>Aucun mouvement</div>`;
+    return;
   }
 
-  el.style.display = "block";
-  el.innerHTML = html;
+  snap.forEach(m => {
+    const d = m.data();
+    el.innerHTML += `
+      <div class="item">
+        <b>${fmt(d.date)}</b> — ${d.type}<br>
+        ${d.poids > 0 ? "+" : ""}${d.poids} kg<br>
+        Lot : ${d.lotId}<br>
+        Reste : ${d.poidsRestant} kg
+      </div>`;
+  });
 }
