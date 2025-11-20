@@ -27,11 +27,30 @@ function toDateOrNull(str) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-function fmtDate(ts) {
-  if (!ts) return "";
-  const d = ts.toDate ? ts.toDate() : ts;
-  return d.toLocaleDateString("fr-FR");
+function fmtDate(val) {
+  if (!val) return "";
+
+  // Firestore Timestamp
+  if (val.toDate) {
+    const d = val.toDate();
+    return d.toLocaleDateString("fr-FR");
+  }
+
+  // Date JS
+  if (val instanceof Date) {
+    return val.toLocaleDateString("fr-FR");
+  }
+
+  // String "2025-11-22"
+  const asDate = new Date(val);
+  if (!isNaN(asDate.getTime())) {
+    return asDate.toLocaleDateString("fr-FR");
+  }
+
+  // Format inconnu -> on renvoie tel quel
+  return String(val);
 }
+
 
 function normStr(s) {
   return (s || "").toString().toLowerCase();
