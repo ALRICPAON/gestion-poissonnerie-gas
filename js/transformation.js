@@ -161,23 +161,23 @@ function closeF9() {
 function renderF9() {
   const q = el.popupSearch.value.toLowerCase();
   const list = ARTICLES.filter(a =>
-    a.plu?.toLowerCase().includes(q) ||
-    a.designation?.toLowerCase().includes(q) ||
-    a.nomLatin?.toLowerCase().includes(q)
+    (a.PLU || "").toLowerCase().includes(q)
+(a.Designation || "").toLowerCase().includes(q)
+(a.NomLatin || "").toLowerCase().includes(q)
   );
 
   el.popupBody.innerHTML = list.map(a => `
     <tr class="pick" data-plu="${a.plu}">
-      <td>${a.plu}</td>
-      <td>${a.designation || ""}</td>
-      <td>${a.nomLatin || ""}</td>
+      <td>${a.PLU || ""}</td>
+<td>${a.Designation || ""}</td>
+<td>${a.NomLatin || ""}</td>
     </tr>
   `).join("");
 
   qsa(".pick").forEach(tr => {
     tr.onclick = () => {
       const plu = tr.dataset.plu;
-      const art = ARTICLES.find(x => x.plu == plu);
+      const art = ARTICLES.find(a => a.PLU == input.value);
       applyArticle(F9_MODE, art);
       closeF9();
     };
@@ -193,10 +193,10 @@ function fillFromPlu(mode) {
 function applyArticle(mode, art) {
   if (mode === "src") {
     qs("#src-plu").value = art.plu;
-    qs("#src-des").value = art.designation;
+    qs("#src-des").value = art.Designation || "";
   } else {
     qs("#dst-plu").value = art.plu;
-    qs("#dst-des").value = art.designation;
+    qs("#dst-des").value = art.Designation || "";
   }
 }
 
