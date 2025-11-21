@@ -280,6 +280,15 @@ async function consumeFIFO(lots, needed) {
       lot,
       takeKg: take
     });
+   // --- 🔵 Mouvement SORTIE transformation (lot source) ---
+await addDoc(collection(db, "stock_movements"), {
+  lotId: lot.id,
+  type: "transformation",
+  sens: "sortie",
+  poids: -take,
+  poidsRestant: newRest,
+  createdAt: serverTimestamp(),
+});
   }
 
   if (rest > 0.001) throw new Error("Stock insuffisant.");
@@ -345,6 +354,16 @@ async function createTransfoLot({
       kgPris: u.takeKg,
       prixKg: u.lot.prixAchatKg
     }))
+  });
+
+  // --- 🔵 Mouvement ENTREE transformation (lot créé) ---
+  await addDoc(collection(db, "stock_movements"), {
+    lotId: lotId,       // ✔️ le vrai ID du lot
+    type: "transformation",
+    sens: "entrée",
+    poids: poids,       // ✔️ poids du lot créé
+    poidsRestant: poids,
+    createdAt: serverTimestamp(),
   });
 
   return lotId;
