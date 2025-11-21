@@ -161,48 +161,61 @@ function closeF9() {
 
 function renderF9() {
   const q = el.popupSearch.value.toLowerCase();
+
   const list = ARTICLES.filter(a =>
     String(a.PLU || "").toLowerCase().includes(q) ||
     String(a.Designation || "").toLowerCase().includes(q) ||
     String(a.NomLatin || "").toLowerCase().includes(q)
-);
-
+  );
 
   el.popupBody.innerHTML = list.map(a => `
-    <tr class="pick" data-plu="${a.plu}">
-      <td>${a.PLU || ""}</td>
-<td>${a.Designation || ""}</td>
-<td>${a.NomLatin || ""}</td>
+    <tr class="pick" data-plu="${a.PLU}">
+      <td>${a.PLU}</td>
+      <td>${a.Designation || ""}</td>
+      <td>${a.NomLatin || ""}</td>
     </tr>
   `).join("");
 
   qsa(".pick").forEach(tr => {
-   tr.onclick = () => {
-    const plu = tr.dataset.plu;
-    const art = ARTICLES.find(a => a.PLU == plu);  // ✔️ correct
-    applyArticle(F9_MODE, art);
-    closeF9();
-};
+    tr.onclick = () => {
+      const plu = tr.dataset.plu;
+
+      const art = ARTICLES.find(a =>
+        String(a.PLU) === String(plu)
+      );
+
+      if (!art) {
+        console.warn("Article introuvable dans F9 :", plu);
+        return;
+      }
+
+      applyArticle(F9_MODE, art);
+      closeF9();
+    };
   });
 }
 
 function fillFromPlu(mode) {
   const input = qs(mode==="src"?"#src-plu":"#dst-plu");
-  const art = ARTICLES.find(a => a.plu == input.value);
+  const art = ARTICLES.find(a => String(a.PLU) === String(input.value));
   if (art) applyArticle(mode, art);
 }
 
 function applyArticle(mode, art) {
   if (!art) return;
 
+  const plu = String(art.PLU || "");
+  const des = String(art.Designation || "");
+
   if (mode === "src") {
-    qs("#src-plu").value = art.PLU || "";
-    qs("#src-des").value = art.Designation || "";
+    qs("#src-plu").value = plu;
+    qs("#src-des").value = des;
   } else {
-    qs("#dst-plu").value = art.PLU || "";
-    qs("#dst-des").value = art.Designation || "";
+    qs("#dst-plu").value = plu;
+    qs("#dst-des").value = des;
   }
 }
+
 
 
 /* ---------------------------
