@@ -317,8 +317,9 @@ function inheritMeta(used) {
     zone: main.zone,
     sousZone: main.sousZone,
     nomLatin: main.nomLatin,
-    dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null
-  };
+    dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null,
+    photo_url: main.photo_url || main.photo || null
+};
 }
 
 /* ---------------------------
@@ -347,6 +348,11 @@ async function createTransfoLot({
     sousZone: meta.sousZone || "",
     nomLatin: meta.nomLatin || "",
     dlc: meta.dlc || null,
+
+        // copie des données source
+    photo_url: meta.photo_url || null,
+    achatId: null,
+    ligneId: null,
 
     // trace
     origineLots: used.map(u => ({
