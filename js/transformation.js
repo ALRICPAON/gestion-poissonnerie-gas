@@ -246,7 +246,9 @@ async function loadLotsFIFO(plu) {
       zone: L.zone || "",
       sousZone: L.sousZone || "",
       nomLatin: L.nomLatin || "",
-      dlc: L.dlc || null
+      dlc: L.dlc || null,
+      engin: L.engin || "",            // 👈 manquait !
+    photo_url: L.photo_url || L.photo || ""  // 👈 manquait !
     });
   });
 
