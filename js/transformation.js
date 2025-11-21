@@ -176,12 +176,12 @@ function renderF9() {
   `).join("");
 
   qsa(".pick").forEach(tr => {
-    tr.onclick = () => {
-      const plu = tr.dataset.plu;
-      const art = ARTICLES.find(a => a.PLU == input.value);
-      applyArticle(F9_MODE, art);
-      closeF9();
-    };
+   tr.onclick = () => {
+    const plu = tr.dataset.plu;
+    const art = ARTICLES.find(a => a.PLU == plu);  // ✔️ correct
+    applyArticle(F9_MODE, art);
+    closeF9();
+};
   });
 }
 
@@ -192,14 +192,17 @@ function fillFromPlu(mode) {
 }
 
 function applyArticle(mode, art) {
+  if (!art) return;
+
   if (mode === "src") {
-    qs("#src-plu").value = art.plu;
+    qs("#src-plu").value = art.PLU || "";
     qs("#src-des").value = art.Designation || "";
   } else {
-    qs("#dst-plu").value = art.plu;
+    qs("#dst-plu").value = art.PLU || "";
     qs("#dst-des").value = art.Designation || "";
   }
 }
+
 
 /* ---------------------------
    Load LOTS FIFO
