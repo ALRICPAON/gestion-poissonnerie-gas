@@ -161,10 +161,11 @@ function closeF9() {
 function renderF9() {
   const q = el.popupSearch.value.toLowerCase();
   const list = ARTICLES.filter(a =>
-    (a.PLU || "").toLowerCase().includes(q)
-(a.Designation || "").toLowerCase().includes(q)
-(a.NomLatin || "").toLowerCase().includes(q)
-  );
+    String(a.PLU || "").toLowerCase().includes(q) ||
+    String(a.Designation || "").toLowerCase().includes(q) ||
+    String(a.NomLatin || "").toLowerCase().includes(q)
+);
+
 
   el.popupBody.innerHTML = list.map(a => `
     <tr class="pick" data-plu="${a.plu}">
