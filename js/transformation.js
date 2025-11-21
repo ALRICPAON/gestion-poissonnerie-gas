@@ -325,6 +325,7 @@ function inheritMeta(used) {
 };
 }
 
+
 /* ---------------------------
    Create NEW LOT (transformation)
 --------------------------- */
@@ -333,32 +334,34 @@ async function createTransfoLot({
 }) {
   const lotId = genLotId();
 
+  // ⭐ On récupère le premier lot source (celui majoritaire)
+  const first = used[0]?.lot || null;
+
   await setDoc(doc(db, "lots", lotId), {
     source: "transformation",
+    lotId,
     plu,
     designation,
     poidsInitial: poids,
     poidsRestant: poids,
     prixAchatKg: paFinal,
-    lotId,
+
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     closed: false,
 
-    // meta 
+    // ⭐ META héritée du lot source
     fao: meta.fao || "",
     zone: meta.zone || "",
     sousZone: meta.sousZone || "",
     nomLatin: meta.nomLatin || "",
     dlc: meta.dlc || null,
-    engin: meta.engin || "",          // 👈 OBLIGATOIRE
-  photo_url: meta.photo_url || "",  // 👈 OBLIGATOIRE
-
-
-        // copie des données source
+    engin: meta.engin || "",
     photo_url: meta.photo_url || null,
-    achatId: null,
-    ligneId: null,
+
+    // ⭐⭐ COPIE CORRECTE DU LIEN VERS LE LOT D’ACHAT D’ORIGINE
+    achatId: first ? first.achatId : null,
+    ligneId: first ? first.ligneId : null,
 
     // trace
     origineLots: used.map(u => ({
@@ -368,18 +371,19 @@ async function createTransfoLot({
     }))
   });
 
-  // --- 🔵 Mouvement ENTREE transformation (lot créé) ---
+  // --- Mouvement entrée
   await addDoc(collection(db, "stock_movements"), {
-    lotId: lotId,       // ✔️ le vrai ID du lot
+    lotId: lotId,
     type: "transformation",
     sens: "entrée",
-    poids: poids,       // ✔️ poids du lot créé
+    poids: poids,
     poidsRestant: poids,
     createdAt: serverTimestamp(),
   });
 
   return lotId;
 }
+
 
 /* ---------------------------
    Save transformation log
