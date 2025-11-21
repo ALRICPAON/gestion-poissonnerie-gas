@@ -102,7 +102,12 @@ async function loadTraceability() {
     const lot = lotDoc.data();
 
     const achatInfo = await fetchAchatAndLine(lot);
-    if (!achatInfo) continue;
+    // Si lot transformé → pas d'achat, pas de ligne, mais on doit AFFICHER
+if (!achatInfo && lot.source !== "transformation") continue;
+
+const achat = achatInfo?.achat || null;
+const ligne = achatInfo?.ligne || null;
+
 
     const { achat, ligne } = achatInfo;
 
