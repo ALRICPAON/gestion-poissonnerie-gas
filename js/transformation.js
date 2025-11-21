@@ -349,6 +349,9 @@ async function createTransfoLot({
     sousZone: meta.sousZone || "",
     nomLatin: meta.nomLatin || "",
     dlc: meta.dlc || null,
+    engin: meta.engin || "",          // 👈 OBLIGATOIRE
+  photo_url: meta.photo_url || "",  // 👈 OBLIGATOIRE
+
 
         // copie des données source
     photo_url: meta.photo_url || null,
