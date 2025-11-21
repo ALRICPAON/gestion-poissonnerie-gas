@@ -67,6 +67,7 @@ onAuthStateChanged(auth, async user => {
   UID = user.uid;
 
   await loadArticles();
+  console.log("ARTICLES LOADED:", ARTICLES);
   renderForm();
   bindPopup();
   await loadHistory();
