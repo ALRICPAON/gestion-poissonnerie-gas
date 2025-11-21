@@ -248,7 +248,7 @@ async function loadLotsFIFO(plu) {
       nomLatin: L.nomLatin || "",
       dlc: L.dlc || null,
       engin: L.engin || "",            // 👈 manquait !
-    photo_url: L.photo_url || L.photo || ""  // 👈 manquait !
+    photo_url: L.photo_url || L.photo || null  // 👈 OBLIGATOIRE
     });
   });
 
