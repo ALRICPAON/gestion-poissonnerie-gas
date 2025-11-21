@@ -275,6 +275,7 @@ function renderCards(cards, typeFilter) {
   let html = "";
 
   for (const { lotId, lot, achat, ligne, mouvements, photo } of cards) {
+    const photoUrl = photo || lot.photo_url || ligne?.photo_url || null;
     const poidsInitial = lot.poidsInitial || ligne?.poidsKg || 0;
     const poidsRestant = lot.poidsRestant ?? 0;
     const closed = !!lot.closed || poidsRestant <= 0;
@@ -326,10 +327,14 @@ function renderCards(cards, typeFilter) {
 ` : "" }
 
           <span class="${badgeClass}">${badgeLabel}</span><br>
-          <strong>Reste :</strong> ${poidsRestant} kg / ${poidsInitial} kg
-          const photoUrl = photo || lot.photo_url || ligne?.photo_url || "";
+<strong>Reste :</strong> ${poidsRestant} kg / ${poidsInitial} kg
 
-${ photoUrl ? `<br><img class="trace-photo" src="${photoUrl}">` : "" }
+${ (() => {
+      const url = photo || lot.photo_url || ligne?.photo_url || null;
+      return url ? `<br><img class="trace-photo" src="${url}">` : "";
+    })()
+}
+
 
         </div>
 
