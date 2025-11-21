@@ -301,9 +301,6 @@ function renderCards(cards, typeFilter) {
   ${lot.origineLots.map(o => `• Lot ${o.lotId} : ${o.kgPris}kg`).join("<br>")}
 ` : "" }
 
-${ lot.photo_url ? `
-  <br><img class="trace-photo" src="${lot.photo_url}">
-` : "" }
           <span class="${badgeClass}">${badgeLabel}</span><br>
           <strong>Reste :</strong> ${poidsRestant} kg / ${poidsInitial} kg
           ${
