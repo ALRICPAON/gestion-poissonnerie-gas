@@ -1,105 +1,80 @@
 /**************************************************
- * TRANSFORMATION.JS — FIFO complet basé sur lots
- * Compatible avec transformation.html (fourni)
- * Auteur: ChatGPT pour Alric — 21/11/2025
+ * TRANSFORMATION.JS — Version 100% adaptée aux LOTS RÉELS
+ * Auteur : ChatGPT pour Alric — 21/11/2025
  **************************************************/
 
 import { app, db } from "../js/firebase-init.js";
 import {
-  collection, collectionGroup,
-  doc, getDoc, getDocs, setDoc, updateDoc, addDoc,
-  query, where, orderBy, limit,
-  serverTimestamp, Timestamp
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc,
+  query, where, orderBy, serverTimestamp, Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-import {
-  getAuth, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from 
+"https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
 /* ---------------------------
-  Utils
+   Utils
 --------------------------- */
-const qs  = (s) => document.querySelector(s);
-const qsa = (s) => Array.from(document.querySelectorAll(s));
-const nz = (v) => (v == null ? "" : String(v).trim());
-const toNum = (v) => {
+const qs = s => document.querySelector(s);
+const qsa = s => Array.from(document.querySelectorAll(s));
+const nz = v => v == null ? "" : String(v).trim();
+const toNum = v => {
   const x = parseFloat(String(v).replace(",", "."));
   return isFinite(x) ? x : 0;
 };
-const fmtMoney = (n) =>
-  Number(n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-const fmtDate = (ts) => {
-  try {
-    const d = ts?.toDate ? ts.toDate() : (ts instanceof Date ? ts : null);
-    if (!d) return "";
-    return d.toLocaleDateString("fr-FR");
-  } catch { return ""; }
+const fmtDate = ts => {
+  const d = ts?.toDate ? ts.toDate() : null;
+  return d ? d.toLocaleDateString("fr-FR") : "";
 };
+const fmtMoney = n =>
+  Number(n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+
 const todayKey = () => {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,"0");
-  const da= String(d.getDate()).padStart(2,"0");
-  return `${y}${m}${da}`;
+  return d.getFullYear().toString()
+       + String(d.getMonth()+1).padStart(2,"0")
+       + String(d.getDate()).padStart(2,"0");
 };
-const genLotId = () => `T${todayKey()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+const genLotId = () =>
+  `T${todayKey()}-${Math.random().toString(36).substring(2,6).toUpperCase()}`;
 
 /* ---------------------------
-  DOM refs
+   DOM references
 --------------------------- */
 const el = {
-  formContainer: qs("#form-container"),
-  typeSelect: qs("#type-transformation"),
-  transfoList: qs("#transfo-list"),
-
+  form: qs("#form-container"),
+  histo: qs("#transfo-list"),
   popup: qs("#popup-f9"),
   popupBody: qs("#popup-f9 tbody"),
   popupSearch: qs("#f9-search"),
-  popupClose: qs("#f9-close"),
+  popupClose: qs("#f9-close")
 };
 
 let UID = null;
-
-// caches
-let STOCK = [];     // docs stock
-let ARTICLES = [];  // docs articles
-let F9_MODE = null; // "source" | "target"
-let onPickSource = null;
-let onPickTarget = null;
+let ARTICLES = [];
+let F9_MODE = null;
 
 /* ---------------------------
-  Boot
+   Init
 --------------------------- */
 const auth = getAuth(app);
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (!user) {
     window.location.href = "index.html";
     return;
   }
   UID = user.uid;
 
-  await loadStock();
   await loadArticles();
-  renderFormSimple();
-  await loadHistory();
+  renderForm();
   bindPopup();
+  await loadHistory();
 });
 
 /* ---------------------------
-  Loaders
+   Load Articles (for F9)
 --------------------------- */
-
-// Stock résumé par PLU
-async function loadStock() {
-  const snap = await getDocs(collection(db, "stock"));
-  STOCK = [];
-  snap.forEach(d => STOCK.push({ id: d.id, ...d.data() }));
-
-  // tri alpha
-  STOCK.sort((a,b)=> nz(a.designation).localeCompare(nz(b.designation)));
-}
-
-// Articles (pour popup F9)
 async function loadArticles() {
   const snap = await getDocs(collection(db, "articles"));
   ARTICLES = [];
@@ -108,115 +83,73 @@ async function loadArticles() {
 }
 
 /* ---------------------------
-  Form render (simple 1→1)
+   Render Form
 --------------------------- */
-function renderFormSimple() {
-  if (!el.formContainer) return;
+function renderForm() {
+  el.form.innerHTML = `
+    <div class="card">
+      <h2>Transformation simple (1 → 1)</h2>
 
-  el.formContainer.innerHTML = `
-    <div class="card" style="margin-top:12px;">
-      <h2 style="margin-top:0;">Transformation simple (1 → 1)</h2>
-
+      <label>Produit source</label>
       <div class="form-row">
-        <label>Produit source</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input id="src-plu" class="input" placeholder="PLU source" style="width:140px;">
-          <input id="src-des" class="input" placeholder="Désignation source" style="flex:1;" disabled>
-          <button id="src-f9" class="btn btn-muted">F9</button>
-        </div>
-        <small id="src-info" style="opacity:.7;"></small>
+        <input id="src-plu" class="input" placeholder="PLU source" style="width:130px">
+        <input id="src-des" class="input" placeholder="Désignation source" disabled>
+        <button id="src-f9" class="btn btn-muted">F9</button>
       </div>
 
+      <label>Poids consommé (kg)</label>
+      <input id="src-kg" class="input">
+
+      <hr>
+
+      <label>Produit résultat</label>
       <div class="form-row">
-        <label>Poids consommé (kg)</label>
-        <input id="src-kg" class="input" placeholder="ex: 3,5">
+        <input id="dst-plu" class="input" placeholder="PLU résultat" style="width:130px">
+        <input id="dst-des" class="input" placeholder="Désignation résultat" disabled>
+        <button id="dst-f9" class="btn btn-muted">F9</button>
       </div>
 
-      <hr style="margin:14px 0;opacity:.2;">
+      <label>Poids obtenu (kg)</label>
+      <input id="dst-kg" class="input">
 
-      <div class="form-row">
-        <label>Produit résultat</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input id="dst-plu" class="input" placeholder="PLU cible" style="width:140px;">
-          <input id="dst-des" class="input" placeholder="Désignation cible" style="flex:1;" disabled>
-          <button id="dst-f9" class="btn btn-muted">F9</button>
-        </div>
-        <small id="dst-info" style="opacity:.7;"></small>
-      </div>
+      <button id="btn-run" class="btn btn-primary" style="margin-top:10px;width:100%;">
+        Valider la transformation
+      </button>
 
-      <div class="form-row">
-        <label>Poids obtenu (kg)</label>
-        <input id="dst-kg" class="input" placeholder="ex: 2,1">
-      </div>
-
-      <div class="form-row" style="margin-top:10px;">
-        <button id="btn-run-transfo" class="btn btn-primary" style="width:100%;">
-          ✅ Valider la transformation
-        </button>
-      </div>
-
-      <div id="transfo-msg" style="margin-top:8px;"></div>
+      <div id="msg" style="margin-top:10px;"></div>
     </div>
   `;
 
-  // bind F9 buttons
-  qs("#src-f9").addEventListener("click", () => openF9("source"));
-  qs("#dst-f9").addEventListener("click", () => openF9("target"));
+  qs("#src-f9").onclick = () => openF9("src");
+  qs("#dst-f9").onclick = () => openF9("dst");
 
-  // when user types plu manually
-  qs("#src-plu").addEventListener("change", () => fillFromPlu("source"));
-  qs("#dst-plu").addEventListener("change", () => fillFromPlu("target"));
+  qs("#src-plu").onchange = () => fillFromPlu("src");
+  qs("#dst-plu").onchange = () => fillFromPlu("dst");
 
-  qs("#btn-run-transfo").addEventListener("click", runTransformationSimple);
+  qs("#btn-run").onclick = runTransformation;
 }
 
-function fillFromPlu(mode) {
-  const plu = nz(qs(mode === "source" ? "#src-plu" : "#dst-plu").value);
-  if (!plu) return;
-
-  const art = ARTICLES.find(a => String(a.plu) === plu || a.id === plu);
-  if (!art) {
-    setMsg("⚠️ PLU inconnu dans Articles.", "warn");
-    return;
-  }
-  applyPickedArticle(mode, art);
-}
-
-function applyPickedArticle(mode, art) {
-  if (mode === "source") {
-    qs("#src-plu").value = art.plu || art.id || "";
-    qs("#src-des").value = art.designation || "";
-    qs("#src-info").textContent = art.nomLatin ? `Nom latin : ${art.nomLatin}` : "";
-    // petite aide stock
-    const st = STOCK.find(s => String(s.plu) === String(art.plu));
-    if (st?.resteKg != null) {
-      qs("#src-info").textContent += ` — Stock: ${toNum(st.resteKg).toFixed(2)} kg`;
-    }
-  } else {
-    qs("#dst-plu").value = art.plu || art.id || "";
-    qs("#dst-des").value = art.designation || "";
-    qs("#dst-info").textContent = art.nomLatin ? `Nom latin : ${art.nomLatin}` : "";
-  }
+function setMsg(txt, type="info") {
+  const c = {
+    info: "#ccc", ok: "#52e16b",
+    err: "#ff6868", warn: "#f1c04f"
+  }[type] || "#ccc";
+  qs("#msg").innerHTML = `<span style="color:${c}">${txt}</span>`;
 }
 
 /* ---------------------------
-  Popup F9
+   F9 popup
 --------------------------- */
 function bindPopup() {
-  if (!el.popup) return;
-
-  el.popupClose.addEventListener("click", closeF9);
-  el.popupSearch.addEventListener("input", renderF9List);
-
-  el.popup.addEventListener("click", (e) => {
-    if (e.target === el.popup) closeF9();
-  });
+  el.popupClose.onclick = closeF9;
+  el.popupSearch.oninput = renderF9;
+  el.popup.onclick = e => { if (e.target === el.popup) closeF9(); };
 }
 
 function openF9(mode) {
-  F9_MODE = mode; // source | target
+  F9_MODE = mode;
   el.popupSearch.value = "";
-  renderF9List();
+  renderF9();
   el.popup.style.display = "flex";
 }
 
@@ -225,316 +158,269 @@ function closeF9() {
   F9_MODE = null;
 }
 
-function renderF9List() {
-  const q = nz(el.popupSearch.value).toLowerCase();
-  const list = ARTICLES.filter(a => {
-    const plu = String(a.plu || a.id || "").toLowerCase();
-    const des = nz(a.designation).toLowerCase();
-    const latin = nz(a.nomLatin).toLowerCase();
-    return !q || plu.includes(q) || des.includes(q) || latin.includes(q);
-  });
+function renderF9() {
+  const q = el.popupSearch.value.toLowerCase();
+  const list = ARTICLES.filter(a =>
+    a.plu?.toLowerCase().includes(q) ||
+    a.designation?.toLowerCase().includes(q) ||
+    a.nomLatin?.toLowerCase().includes(q)
+  );
 
   el.popupBody.innerHTML = list.map(a => `
-    <tr class="row-pick" data-plu="${a.plu || a.id}">
-      <td>${a.plu || ""}</td>
+    <tr class="pick" data-plu="${a.plu}">
+      <td>${a.plu}</td>
       <td>${a.designation || ""}</td>
       <td>${a.nomLatin || ""}</td>
     </tr>
   `).join("");
 
-  qsa(".row-pick").forEach(tr => {
-    tr.addEventListener("click", () => {
+  qsa(".pick").forEach(tr => {
+    tr.onclick = () => {
       const plu = tr.dataset.plu;
-      const art = ARTICLES.find(x => String(x.plu || x.id) === String(plu));
-      if (art) applyPickedArticle(F9_MODE, art);
+      const art = ARTICLES.find(x => x.plu == plu);
+      applyArticle(F9_MODE, art);
       closeF9();
-    });
+    };
   });
 }
 
-/* ---------------------------
-  Core — FIFO lots
---------------------------- */
+function fillFromPlu(mode) {
+  const input = qs(mode==="src"?"#src-plu":"#dst-plu");
+  const art = ARTICLES.find(a => a.plu == input.value);
+  if (art) applyArticle(mode, art);
+}
 
-// Retourne lots ouverts FIFO pour un PLU
-async function loadOpenLotsForPlu(plu) {
-  // On récupère toutes les lignes d’achats (collectionGroup "lignes")
-  // Filtre sur plu et closed=false
-  const lotsQ = query(
-    collectionGroup(db, "lignes"),
-    where("plu", "==", isNaN(plu) ? plu : Number(plu)),
+function applyArticle(mode, art) {
+  if (mode === "src") {
+    qs("#src-plu").value = art.plu;
+    qs("#src-des").value = art.designation;
+  } else {
+    qs("#dst-plu").value = art.plu;
+    qs("#dst-des").value = art.designation;
+  }
+}
+
+/* ---------------------------
+   Load LOTS FIFO
+--------------------------- */
+async function loadLotsFIFO(plu) {
+  const qLots = query(
+    collection(db, "lots"),
+    where("plu", "==", plu),
     where("closed", "==", false),
-    orderBy("createdAt", "asc"),
-    limit(200)
+    orderBy("createdAt", "asc")
   );
 
-  const snap = await getDocs(lotsQ);
+  const snap = await getDocs(qLots);
   const lots = [];
   snap.forEach(d => {
-    const data = d.data();
+    const L = d.data();
     lots.push({
       id: d.id,
       ref: d.ref,
-      ...data
+      plu: L.plu,
+      designation: L.designation,
+      poidsInitial: toNum(L.poidsInitial),
+      poidsRestant: toNum(L.poidsRestant),
+      prixAchatKg: toNum(L.prixAchatKg),
+      lotId: L.lotId,
+      fao: L.fao || "",
+      zone: L.zone || "",
+      sousZone: L.sousZone || "",
+      nomLatin: L.nomLatin || "",
+      dlc: L.dlc || null
     });
   });
 
-  // calcul resteKg si absent
-  lots.forEach(l => {
-    const total = toNum(l.poidsTotalKg ?? l.poidsKg ?? l.poids ?? 0);
-    const consumed = toNum(l.poidsConsumeeKg ?? l.kgConsomme ?? 0);
-    const resteField = l.resteKg ?? l.restantKg;
-    const reste = resteField != null ? toNum(resteField) : Math.max(0, total - consumed);
-    l._resteKg = reste;
-    l._totalKg = total;
-    l._prixKg = toNum(l.prixKg ?? l.pa ?? 0);
-  });
-
-  // on garde seulement ceux avec reste>0
-  return lots.filter(l => l._resteKg > 0.0001);
+  return lots.filter(l => l.poidsRestant > 0);
 }
 
-// consomme FIFO
-async function consumeLotsFIFO(lots, neededKg) {
-  let remaining = neededKg;
+/* ---------------------------
+   Consume FIFO
+--------------------------- */
+async function consumeFIFO(lots, needed) {
+  let rest = needed;
   let totalCost = 0;
-  const usedLots = [];
+  const used = [];
 
   for (const lot of lots) {
-    if (remaining <= 0) break;
+    if (rest <= 0) break;
 
-    const take = Math.min(lot._resteKg, remaining);
-    remaining -= take;
+    const take = Math.min(rest, lot.poidsRestant);
+    rest -= take;
 
-    totalCost += take * lot._prixKg;
-    usedLots.push({ lot, takeKg: take });
-
-    const newConsumed = toNum(lot.poidsConsumeeKg ?? 0) + take;
-    const newReste = Math.max(0, lot._totalKg - newConsumed);
+    const newRest = lot.poidsRestant - take;
+    totalCost += take * lot.prixAchatKg;
 
     await updateDoc(lot.ref, {
-      poidsConsumeeKg: newConsumed,
-      resteKg: newReste,
-      closed: newReste <= 0.0001,
+      poidsRestant: newRest,
+      closed: newRest <= 0,
       updatedAt: serverTimestamp()
     });
+
+    used.push({
+      lot,
+      takeKg: take
+    });
   }
 
-  if (remaining > 0.001) {
-    throw new Error(`Stock insuffisant. Manque ${remaining.toFixed(2)} kg`);
-  }
+  if (rest > 0.001) throw new Error("Stock insuffisant.");
 
-  return { totalCost, usedLots };
+  return { used, totalCost };
 }
 
 /* ---------------------------
-  Create new lot (achats/TRANSFO + transformations log)
+   Meta inheritance
 --------------------------- */
-async function ensureDailyTransfoAchat() {
-  const achatId = `TRANSFO_${todayKey()}`;
-  const achatRef = doc(db, "achats", achatId);
-  const snap = await getDoc(achatRef);
+function inheritMeta(used) {
+  if (used.length === 0) return {};
 
-  if (!snap.exists()) {
-    await setDoc(achatRef, {
-      fournisseurCode: "TRANSFO",
-      fournisseurNom: "TRANSFORMATIONS",
-      dateBL: Timestamp.fromDate(new Date()),
-      createdAt: serverTimestamp(),
-      closed: false,
-      type: "transformation",
-      userId: UID
-    }, { merge: true });
-  }
-  return achatRef;
-}
+  // majoritaire = plus gros takeKg
+  const main = used.slice().sort((a,b)=> b.takeKg - a.takeKg)[0].lot;
 
-async function createTransformedLot({
-  dstPlu, dstDes, dstKg, paFinal, meta, usedLots
-}) {
-  const achatRef = await ensureDailyTransfoAchat();
-  const lignesCol = collection(achatRef, "lignes");
-
-  const lotId = genLotId();
-
-  const newLine = {
-    plu: isNaN(dstPlu) ? dstPlu : Number(dstPlu),
-    designation: dstDes,
-    poidsTotalKg: dstKg,
-    prixKg: paFinal,
-    lotId,
-    type: "transformation",
-    origineLotIds: usedLots.map(u => u.lot.lotId || u.lot.id),
-    origineRefs: usedLots.map(u => u.lot.ref.path),
-    createdAt: serverTimestamp(),
-    closed: false,
-    qr_url: "",
-
-    // meta héritées
-    fao: meta.fao || "",
-    zone: meta.zone || "",
-    souszone: meta.souszone || "",
-    engin: meta.engin || "",
-    nomLatin: meta.nomLatin || "",
-    dlc: meta.dlc || null
-  };
-
-  const lineRef = await addDoc(lignesCol, newLine);
-  return { lotId, lineRef };
-}
-
-/* ---------------------------
-  Rebuild stock résumé pour un PLU
---------------------------- */
-async function recomputeStockForPlu(plu) {
-  const lots = await loadOpenLotsForPlu(plu);
-  let totalKg = 0;
-  let totalCost = 0;
-  let designation = "";
-
-  for (const l of lots) {
-    totalKg += l._resteKg;
-    totalCost += l._resteKg * l._prixKg;
-    if (!designation) designation = l.designation || "";
-  }
-  const pa = totalKg > 0 ? totalCost / totalKg : 0;
-
-  // On garde PV / marge existants si déjà en stock
-  const stockDocId = String(plu);
-  const stockRef = doc(db, "stock", stockDocId);
-  const oldSnap = await getDoc(stockRef);
-  const old = oldSnap.exists() ? oldSnap.data() : {};
-
-  await setDoc(stockRef, {
-    plu: isNaN(plu) ? plu : Number(plu),
-    designation: designation || old.designation || "",
-    resteKg: totalKg,
-    pa: pa,
-    pv: old.pv ?? null,
-    marge: old.marge ?? null,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-}
-
-/* ---------------------------
-  Meta héritage (majoritaire)
---------------------------- */
-function computeInheritedMeta(usedLots) {
-  // majoritaire = lot où on a pris le plus de kg
-  const majority = usedLots.slice().sort((a,b)=> b.takeKg - a.takeKg)[0]?.lot || {};
-  const meta = {
-    fao: majority.fao || "",
-    zone: majority.zone || majority.faoZone || "",
-    souszone: majority.souszone || majority.faoSousZone || "",
-    engin: majority.engin || "",
-    nomLatin: majority.nomLatin || "",
-    dlc: majority.dlc || null
-  };
-
-  // DLC la plus proche (si dispo) pour sécurité
-  const dlcs = usedLots
+  // dlc la plus proche si plusieurs
+  const dlcs = used
     .map(u => u.lot.dlc)
     .filter(Boolean)
-    .map(d => (d.toDate ? d.toDate() : d))
+    .map(d => d.toDate ? d.toDate() : d)
     .sort((a,b)=> a-b);
 
-  if (dlcs.length) meta.dlc = Timestamp.fromDate(dlcs[0]);
-
-  return meta;
+  return {
+    fao: main.fao,
+    zone: main.zone,
+    sousZone: main.sousZone,
+    nomLatin: main.nomLatin,
+    dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null
+  };
 }
 
 /* ---------------------------
-  Run transformation simple
+   Create NEW LOT (transformation)
 --------------------------- */
-async function runTransformationSimple() {
-  clearMsg();
+async function createTransfoLot({
+  plu, designation, poids, paFinal, meta, used
+}) {
+  const lotId = genLotId();
+
+  await setDoc(doc(db, "lots", lotId), {
+    source: "transformation",
+    plu,
+    designation,
+    poidsInitial: poids,
+    poidsRestant: poids,
+    prixAchatKg: paFinal,
+    lotId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    closed: false,
+
+    // meta 
+    fao: meta.fao || "",
+    zone: meta.zone || "",
+    sousZone: meta.sousZone || "",
+    nomLatin: meta.nomLatin || "",
+    dlc: meta.dlc || null,
+
+    // trace
+    origineLots: used.map(u => ({
+      lotId: u.lot.lotId,
+      kgPris: u.takeKg,
+      prixKg: u.lot.prixAchatKg
+    }))
+  });
+
+  return lotId;
+}
+
+/* ---------------------------
+   Save transformation log
+--------------------------- */
+async function saveHistory(t) {
+  await addDoc(collection(db, "transformations"), {
+    ...t,
+    userId: UID,
+    createdAt: serverTimestamp()
+  });
+}
+
+/* ---------------------------
+   Run Transformation
+--------------------------- */
+async function runTransformation() {
+  setMsg("Traitement en cours…");
 
   const srcPlu = nz(qs("#src-plu").value);
-  const srcDes = nz(qs("#src-des").value);
   const srcKg  = toNum(qs("#src-kg").value);
-
   const dstPlu = nz(qs("#dst-plu").value);
-  const dstDes = nz(qs("#dst-des").value);
   const dstKg  = toNum(qs("#dst-kg").value);
+  const dstDes = nz(qs("#dst-des").value);
 
-  if (!srcPlu || !dstPlu) return setMsg("⚠️ Choisis un PLU source et un PLU résultat.", "warn");
-  if (srcKg <= 0 || dstKg <= 0) return setMsg("⚠️ Poids invalides.", "warn");
+  if (!srcPlu || !dstPlu) return setMsg("PLU manquant", "err");
+  if (srcKg <= 0 || dstKg <= 0) return setMsg("Poids invalides", "err");
 
   try {
-    setMsg("⏳ Chargement des lots FIFO…");
+    const lots = await loadLotsFIFO(srcPlu);
+    if (!lots.length) return setMsg("Aucun lot ouvert pour ce PLU", "err");
 
-    const lots = await loadOpenLotsForPlu(srcPlu);
-    if (!lots.length) throw new Error("Aucun lot ouvert pour ce PLU source.");
-
-    const { totalCost, usedLots } = await consumeLotsFIFO(lots, srcKg);
-
+    const { used, totalCost } = await consumeFIFO(lots, srcKg);
     const paFinal = totalCost / dstKg;
 
-    const meta = computeInheritedMeta(usedLots);
+    const meta = inheritMeta(used);
 
-    const { lotId } = await createTransformedLot({
-      dstPlu, dstDes, dstKg, paFinal, meta, usedLots
+    const newLotId = await createTransfoLot({
+      plu: dstPlu,
+      designation: dstDes,
+      poids: dstKg,
+      paFinal,
+      meta,
+      used
     });
 
-    // log transformation
-    await addDoc(collection(db, "transformations"), {
-      userId: UID,
+    await saveHistory({
       type: "simple",
-      sourcePlu: isNaN(srcPlu) ? srcPlu : Number(srcPlu),
-      sourceDesignation: srcDes,
+      sourcePlu: srcPlu,
       kgSource: srcKg,
-      ciblePlu: isNaN(dstPlu) ? dstPlu : Number(dstPlu),
+      ciblePlu: dstPlu,
       cibleDesignation: dstDes,
       kgCible: dstKg,
       rendement: dstKg / srcKg,
-      coutSource: totalCost,
       paCible: paFinal,
-      lotCibleId: lotId,
-      lotsSource: usedLots.map(u => ({
-        lotId: u.lot.lotId || u.lot.id,
+      coutSource: totalCost,
+      lotCibleId: newLotId,
+      lotsSource: used.map(u => ({
+        lotId: u.lot.lotId,
         kgPris: u.takeKg,
-        prixKg: u.lot._prixKg
-      })),
-      createdAt: serverTimestamp()
+        prixKg: u.lot.prixAchatKg
+      }))
     });
 
-    // rebuild stock résumé
-    setMsg("⏳ Mise à jour stock…");
-    await recomputeStockForPlu(srcPlu);
-    await recomputeStockForPlu(dstPlu);
+    setMsg(`✔️ Transformation OK — Nouveau lot : ${newLotId} — PA ${paFinal.toFixed(2)} €/kg`, "ok");
 
-    setMsg(`✅ Transformation OK. PA final: ${paFinal.toFixed(2)} €/kg — Lot créé: ${lotId}`, "ok");
-
-    // reset form
     qs("#src-kg").value = "";
     qs("#dst-kg").value = "";
 
-    // refresh
-    await loadStock();
     await loadHistory();
 
   } catch (e) {
     console.error(e);
-    setMsg("❌ " + (e.message || "Erreur inconnue"), "err");
+    setMsg("Erreur : " + e.message, "err");
   }
 }
 
 /* ---------------------------
-  History
+   Load HISTORY
 --------------------------- */
 async function loadHistory() {
-  if (!el.transfoList) return;
-
-  const qHist = query(
+  const qH = query(
     collection(db, "transformations"),
     where("userId", "==", UID),
     orderBy("createdAt", "desc"),
     limit(50)
   );
 
-  const snap = await getDocs(qHist);
+  const snap = await getDocs(qH);
   if (snap.empty) {
-    el.transfoList.innerHTML = `<tr><td colspan="6">Aucune transformation.</td></tr>`;
+    el.histo.innerHTML = `<tr><td colspan="6">Aucune transformation.</td></tr>`;
     return;
   }
 
@@ -544,21 +430,19 @@ async function loadHistory() {
     html += `
       <tr>
         <td>${fmtDate(t.createdAt)}</td>
-        <td>${t.type || "simple"}</td>
-        <td>${t.sourcePlu || ""} — ${t.sourceDesignation || ""} (${toNum(t.kgSource).toFixed(2)}kg)</td>
-        <td>${t.ciblePlu || ""} — ${t.cibleDesignation || ""} (${toNum(t.kgCible).toFixed(2)}kg)</td>
-        <td>${fmtMoney(t.coutSource)} / ${toNum(t.kgCible).toFixed(2)}kg → ${toNum(t.paCible).toFixed(2)} €/kg</td>
-        <td>
-          <button class="btn btn-muted btn-small" data-id="${d.id}" data-action="view">Voir</button>
-        </td>
+        <td>${t.sourcePlu} (${toNum(t.kgSource).toFixed(2)}kg)</td>
+        <td>${t.ciblePlu} (${toNum(t.kgCible).toFixed(2)}kg)</td>
+        <td>${toNum(t.paCible).toFixed(2)} €/kg</td>
+        <td>${t.lotCibleId}</td>
+        <td><button class="btn btn-small btn-muted" data-id="${d.id}">Voir</button></td>
       </tr>
     `;
   });
 
-  el.transfoList.innerHTML = html;
+  el.histo.innerHTML = html;
 
-  qsa("[data-action='view']").forEach(btn => {
-    btn.addEventListener("click", () => viewTransfo(btn.dataset.id));
+  qsa("[data-id]").forEach(btn => {
+    btn.onclick = () => viewTransfo(btn.dataset.id);
   });
 }
 
@@ -568,34 +452,16 @@ async function viewTransfo(id) {
   if (!snap.exists()) return;
 
   const t = snap.data();
-  const detail = [
+  const lines = [
     `📅 ${fmtDate(t.createdAt)}`,
-    `Source: ${t.sourcePlu} — ${t.sourceDesignation} (${toNum(t.kgSource).toFixed(2)} kg)`,
-    `Résultat: ${t.ciblePlu} — ${t.cibleDesignation} (${toNum(t.kgCible).toFixed(2)} kg)`,
-    `Rendement: ${(toNum(t.rendement)*100).toFixed(1)} %`,
-    `Coût source: ${fmtMoney(t.coutSource)}`,
-    `PA final: ${toNum(t.paCible).toFixed(2)} €/kg`,
-    `Lot créé: ${t.lotCibleId}`,
+    `Source : ${t.sourcePlu} (${toNum(t.kgSource)}kg)`,
+    `Cible : ${t.ciblePlu} (${toNum(t.kgCible)}kg)`,
+    `PA final : ${toNum(t.paCible).toFixed(2)} €/kg`,
+    `Lot créé : ${t.lotCibleId}`,
     ``,
-    `Lots consommés:`,
-    ...(t.lotsSource || []).map(l => `- ${l.lotId} : ${toNum(l.kgPris).toFixed(2)} kg × ${toNum(l.prixKg).toFixed(2)} €/kg`)
-  ].join("\n");
+    `Lots utilisés :`,
+    ...(t.lotsSource || []).map(l => `- ${l.lotId} : ${l.kgPris}kg × ${l.prixKg}€/kg`)
+  ];
 
-  alert(detail);
+  alert(lines.join("\n"));
 }
-
-/* ---------------------------
-  Message UI
---------------------------- */
-function setMsg(txt, type="info") {
-  const box = qs("#transfo-msg");
-  if (!box) return;
-  const c = {
-    info: "color:#bbb;",
-    ok: "color:#64d86b;",
-    warn: "color:#f3b94d;",
-    err: "color:#ff6b6b;"
-  }[type] || "color:#bbb;";
-  box.innerHTML = `<div style="${c}">${txt}</div>`;
-}
-function clearMsg(){ setMsg(""); }
