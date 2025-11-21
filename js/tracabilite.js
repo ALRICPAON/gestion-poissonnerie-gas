@@ -101,13 +101,13 @@ async function loadTraceability() {
     const lotId = lotDoc.id;
     const lot = lotDoc.data();
 
-    const achatInfo = await fetchAchatAndLine(lot);
-    // Si lot transformé → pas d'achat, pas de ligne, mais on doit AFFICHER
+   const achatInfo = await fetchAchatAndLine(lot);
+
+// CAS 1 — lot d’achat normal → si pas d’achatInfo = on SKIP
 if (!achatInfo && lot.source !== "transformation") continue;
 
-
-
-    const { achat, ligne } = achatInfo;
+// CAS 2 — lot de transformation → OK même sans achatInfo
+const { achat = null, ligne = null } = achatInfo || {};
 
     // filtre fournisseur
     if (fournFilter) {
