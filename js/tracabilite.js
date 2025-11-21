@@ -292,6 +292,10 @@ function renderCards(cards, typeFilter) {
           <strong>Poids initial :</strong> ${poidsInitial} kg<br>
           <strong>Zone :</strong> ${lot.zone || ligne?.zone || ""} ${lot.sousZone || ligne?.sousZone || ""}<br>
           <strong>Engin :</strong> ${lot.engin || ligne?.engin || ""}<br>
+          ${ lot.photo_url ? `
+  <br><img class="trace-photo" src="${lot.photo_url}">
+` : "" }
+
           ${ lot.source === "transformation" && lot.origineLots ? `
   <strong>Origine :</strong><br>
   ${lot.origineLots.map(o => `• Lot ${o.lotId} : ${o.kgPris}kg`).join("<br>")}
