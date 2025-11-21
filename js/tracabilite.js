@@ -105,8 +105,6 @@ async function loadTraceability() {
     // Si lot transformé → pas d'achat, pas de ligne, mais on doit AFFICHER
 if (!achatInfo && lot.source !== "transformation") continue;
 
-const achat = achatInfo?.achat || null;
-const ligne = achatInfo?.ligne || null;
 
 
     const { achat, ligne } = achatInfo;
