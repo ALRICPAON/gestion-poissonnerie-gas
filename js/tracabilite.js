@@ -142,7 +142,8 @@ const { achat = null, ligne = null } = achatInfo || {};
 
     if (!include) continue;
 
-    cards.push({ lotId, lot, achat, ligne, mouvements });
+    const photo = await fetchPhotoForLot(lot, ligne);
+cards.push({ lotId, lot, achat, ligne, mouvements, photo });
   }
 
   if (!cards.length) {
@@ -242,6 +243,29 @@ async function fetchMovementsForLot(lotId) {
   const snap = await getDocs(qRef);
   return snap.docs.map(d => d.data());
 }
+/*******************************************
+ * FETCH PHOTO (lot → ligne achat)
+ *******************************************/
+async function fetchPhotoForLot(lot, ligne) {
+  // 1️⃣ Lot possède déjà une photo → OK
+  if (lot.photo_url) return lot.photo_url;
+
+  // 2️⃣ Pas lié à un achat → impossible
+  if (!lot.achatId || !lot.ligneId) return null;
+
+  try {
+    const ligneRef = doc(db, `achats/${lot.achatId}/lignes`, lot.ligneId);
+    const snap = await getDoc(ligneRef);
+    if (!snap.exists()) return null;
+
+    const data = snap.data();
+    return data.photo_url || data.photo || null;
+
+  } catch (e) {
+    console.error("fetchPhotoForLot ERROR", e);
+    return null;
+  }
+}
 
 
 /*******************************************
@@ -250,7 +274,7 @@ async function fetchMovementsForLot(lotId) {
 function renderCards(cards, typeFilter) {
   let html = "";
 
-  for (const { lotId, lot, achat, ligne, mouvements } of cards) {
+  for (const { lotId, lot, achat, ligne, mouvements, photo } of cards) {
     const poidsInitial = lot.poidsInitial || ligne?.poidsKg || 0;
     const poidsRestant = lot.poidsRestant ?? 0;
     const closed = !!lot.closed || poidsRestant <= 0;
@@ -303,11 +327,10 @@ function renderCards(cards, typeFilter) {
 
           <span class="${badgeClass}">${badgeLabel}</span><br>
           <strong>Reste :</strong> ${poidsRestant} kg / ${poidsInitial} kg
-          ${
-            lot.photo_url || ligne?.photo_url
-              ? `<br><img class="trace-photo" src="${lot.photo_url || ligne.photo_url}">`
-              : ""
-          }
+          const photoUrl = photo || lot.photo_url || ligne?.photo_url || "";
+
+${ photoUrl ? `<br><img class="trace-photo" src="${photoUrl}">` : "" }
+
         </div>
 
         <div class="movements-title">Mouvements du lot</div>
