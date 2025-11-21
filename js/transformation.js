@@ -313,12 +313,13 @@ function inheritMeta(used) {
     .sort((a,b)=> a-b);
 
   return {
-    fao: main.fao,
-    zone: main.zone,
-    sousZone: main.sousZone,
-    nomLatin: main.nomLatin,
-    dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null,
-    photo_url: main.photo_url || main.photo || null
+  fao: main.fao,
+  zone: main.zone,
+  sousZone: main.sousZone,
+  nomLatin: main.nomLatin,
+  dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null,
+  engin: main.engin || "",
+  photo_url: main.photo_url || main.photo || null
 };
 }
 
