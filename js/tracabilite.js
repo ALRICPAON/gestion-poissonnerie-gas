@@ -364,3 +364,5 @@ ${ (() => {
 
   els.list.innerHTML = html;
 }
+window.fetchPhotoForLot = fetchPhotoForLot;
+
