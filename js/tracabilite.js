@@ -255,8 +255,9 @@ function renderCards(cards, typeFilter) {
     const badgeClass = closed ? "badge-closed" : "badge-open";
     const badgeLabel = closed ? "CONSOMMÉ" : "EN COURS";
 
-    const fournisseur =
-      achat?.fournisseurNom || achat?.fournisseur || "";
+    const fournisseur = achat?.fournisseurNom 
+                 || achat?.fournisseur 
+                 || (lot.source === "transformation" ? "Transformation interne" : "");
 
     const achatDate =
       achat?.date || achat?.createdAt || lot.createdAt;
