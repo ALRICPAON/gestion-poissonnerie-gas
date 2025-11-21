@@ -247,6 +247,8 @@ async function loadLotsFIFO(plu) {
       sousZone: L.sousZone || "",
       nomLatin: L.nomLatin || "",
       dlc: L.dlc || null,
+      achatId: L.achatId || null,
+ligneId: L.ligneId || null,
       engin: L.engin || "",            // 👈 manquait !
     photo_url: L.photo_url || L.photo || null  // 👈 OBLIGATOIRE
     });
