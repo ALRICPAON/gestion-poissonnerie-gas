@@ -1,7 +1,7 @@
 import { db, auth } from "./firebase-init.js";
 import {
   collection, doc, getDoc, getDocs, query, where,
-  setDoc, serverTimestamp
+  setDoc, updateDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 const el = {
@@ -28,32 +28,41 @@ const el = {
 };
 
 let achatsCache = [];       // achats chargés
-let selection = new Map();  // achatId -> {full:boolean, lines:Set(lineId), totalHT:number, meta:{...}}
+let selection = new Map();  // achatId -> {full:boolean, lines:Set(lineId), totalHT:number}
 let currentPopupAchat = null;
 
 const n2 = v => Number(v||0).toFixed(2);
 
+// 🔥 parse robuste (virgule -> point)
+function toNum(v) {
+  if (v == null) return 0;
+  const s = String(v).replace(/\s/g,"").replace(",",".");
+  const x = parseFloat(s);
+  return isFinite(x) ? x : 0;
+}
+
 // ---------------------------
-// Charger fournisseurs
+// Charger fournisseurs (liste)
 // ---------------------------
 async function loadFournisseurs() {
   const snap = await getDocs(collection(db, "fournisseurs"));
   const opts = [];
   snap.forEach(d => {
     const r = d.data();
-    const code = r.code || r.Code || d.id;
+    const code = r.code || r.Code || r.fournisseurCode || r.FournisseurCode || d.id;
     const nom  = r.nom || r.Nom || r.raisonSociale || r.RaisonSociale || "";
     opts.push({ code, nom });
   });
 
   opts.sort((a,b)=> (a.nom||"").localeCompare(b.nom||""));
 
-  el.fourSelect.innerHTML = `<option value="">-- Choisir --</option>` +
+  el.fourSelect.innerHTML =
+    `<option value="">-- Choisir --</option>` +
     opts.map(o => `<option value="${o.code}">${o.code} — ${o.nom}</option>`).join("");
 }
 
 // ---------------------------
-// Charger achats fournisseur
+// Charger achats du fournisseur
 // ---------------------------
 async function loadAchatsForFournisseur() {
   const fourCode = el.fourSelect.value;
@@ -62,7 +71,6 @@ async function loadAchatsForFournisseur() {
   el.achatsBody.innerHTML = `<tr><td colspan="6">Chargement…</td></tr>`;
   selection.clear();
 
-  // on récupère tous les achats du fournisseur
   const snapAchats = await getDocs(
     query(collection(db, "achats"), where("fournisseurCode", "==", fourCode))
   );
@@ -73,7 +81,7 @@ async function loadAchatsForFournisseur() {
     achatsCache.push({
       id: d.id,
       date: r.date || r.dateAchat || r.createdAt || null,
-      totalHT: r.totalHT || r.montantHT || r.total || 0,
+      totalHT: toNum(r.totalHT || r.montantHT || r.total || 0),
       numero: r.numero || r.numBL || d.id,
       factureId: r.factureId || null,
     });
@@ -90,6 +98,9 @@ function fmtDate(v) {
   return d.toLocaleDateString("fr-FR");
 }
 
+// ---------------------------
+// Render tableau achats
+// ---------------------------
 function renderAchats() {
   const mode = el.filterMode.value; // all | open
   let list = achatsCache;
@@ -124,7 +135,6 @@ function renderAchats() {
     `;
   }).join("");
 
-  // events
   el.achatsBody.querySelectorAll(".chk-full").forEach(chk => {
     chk.addEventListener("change", onToggleFullAchat);
   });
@@ -147,8 +157,7 @@ function onToggleFullAchat(e) {
     selection.set(achatId, {
       full: true,
       lines: new Set(),
-      totalHT: Number(achat.totalHT || 0),
-      meta: { achatId }
+      totalHT: toNum(achat.totalHT || 0),
     });
   } else {
     selection.delete(achatId);
@@ -158,7 +167,7 @@ function onToggleFullAchat(e) {
 }
 
 // ---------------------------
-// Ouvrir popup lignes
+// Popup lignes achat
 // ---------------------------
 async function onOpenLines(e) {
   const tr = e.target.closest("tr");
@@ -180,15 +189,15 @@ async function onOpenLines(e) {
     const lineId = d.id;
     const plu = r.plu || r.PLU || "";
     const des = r.designation || r.Designation || "";
-    const poids = r.poidsTotalKg || r.poids || 0;
-    const prix = r.prixKg || r.prix || 0;
-    const mht = r.montantHT || (poids * prix) || 0;
+    const poids = toNum(r.poidsTotalKg || r.poids || 0);
+    const prix = toNum(r.prixKg || r.prix || 0);
+    const mht = toNum(r.montantHT || (poids * prix) || 0);
 
     totalByLine.push({ lineId, plu, des, poids, prix, mht, checked: selectedLines.has(lineId) });
   });
 
   el.linesBody.innerHTML = totalByLine.map(l => `
-    <tr data-line="${l.lineId}">
+    <tr data-line="${l.lineId}" data-mht="${n2(l.mht)}">
       <td>${l.plu}</td>
       <td>${l.des}</td>
       <td>${n2(l.poids)}</td>
@@ -214,8 +223,7 @@ function applyLinesSelection() {
     const chk = tr.querySelector(".chk-line");
     if (chk && chk.checked) {
       checkedLines.add(lineId);
-      const mht = Number(tr.children[4].textContent.replace("€","").trim().replace(",",".")) || 0;
-      totalHT += mht;
+      totalHT += toNum(tr.dataset.mht);
     }
   });
 
@@ -226,7 +234,6 @@ function applyLinesSelection() {
       full: false,
       lines: checkedLines,
       totalHT,
-      meta: { achatId }
     });
   }
 
@@ -237,25 +244,28 @@ function applyLinesSelection() {
 }
 
 // ---------------------------
-// Résumé
+// Résumé + écart
 // ---------------------------
 function refreshSummary() {
-  const factHT = Number(el.factHT.value || 0);
-  const totalPointe = [...selection.values()].reduce((s,x)=> s + (x.totalHT||0), 0);
+  const factHT = toNum(el.factHT.value || 0);
+  const totalPointe = [...selection.values()].reduce((s,x)=> s + toNum(x.totalHT||0), 0);
 
   el.sumFactHT.textContent = n2(factHT);
   el.sumPointeHT.textContent = n2(totalPointe);
 
-  // si facture réel non renseignée → on la propose = facture HT
-  if (!el.factHTReel.value) el.factHTReel.value = n2(factHT);
+  // si facture réel vide → on propose = facture HT
+  if (el.factHTReel.value === "" || el.factHTReel.value == null) {
+    el.factHTReel.value = n2(factHT);
+  }
 
-  const factHTReel = Number(el.factHTReel.value || factHT);
+  const factHTReel = toNum(el.factHTReel.value || factHT);
   const ecart = factHTReel - totalPointe;
   el.sumEcartHT.textContent = n2(ecart);
 }
 
 // ---------------------------
 // Valider facture lettrée
+// + marque les achats comme pointés
 // ---------------------------
 async function validerFacture() {
   const user = auth.currentUser;
@@ -266,21 +276,20 @@ async function validerFacture() {
 
   const date = el.factDate.value;
   const numero = (el.factNumero.value || "").trim();
-  const factHT = Number(el.factHT.value || 0);
-  const factHTReel = Number(el.factHTReel.value || factHT);
+  const factHT = toNum(el.factHT.value || 0);
+  const factHTReel = toNum(el.factHTReel.value || factHT);
 
   if (!date) return alert("Choisis une date de facture.");
   if (!numero) return alert("Saisis un numéro de facture.");
   if (factHT <= 0) return alert("Montant facture HT invalide.");
 
-  const totalPointe = [...selection.values()].reduce((s,x)=> s + (x.totalHT||0), 0);
+  const totalPointe = [...selection.values()].reduce((s,x)=> s + toNum(x.totalHT||0), 0);
   const ecart = factHTReel - totalPointe;
 
-  // build achatsPointes détaillés
   const achatsPointes = [];
   for (const [achatId, sel] of selection.entries()) {
+    const achat = achatsCache.find(a => a.id === achatId);
     if (sel.full) {
-      const achat = achatsCache.find(a => a.id === achatId);
       achatsPointes.push({
         achatId,
         mode: "full",
@@ -297,6 +306,7 @@ async function validerFacture() {
 
   const factureId = `${fourCode}__${numero}`.replace(/\s+/g,"_");
 
+  // 1) créer / maj doc facture
   await setDoc(doc(db, "factures", factureId), {
     userId: user.uid,
     fournisseurCode: fourCode,
@@ -312,7 +322,30 @@ async function validerFacture() {
     createdAt: serverTimestamp()
   }, { merge:true });
 
-  el.status.textContent = `✅ Facture enregistrée (${Math.abs(ecart)<0.01?"OK":"Écart "+n2(ecart)+" €"}).`;
+  // 2) 🔥 marquer les achats comme pointés (pour le filtre)
+  for (const achatId of selection.keys()) {
+    await updateDoc(doc(db, "achats", achatId), {
+      factureId,
+      factureNumero: numero,
+      factureDate: date,
+      factureHT: factHTReel,
+      factureEcartHT: ecart,
+      facturePointageAt: serverTimestamp()
+    });
+  }
+
+  // reload cache pour que filtre reflète tout de suite
+  achatsCache = achatsCache.map(a =>
+    selection.has(a.id) ? { ...a, factureId } : a
+  );
+
+  selection.clear();
+  renderAchats();
+  refreshSummary();
+
+  el.status.textContent =
+    `✅ Facture enregistrée (${Math.abs(ecart)<0.01 ? "OK" : "Écart "+n2(ecart)+" €"}).`;
+
   alert("Facture lettrée enregistrée.");
 }
 
@@ -320,7 +353,9 @@ async function validerFacture() {
 // Events
 // ---------------------------
 el.btnCharger.addEventListener("click", loadAchatsForFournisseur);
-el.filterMode.addEventListener("change", renderAchats);
+el.filterMode.addEventListener("change", () => {
+  renderAchats();
+});
 el.factHT.addEventListener("input", refreshSummary);
 el.factHTReel.addEventListener("input", refreshSummary);
 el.btnValider.addEventListener("click", validerFacture);
