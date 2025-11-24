@@ -351,43 +351,64 @@ async function consumeFIFO(lots, needed) {
 function inheritMeta(used) {
   if (used.length === 0) return {};
 
-  // majoritaire = plus gros takeKg
+  // 1️⃣ Lot majoritaire (inchangé)
   const main = used.slice().sort((a, b) => b.takeKg - a.takeKg)[0].lot;
 
-  // dlc la plus proche si plusieurs
+  // 2️⃣ DLC la plus proche
   const dlcs = used
     .map(u => u.lot.dlc)
     .filter(Boolean)
     .map(d => (d.toDate ? d.toDate() : d))
     .sort((a, b) => a - b);
 
-  // 🔥 listes complètes pour traçabilité
+  // 3️⃣ 🔥 RÉCUPÉRATION DES PHOTOS SUR LOT + SUR LIGNE BL
+  const allPhotos = [];
+
+  for (const u of used) {
+    const lot = u.lot;
+
+    // photo dans le lot
+    if (lot.photo_url) allPhotos.push(lot.photo_url);
+    if (lot.photo) allPhotos.push(lot.photo);
+
+    // photo dans la ligne d’achat (si achatId + ligneId)
+    if (lot.achatId && lot.ligneId) {
+      const lignePhoto = lot.lignePhoto || lot.photo_ligne; // sécurité si déjà chargée une fois
+      if (lignePhoto) {
+        allPhotos.push(lignePhoto);
+      }
+    }
+  }
+
+  const uniquePhotos = [...new Set(allPhotos.filter(Boolean))];
+
+  // 4️⃣ 🔥 LISTES COMPLÈTES
   const allFAO = [...new Set(used.map(u => u.lot.fao).filter(Boolean))];
   const allZone = [...new Set(used.map(u => u.lot.zone).filter(Boolean))];
   const allSousZone = [...new Set(used.map(u => u.lot.sousZone).filter(Boolean))];
   const allEngins = [...new Set(used.map(u => u.lot.engin).filter(Boolean))];
   const allLatin = [...new Set(used.map(u => u.lot.nomLatin).filter(Boolean))];
-  const allPhotos = [...new Set(used.map(u => u.lot.photo_url).filter(Boolean))];
 
   return {
-    // valeurs majoritaires (inchangé)
+    // Valeurs majoritaires
     fao: main.fao,
     zone: main.zone,
     sousZone: main.sousZone,
     nomLatin: main.nomLatin,
     dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null,
     engin: main.engin || "",
-    photo_url: main.photo_url || null,
+    photo_url: uniquePhotos[0] || null, // première photo pour affichage simple
 
-    // nouvelles listes complètes
+    // 🔥 Listes complètes
     liste_fao: allFAO,
     liste_zone: allZone,
     liste_sousZone: allSousZone,
     liste_engin: allEngins,
     liste_nomLatin: allLatin,
-    liste_photos: allPhotos
+    liste_photos: uniquePhotos
   };
 }
+
 
 /* ============================================================
    PARTIE 6 — LOT SIMPLE (inchangé)
