@@ -56,7 +56,7 @@ async function getInfoPLU(plu) {
   let engins = [];
   let decongeles = [];
   let allergenesLots = [];
-  let methodesProd = [];       // 🔥 nouvelle liste
+  let methodesProd = [];   // 🔥 liste des méthodes
 
   snapLots.forEach(lot => {
     const d = lot.data();
@@ -66,7 +66,11 @@ async function getInfoPLU(plu) {
     engins.push(canoniseEngin(d.engin));
     decongeles.push(d.decongele ? "Oui" : "Non");
     allergenesLots.push(d.allergenes || "");
-    methodesProd.push(d.categorie || d.methodeProd || "");  // 🔥 méthode prod en LOT
+
+    // 🔥 Méthode Prod depuis LOT
+    methodesProd.push(
+      d.Categorie || d.categorie || d.Elevage || d.methodeProd || ""
+    );
   });
 
   const hasLots = !snapLots.empty;
@@ -94,20 +98,34 @@ async function getInfoPLU(plu) {
 
   if (!snapAchats.empty) {
     achatData = snapAchats.docs[0].data();
-    achatMethode = achatData?.categorie || achatData?.methodeProd || "";
+
+    // 🔥 Méthode prod achat
+    achatMethode =
+      achatData?.Categorie ||
+      achatData?.categorie ||
+      achatData?.Elevage ||
+      achatData?.methodeProd ||
+      "";
   }
 
 
   /* ----------------------
-     ARTICLE fallback (allergènes + catégorie)
+     ARTICLE fallback
   ---------------------- */
   const snapArt = await getDoc(doc(db, "articles", plu));
   let artData = snapArt.exists() ? snapArt.data() : {};
-  const artMethode = artData?.categorie || artData?.methodeProd || "";
+
+  // 🔥 Méthode prod fiche article
+  const artMethode =
+    artData?.Categorie ||
+    artData?.categorie ||
+    artData?.Elevage ||
+    artData?.methodeProd ||
+    "";
 
 
   /* ----------------------
-     CONSTRUCTION FINAL OBJECT
+     OBJECT FINAL
   ---------------------- */
   return {
     type: "TRAD",
@@ -119,24 +137,28 @@ async function getInfoPLU(plu) {
     designation:
       uniqValues(designations) ||
       achatData?.designation ||
+      artData?.Designation ||
       artData?.designation ||
       "",
 
     nomLatin:
       uniqValues(nomsLatin) ||
       achatData?.nomLatin ||
+      artData?.NomLatin ||
       artData?.nomLatin ||
       "",
 
     fao:
       uniqValues(faos) ||
       achatData?.fao ||
-      artData?.fao ||
+      artData?.Zone ||
+      artData?.zone ||
       "",
 
     engin:
       uniqValues(engins) ||
       canoniseEngin(achatData?.engin) ||
+      canoniseEngin(artData?.Engin) ||
       canoniseEngin(artData?.engin) ||
       "",
 
@@ -148,18 +170,20 @@ async function getInfoPLU(plu) {
 
     allergenes:
       uniqValues(allergenesLots) ||
+      achatData?.Allergenes ||
       achatData?.allergenes ||
+      artData?.Allergenes ||
       artData?.allergenes ||
       "",
 
-    methodeProd:                  // 🔥 ICI la logique finale
-      uniqValues(methodesProd) ||
-      achatMethode ||
-      artMethode ||
+    methodeProd:
+      uniqValues(methodesProd) ||   // 🔥 valeurs de lots
+      achatMethode ||               // 🔥 achat
+      artMethode ||                 // 🔥 article
       "",
 
     prix: pvReal || 0,
-    unite: "€/kg",
+    unite: artData?.Unite || "€/kg",
   };
 }
 
