@@ -1,27 +1,6 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="../css/styles.css" />
-<title>Gestion Poissonnerie</title>
+<button id="btnExport">📤 Export Étiquettes</button>
+<script type="module">
+  import { exportEtiquettes } from "./js/export-etiquettes.js";
 
-</head>
-<body>
-  <header id="topbar"></header>
-  <main class="container">
-    <h2 class="page-title">Étiquettes</h2>
-    <div class="panel">
-      <p>TODO : intégrer l'interface étiquettes (Apps Script / API) ici.</p>
-      <p class="muted">Cette page est protégée par Firebase Auth.</p>
-    </div>
-  </main>
-
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script type="module" src="../js/auth.js"></script>
-  <script type="module" src="../js/menu.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', () => { window.__requireAuth && window.__requireAuth('etiquettes'); });
-  </script>
-</body>
-</html>
+  document.querySelector("#btnExport").addEventListener("click", exportEtiquettes);
+</script>
