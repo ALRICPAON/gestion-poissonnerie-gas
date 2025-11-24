@@ -8,12 +8,12 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-import ExcelJS from "https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js";
+// ExcelJS global (chargé par <script> dans HTML)
+const ExcelJS = window.ExcelJS;
 
-
-// ----------------------
-// 🔥 Normalisation Engin
-// ----------------------
+/* ----------------------------------------------
+   🔧 Canonisation Engin (pour affichage propre)
+---------------------------------------------- */
 function canoniseEngin(v) {
   if (!v) return "";
   const s = v.toUpperCase().trim();
@@ -22,35 +22,41 @@ function canoniseEngin(v) {
   if (s.includes("CHALUT")) return "Chalut OTB";
   if (s.includes("FILET")) return "Filet maillant";
   if (s.includes("LIGNE")) return "Ligne hameçon";
+
   return v;
 }
 
-
-// ----------------------
-// 🔥 Charger infos d’un PLU
-// ----------------------
+/* ----------------------------------------------
+   🔥 Récupère toutes les infos d’un PLU
+   Priorité : LOT > Achat > Article (fallback)
+---------------------------------------------- */
 async function getInfoPLU(plu) {
-  // 1. LOT OUVERT ?
-  const snapLots = await getDocs(
-    query(collection(db, "lots"), where("plu", "==", plu), where("closed", "==", false))
+  const qLots = query(
+    collection(db, "lots"),
+    where("plu", "==", plu),
+    where("closed", "==", false)
   );
 
+  const snapLots = await getDocs(qLots);
+
+  // 1️⃣ LOT (prioritaire)
   if (!snapLots.empty) {
     const d = snapLots.docs[0].data();
     return {
-      designation: d.designation,
+      type: d.type || "TRAD",
+      criee: d.criee || "",
+      designation: d.designation || "",
       nomLatin: d.nomLatin || "",
       fao: d.fao || "",
       engin: canoniseEngin(d.engin),
       decongele: d.decongele ? "Oui" : "Non",
       allergenes: d.allergenes || "",
       prix: d.prixVenteKg || 0,
-      type: d.type || "TRAD",
-      criee: d.criee || ""
+      unite: "€/kg",
     };
   }
 
-  // 2. SINON → Dernier achat
+  // 2️⃣ ACHAT
   const snapAchats = await getDocs(
     query(collection(db, "achats"), where("plu", "==", plu))
   );
@@ -58,59 +64,64 @@ async function getInfoPLU(plu) {
   if (!snapAchats.empty) {
     const d = snapAchats.docs[0].data();
     return {
-      designation: d.designation,
+      type: "TRAD",
+      criee: d.criee || "",
+      designation: d.designation || "",
       nomLatin: d.nomLatin || "",
       fao: d.fao || "",
       engin: canoniseEngin(d.engin),
       decongele: d.decongele ? "Oui" : "Non",
       allergenes: d.allergenes || "",
       prix: d.prixKg || 0,
-      type: "TRAD",
-      criee: d.criee || ""
+      unite: "€/kg",
     };
   }
 
-  // 3. SINON → Articles
+  // 3️⃣ ARTICLE (fallback)
   const snapArt = await getDoc(doc(db, "articles", plu));
   if (snapArt.exists()) {
     const d = snapArt.data();
     return {
-      designation: d.designation,
+      type: "TRAD",
+      criee: "",
+      designation: d.designation || "",
       nomLatin: d.nomLatin || "",
       fao: d.fao || "",
       engin: canoniseEngin(d.engin),
       decongele: d.decongele ? "Oui" : "Non",
       allergenes: d.allergenes || "",
-      prix: d.pv || 0,
-      type: "TRAD",
-      criee: ""
+      prix: d.pvTTCreel || d.pv || 0,
+      unite: "€/kg",
     };
   }
 
   return null;
 }
 
-
-// ----------------------
-// 🔥 GENERER FICHIER EXCEL
-// ----------------------
+/* ----------------------------------------------
+   📤 GENERATE XLSX
+---------------------------------------------- */
 export async function exportEtiquettes() {
-  const snapLots = await getDocs(query(collection(db, "lots"), where("closed", "==", false)));
+  console.log("⏳ Export étiquettes…");
 
-  const workbook = new ExcelJS.Workbook();
-  const ws = workbook.addWorksheet("_Etiquettes");
-
-  ws.addRow([
-    "type","criee","", "PLU","designation","Nom scientif","Méthode Prod",
-    "Zone Pêche","Engin Pêche","Décongelé","Allergènes","Prix","€/kg ou Pièce"
-  ]);
+  const snapLots = await getDocs(
+    query(collection(db, "lots"), where("closed", "==", false))
+  );
 
   const PLUs = new Set();
-
   snapLots.forEach(l => {
     const d = l.data();
     if (d.poidsRestant > 0) PLUs.add(d.plu);
   });
+
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet("_Etiquettes");
+
+  // En-têtes EXACTS
+  ws.addRow([
+    "type","criee","", "PLU","designation","Nom scientif","Méthode Prod",
+    "Zone Pêche","Engin Pêche","Décongelé","Allergènes","Prix","€/kg ou Pièce"
+  ]);
 
   for (const plu of PLUs) {
     const info = await getInfoPLU(plu);
@@ -123,13 +134,13 @@ export async function exportEtiquettes() {
       plu,
       info.designation,
       info.nomLatin,
-      info.methode || "",
+      "", // Méthode Prod (non gérée encore)
       info.fao,
       info.engin,
       info.decongele,
       info.allergenes,
       info.prix,
-      "€/kg"
+      info.unite
     ]);
   }
 
@@ -142,4 +153,6 @@ export async function exportEtiquettes() {
   a.href = URL.createObjectURL(blob);
   a.download = "etiquettes_evolis.xlsx";
   a.click();
+
+  console.log("✅ Export terminé !");
 }
