@@ -264,36 +264,52 @@ function renderCards(cards, typeFilter) {
   let html = "";
 
   for (const { lotId, lot, achat, ligne, mouvements, photo } of cards) {
-    
-    // -------- MULTI-ESPECES TRAÇABILITE --------
+
+    /***************************************
+     * 🔥 TRAÇABILITÉ MULTI-ESPÈCES
+     ***************************************/
     let faoHtml = "";
     let zoneHtml = "";
     let enginHtml = "";
     let latinHtml = "";
     let photosHtml = "";
 
+    // --- MULTI-ESPECES (transformation recette) ---
     if (Array.isArray(lot.liste_zone) && lot.liste_zone.length) {
-      faoHtml  = `<strong>FAO :</strong> ${lot.liste_fao.join(" / ")}<br>`;
-      zoneHtml = `<strong>Zones :</strong> ${lot.liste_zone.join(" / ")}<br>`;
+      faoHtml   = `<strong>FAO :</strong> ${lot.liste_fao.join(" / ")}<br>`;
+      zoneHtml  = `<strong>Zones :</strong> ${lot.liste_zone.join(" / ")}<br>`;
       enginHtml = `<strong>Engins :</strong> ${lot.liste_engin.join(" — ")}<br>`;
       latinHtml = `<strong>Espèces :</strong> ${lot.liste_nomLatin.join(", ")}<br>`;
-    } else {
-      faoHtml = `<strong>FAO :</strong> ${lot.fao || ""}<br>`;
-      zoneHtml = `<strong>Zone :</strong> ${lot.zone || ""} ${lot.sousZone || ""}<br>`;
+
+      // Photos multiples
+      if (Array.isArray(lot.liste_photos) && lot.liste_photos.length) {
+        photosHtml = lot.liste_photos
+          .map(url => `<img class="trace-photo" src="${url}">`)
+          .join("");
+      }
+    } 
+    else {
+      // --- LOT SIMPLE ---
+      faoHtml   = `<strong>FAO :</strong> ${lot.fao || ""}<br>`;
+      zoneHtml  = `<strong>Zone :</strong> ${lot.zone || ""} ${lot.sousZone || ""}<br>`;
       enginHtml = `<strong>Engin :</strong> ${lot.engin || ""}<br>`;
       latinHtml = lot.nomLatin ? `<strong>Espèce :</strong> ${lot.nomLatin}<br>` : "";
+
+      // photo simple
+      const simplePhoto =
+        lot.photo_url ||
+        ligne?.photo_url ||
+        photo ||
+        null;
+
+      if (simplePhoto) {
+        photosHtml = `<img class="trace-photo" src="${simplePhoto}">`;
+      }
     }
 
-    if (Array.isArray(lot.liste_photos) && lot.liste_photos.length) {
-      photosHtml = lot.liste_photos
-        .map(url => `<img class="trace-photo" src="${url}">`)
-        .join("");
-    } else if (lot.photo_url) {
-      photosHtml = `<img class="trace-photo" src="${lot.photo_url}">`;
-    }
-    // -------------------------------------------
-
-    const photoUrl = photo || lot.photo_url || ligne?.photo_url || null;
+    /***************************************
+     * AUTRES INFOS
+     ***************************************/
     const poidsInitial = lot.poidsInitial || ligne?.poidsKg || 0;
     const poidsRestant = lot.poidsRestant ?? 0;
     const closed = !!lot.closed || poidsRestant <= 0;
@@ -306,11 +322,9 @@ function renderCards(cards, typeFilter) {
       achat?.fournisseur ||
       (lot.source === "transformation" ? "Transformation interne" : "");
 
-    const achatDate =
-      achat?.date || achat?.createdAt || lot.createdAt;
+    const achatDate = achat?.date || achat?.createdAt || lot.createdAt;
 
     let filteredMovements = mouvements;
-
     if (typeFilter === "vente") {
       filteredMovements = mouvements.filter(m => isSaleLikeMovement(m));
     } else if (typeFilter === "inventaire") {
@@ -321,6 +335,9 @@ function renderCards(cards, typeFilter) {
       );
     }
 
+    /***************************************
+     * 🔥 CONSTRUCTION HTML
+     ***************************************/
     html += `
       <div class="trace-card">
 
@@ -337,9 +354,10 @@ function renderCards(cards, typeFilter) {
           ${zoneHtml}
           ${enginHtml}
           ${latinHtml}
+
           ${photosHtml}
 
-          ${ lot.source === "transformation" && lot.origineLots ? `
+          ${lot.source === "transformation" && lot.origineLots ? `
             <strong>Origine :</strong><br>
             ${lot.origineLots.map(o => `• Lot ${o.lotId} : ${o.kgPris}kg`).join("<br>")}
           ` : "" }
@@ -374,5 +392,6 @@ function renderCards(cards, typeFilter) {
 
   els.list.innerHTML = html;
 }
+
 
 window.fetchPhotoForLot = fetchPhotoForLot;
