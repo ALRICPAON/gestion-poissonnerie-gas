@@ -1,29 +1,46 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Export Étiquettes Evolis</title>
+  <meta charset="UTF-8">
+  <title>Étiquettes Evolis</title>
 
-  <!-- ExcelJS chargé globalement -->
+  <!-- Ton CSS général -->
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- ExcelJS -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 
   <!-- Firebase -->
   <script type="module" src="../js/firebase-init.js"></script>
 
-  <style>
-    <link rel="stylesheet" href="../css/style.css">
-  </style>
 </head>
-
 <body>
-  <h1>📦 Export Étiquettes Evolis — Poissonnerie</h1>
 
-  <button id="btnExport">📤 Export Étiquettes</button>
+  <div class="header-box" style="max-width: 900px; margin: 0 auto;">
+    <h2>📦 Export Étiquettes Evolis</h2>
 
+    <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">
+      Génère un fichier Excel conforme Evolis à partir des lots ouverts.<br>
+      Toutes les données proviennent automatiquement des lots, achats et fiches articles.
+    </p>
+
+    <div style="display:flex; justify-content:space-between; margin-top: 20px;">
+      <button id="btnRetour" class="btn btn-return">⬅ Retour</button>
+      <button id="btnExport" class="btn btn-accent">📤 Exporter les étiquettes</button>
+    </div>
+  </div>
+
+
+  <!-- Script d'export -->
   <script type="module">
     import { exportEtiquettes } from "../js/export-etiquettes.js";
 
     document.querySelector("#btnExport").addEventListener("click", exportEtiquettes);
+
+    document.querySelector("#btnRetour").addEventListener("click", () => {
+      window.location.href = "../index.html";   // 🔥 adapte si ton home est ailleurs
+    });
   </script>
+
 </body>
 </html>
