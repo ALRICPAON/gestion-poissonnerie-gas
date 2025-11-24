@@ -1,6 +1,6 @@
 /**************************************************
- * TRANSFORMATION.JS — Version 100% adaptée aux LOTS RÉELS
- * Auteur : ChatGPT pour Alric — 21/11/2025
+ * TRANSFORMATION.JS — Version LOTS RÉELS + RECETTES (n → 1)
+ * Auteur : ChatGPT pour Alric — 24/11/2025
  **************************************************/
 
 import { app, db } from "../js/firebase-init.js";
@@ -31,13 +31,15 @@ const fmtMoney = n =>
 
 const todayKey = () => {
   const d = new Date();
-  return d.getFullYear().toString()
-       + String(d.getMonth()+1).padStart(2,"0")
-       + String(d.getDate()).padStart(2,"0");
+  return (
+    d.getFullYear().toString() +
+    String(d.getMonth() + 1).padStart(2, "0") +
+    String(d.getDate()).padStart(2, "0")
+  );
 };
 
 const genLotId = () =>
-  `T${todayKey()}-${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+  `T${todayKey()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
 /* ---------------------------
    DOM references
@@ -67,9 +69,11 @@ onAuthStateChanged(auth, async user => {
   UID = user.uid;
 
   await loadArticles();
-  console.log("ARTICLES LOADED:", ARTICLES);
-  renderForm();
   bindPopup();
+
+  qs("#type-transformation").onchange = renderForm;
+  renderForm();
+
   await loadHistory();
 });
 
@@ -80,13 +84,27 @@ async function loadArticles() {
   const snap = await getDocs(collection(db, "articles"));
   ARTICLES = [];
   snap.forEach(d => ARTICLES.push({ id: d.id, ...d.data() }));
-  ARTICLES.sort((a,b)=> nz(a.designation).localeCompare(nz(b.designation)));
+  ARTICLES.sort((a, b) =>
+    nz(a.Designation).localeCompare(nz(b.Designation))
+  );
 }
 
 /* ---------------------------
-   Render Form
+   MAIN FORM ROUTER
 --------------------------- */
 function renderForm() {
+  const type = qs("#type-transformation").value;
+
+  if (type === "simple") renderSimpleForm();
+  else if (type === "recette") renderRecetteForm();
+}
+
+/* ============================================================
+   PARTIE 1 — TRANSFORMATION SIMPLE (1 → 1)
+   (inchangée, copiée EXACTEMENT comme tu l'avais)
+============================================================ */
+
+function renderSimpleForm() {
   el.form.innerHTML = `
     <div class="card">
       <h2>Transformation simple (1 → 1)</h2>
@@ -130,17 +148,20 @@ function renderForm() {
   qs("#btn-run").onclick = runTransformation;
 }
 
-function setMsg(txt, type="info") {
+function setMsg(txt, type = "info") {
   const c = {
-    info: "#ccc", ok: "#52e16b",
-    err: "#ff6868", warn: "#f1c04f"
+    info: "#ccc",
+    ok: "#52e16b",
+    err: "#ff6868",
+    warn: "#f1c04f"
   }[type] || "#ccc";
   qs("#msg").innerHTML = `<span style="color:${c}">${txt}</span>`;
 }
 
-/* ---------------------------
-   F9 popup
---------------------------- */
+/* ============================================================
+   PARTIE 2 — POPUP F9
+============================================================ */
+
 function bindPopup() {
   el.popupClose.onclick = closeF9;
   el.popupSearch.oninput = renderF9;
@@ -168,26 +189,23 @@ function renderF9() {
     String(a.NomLatin || "").toLowerCase().includes(q)
   );
 
-  el.popupBody.innerHTML = list.map(a => `
+  el.popupBody.innerHTML = list
+    .map(
+      a => `
     <tr class="pick" data-plu="${a.PLU}">
       <td>${a.PLU}</td>
       <td>${a.Designation || ""}</td>
       <td>${a.NomLatin || ""}</td>
-    </tr>
-  `).join("");
+    </tr>`
+    )
+    .join("");
 
   qsa(".pick").forEach(tr => {
     tr.onclick = () => {
       const plu = tr.dataset.plu;
 
-      const art = ARTICLES.find(a =>
-        String(a.PLU) === String(plu)
-      );
-
-      if (!art) {
-        console.warn("Article introuvable dans F9 :", plu);
-        return;
-      }
+      const art = ARTICLES.find(a => String(a.PLU) === String(plu));
+      if (!art) return;
 
       applyArticle(F9_MODE, art);
       closeF9();
@@ -196,31 +214,54 @@ function renderF9() {
 }
 
 function fillFromPlu(mode) {
-  const input = qs(mode==="src"?"#src-plu":"#dst-plu");
+  const input =
+    mode === "src"
+      ? qs("#src-plu")
+      : mode === "dst"
+      ? qs("#dst-plu")
+      : qs("#recette-plu");
+
   const art = ARTICLES.find(a => String(a.PLU) === String(input.value));
   if (art) applyArticle(mode, art);
 }
 
 function applyArticle(mode, art) {
   if (!art) return;
-
   const plu = String(art.PLU || "");
   const des = String(art.Designation || "");
 
+  // Transformation simple
   if (mode === "src") {
     qs("#src-plu").value = plu;
     qs("#src-des").value = des;
-  } else {
+    return;
+  }
+  if (mode === "dst") {
     qs("#dst-plu").value = plu;
     qs("#dst-des").value = des;
+    return;
+  }
+
+  // Recette : ligne d’ingrédient
+  if (mode && mode.startsWith("ing-")) {
+    const row = qs("#" + mode);
+    row.querySelector(".ing-plu").value = plu;
+    row.querySelector(".ing-des").value = des;
+    return;
+  }
+
+  // Recette : produit final
+  if (mode === "dst-recette") {
+    qs("#recette-plu").value = plu;
+    qs("#recette-des").value = des;
+    return;
   }
 }
 
+/* ============================================================
+   PARTIE 3 — LOAD LOTS FIFO
+============================================================ */
 
-
-/* ---------------------------
-   Load LOTS FIFO
---------------------------- */
 async function loadLotsFIFO(plu) {
   const qLots = query(
     collection(db, "lots"),
@@ -231,6 +272,7 @@ async function loadLotsFIFO(plu) {
 
   const snap = await getDocs(qLots);
   const lots = [];
+
   snap.forEach(d => {
     const L = d.data();
     lots.push({
@@ -248,18 +290,19 @@ async function loadLotsFIFO(plu) {
       nomLatin: L.nomLatin || "",
       dlc: L.dlc || null,
       achatId: L.achatId || null,
-ligneId: L.ligneId || null,
-      engin: L.engin || "",            // 👈 manquait !
-    photo_url: L.photo_url || L.photo || null  // 👈 OBLIGATOIRE
+      ligneId: L.ligneId || null,
+      engin: L.engin || "",
+      photo_url: L.photo_url || L.photo || null
     });
   });
 
   return lots.filter(l => l.poidsRestant > 0);
 }
 
-/* ---------------------------
-   Consume FIFO
---------------------------- */
+/* ============================================================
+   PARTIE 4 — FIFO SIMPLE
+============================================================ */
+
 async function consumeFIFO(lots, needed) {
   let rest = needed;
   let totalCost = 0;
@@ -272,6 +315,7 @@ async function consumeFIFO(lots, needed) {
     rest -= take;
 
     const newRest = lot.poidsRestant - take;
+
     totalCost += take * lot.prixAchatKg;
 
     await updateDoc(lot.ref, {
@@ -284,15 +328,15 @@ async function consumeFIFO(lots, needed) {
       lot,
       takeKg: take
     });
-   // --- 🔵 Mouvement SORTIE transformation (lot source) ---
-await addDoc(collection(db, "stock_movements"), {
-  lotId: lot.id,
-  type: "transformation",
-  sens: "sortie",
-  poids: -take,
-  poidsRestant: newRest,
-  createdAt: serverTimestamp(),
-});
+
+    await addDoc(collection(db, "stock_movements"), {
+      lotId: lot.id,
+      type: "transformation",
+      sens: "sortie",
+      poids: -take,
+      poidsRestant: newRest,
+      createdAt: serverTimestamp()
+    });
   }
 
   if (rest > 0.001) throw new Error("Stock insuffisant.");
@@ -300,43 +344,46 @@ await addDoc(collection(db, "stock_movements"), {
   return { used, totalCost };
 }
 
-/* ---------------------------
-   Meta inheritance
---------------------------- */
+/* ============================================================
+   PARTIE 5 — META INHERIT
+============================================================ */
+
 function inheritMeta(used) {
   if (used.length === 0) return {};
 
-  // majoritaire = plus gros takeKg
-  const main = used.slice().sort((a,b)=> b.takeKg - a.takeKg)[0].lot;
+  const main = used.slice().sort((a, b) => b.takeKg - a.takeKg)[0].lot;
 
-  // dlc la plus proche si plusieurs
   const dlcs = used
     .map(u => u.lot.dlc)
     .filter(Boolean)
-    .map(d => d.toDate ? d.toDate() : d)
-    .sort((a,b)=> a-b);
+    .map(d => (d.toDate ? d.toDate() : d))
+    .sort((a, b) => a - b);
 
   return {
-  fao: main.fao,
-  zone: main.zone,
-  sousZone: main.sousZone,
-  nomLatin: main.nomLatin,
-  dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null,
-  engin: main.engin || "",
-  photo_url: main.photo_url || main.photo || null
-};
+    fao: main.fao,
+    zone: main.zone,
+    sousZone: main.sousZone,
+    nomLatin: main.nomLatin,
+    dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null,
+    engin: main.engin || "",
+    photo_url: main.photo_url || main.photo || null
+  };
 }
 
+/* ============================================================
+   PARTIE 6 — LOT SIMPLE (inchangé)
+============================================================ */
 
-/* ---------------------------
-   Create NEW LOT (transformation)
---------------------------- */
 async function createTransfoLot({
-  plu, designation, poids, paFinal, meta, used
+  plu,
+  designation,
+  poids,
+  paFinal,
+  meta,
+  used
 }) {
   const lotId = genLotId();
 
-  // ⭐ On récupère le premier lot source (celui majoritaire)
   const first = used[0]?.lot || null;
 
   await setDoc(doc(db, "lots", lotId), {
@@ -352,7 +399,6 @@ async function createTransfoLot({
     updatedAt: serverTimestamp(),
     closed: false,
 
-    // ⭐ META héritée du lot source
     fao: meta.fao || "",
     zone: meta.zone || "",
     sousZone: meta.sousZone || "",
@@ -361,11 +407,9 @@ async function createTransfoLot({
     engin: meta.engin || "",
     photo_url: meta.photo_url || null,
 
-    // ⭐⭐ COPIE CORRECTE DU LIEN VERS LE LOT D’ACHAT D’ORIGINE
     achatId: first ? first.achatId : null,
     ligneId: first ? first.ligneId : null,
 
-    // trace
     origineLots: used.map(u => ({
       lotId: u.lot.lotId,
       kgPris: u.takeKg,
@@ -373,23 +417,22 @@ async function createTransfoLot({
     }))
   });
 
-  // --- Mouvement entrée
   await addDoc(collection(db, "stock_movements"), {
-    lotId: lotId,
+    lotId,
     type: "transformation",
     sens: "entrée",
-    poids: poids,
+    poids,
     poidsRestant: poids,
-    createdAt: serverTimestamp(),
+    createdAt: serverTimestamp()
   });
 
   return lotId;
 }
 
+/* ============================================================
+   PARTIE 7 — HISTORIQUE (simple + recettes)
+============================================================ */
 
-/* ---------------------------
-   Save transformation log
---------------------------- */
 async function saveHistory(t) {
   await addDoc(collection(db, "transformations"), {
     ...t,
@@ -398,16 +441,17 @@ async function saveHistory(t) {
   });
 }
 
-/* ---------------------------
-   Run Transformation
---------------------------- */
+/* ============================================================
+   PARTIE 8 — TRANSFORMATION SIMPLE (inchangé)
+============================================================ */
+
 async function runTransformation() {
   setMsg("Traitement en cours…");
 
   const srcPlu = nz(qs("#src-plu").value);
-  const srcKg  = toNum(qs("#src-kg").value);
+  const srcKg = toNum(qs("#src-kg").value);
   const dstPlu = nz(qs("#dst-plu").value);
-  const dstKg  = toNum(qs("#dst-kg").value);
+  const dstKg = toNum(qs("#dst-kg").value);
   const dstDes = nz(qs("#dst-des").value);
 
   if (!srcPlu || !dstPlu) return setMsg("PLU manquant", "err");
@@ -449,22 +493,238 @@ async function runTransformation() {
       }))
     });
 
-    setMsg(`✔️ Transformation OK — Nouveau lot : ${newLotId} — PA ${paFinal.toFixed(2)} €/kg`, "ok");
+    setMsg(
+      `✔️ Transformation OK — Nouveau lot : ${newLotId} — PA ${paFinal.toFixed(
+        2
+      )} €/kg`,
+      "ok"
+    );
 
     qs("#src-kg").value = "";
     qs("#dst-kg").value = "";
 
     await loadHistory();
-
   } catch (e) {
     console.error(e);
     setMsg("Erreur : " + e.message, "err");
   }
 }
 
-/* ---------------------------
-   Load HISTORY
---------------------------- */
+/* ============================================================
+   PARTIE 9 — RECETTE (n → 1)
+============================================================ */
+
+function renderRecetteForm() {
+  el.form.innerHTML = `
+    <div class="card">
+      <h2>Recette (n → 1)</h2>
+
+      <h3>Ingrédients</h3>
+      <table class="table" id="recette-ingredients">
+        <thead>
+          <tr>
+            <th>PLU</th>
+            <th>Désignation</th>
+            <th>Poids (kg)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <button id="btn-add-ing" class="btn btn-muted" style="margin-top:5px;">+ Ajouter un ingrédient</button>
+
+      <hr>
+
+      <h3>Produit final</h3>
+
+      <div class="form-row">
+        <input id="recette-plu" class="input" placeholder="PLU final" style="width:130px">
+        <input id="recette-des" class="input" placeholder="Désignation finale" disabled>
+        <button id="recette-f9" class="btn btn-muted">F9</button>
+      </div>
+
+      <label>Poids final obtenu (kg)</label>
+      <input id="recette-kg-final" class="input">
+
+      <button id="btn-run-recette" class="btn btn-primary" style="margin-top:10px;width:100%;">
+        Valider la recette
+      </button>
+
+      <div id="msg" style="margin-top:10px;"></div>
+    </div>
+  `;
+
+  qs("#btn-add-ing").onclick = addIngredientRow;
+  qs("#recette-f9").onclick = () => openF9("dst-recette");
+  qs("#recette-plu").onchange = () => fillFromPlu("dst-recette");
+  qs("#btn-run-recette").onclick = runTransformationRecette;
+}
+
+function addIngredientRow() {
+  const tbody = qs("#recette-ingredients tbody");
+
+  const rowId = "ing-" + Math.random().toString(36).substring(2, 8);
+
+  const html = `
+    <tr id="${rowId}">
+      <td><input class="input ing-plu" placeholder="PLU"></td>
+      <td><input class="input ing-des" placeholder="Désignation" disabled></td>
+      <td><input class="input ing-kg" placeholder="kg"></td>
+      <td>
+        <button class="btn btn-muted ing-f9">F9</button>
+        <button class="btn btn-red ing-del">X</button>
+      </td>
+    </tr>
+  `;
+
+  tbody.insertAdjacentHTML("beforeend", html);
+
+  const row = qs("#" + rowId);
+
+  row.querySelector(".ing-f9").onclick = () => {
+    F9_MODE = rowId;
+    openF9(rowId);
+  };
+
+  row.querySelector(".ing-del").onclick = () => row.remove();
+
+  row.querySelector(".ing-plu").onchange = () => fillIngredientRow(rowId);
+}
+
+function fillIngredientRow(rowId) {
+  const row = qs("#" + rowId);
+  const plu = nz(row.querySelector(".ing-plu").value);
+
+  const art = ARTICLES.find(a => String(a.PLU) === String(plu));
+
+  if (art) {
+    row.querySelector(".ing-des").value = art.Designation || "";
+  }
+}
+
+async function consumeMultipleIngredients(ingredients) {
+  const usedAll = [];
+  let totalCost = 0;
+
+  for (const ing of ingredients) {
+    const lots = await loadLotsFIFO(ing.plu);
+    if (!lots.length) throw new Error(`Pas de stock pour le PLU ${ing.plu}`);
+
+    const { used, totalCost: cost } = await consumeFIFO(lots, ing.kg);
+
+    totalCost += cost;
+
+    usedAll.push({
+      plu: ing.plu,
+      designation: ing.des,
+      kg: ing.kg,
+      used
+    });
+  }
+
+  return { usedAll, totalCost };
+}
+
+async function createRecipeLot(plu, des, poids, paFinal, usedAll) {
+  const flat = usedAll.flatMap(u => u.used);
+  const meta = inheritMeta(flat);
+  const first = flat[0]?.lot || null;
+
+  const lotId = genLotId();
+
+  await setDoc(doc(db, "lots", lotId), {
+    source: "recette",
+    lotId,
+    plu,
+    designation: des,
+    poidsInitial: poids,
+    poidsRestant: poids,
+    prixAchatKg: paFinal,
+
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    closed: false,
+
+    fao: meta.fao,
+    zone: meta.zone,
+    sousZone: meta.sousZone,
+    nomLatin: meta.nomLatin,
+    dlc: meta.dlc,
+    engin: meta.engin,
+    photo_url: meta.photo_url,
+
+    achatId: first ? first.achatId : null,
+    ligneId: first ? first.ligneId : null,
+
+    ingredients: usedAll
+  });
+
+  return lotId;
+}
+
+async function runTransformationRecette() {
+  setMsg("Traitement recette…");
+
+  const rows = qsa("#recette-ingredients tbody tr");
+
+  const ingredients = rows
+    .map(r => ({
+      plu: nz(r.querySelector(".ing-plu").value),
+      des: nz(r.querySelector(".ing-des").value),
+      kg: toNum(r.querySelector(".ing-kg").value)
+    }))
+    .filter(i => i.plu && i.kg > 0);
+
+  if (!ingredients.length) return setMsg("Aucun ingrédient", "err");
+
+  const dstPlu = nz(qs("#recette-plu").value);
+  const dstDes = nz(qs("#recette-des").value);
+  const dstKg = toNum(qs("#recette-kg-final").value);
+
+  if (!dstPlu || dstKg <= 0) return setMsg("Données incomplètes", "err");
+
+  try {
+    const { usedAll, totalCost } = await consumeMultipleIngredients(
+      ingredients
+    );
+    const paFinal = totalCost / dstKg;
+
+    const newLotId = await createRecipeLot(
+      dstPlu,
+      dstDes,
+      dstKg,
+      paFinal,
+      usedAll
+    );
+
+    await saveHistory({
+      type: "recette",
+      ingredients: usedAll,
+      totalCost,
+      paCible: paFinal,
+      lotCibleId: newLotId,
+      kgCible: dstKg
+    });
+
+    setMsg(
+      `✔️ Recette OK — Nouveau lot : ${newLotId} — PA ${paFinal.toFixed(
+        2
+      )} €/kg`,
+      "ok"
+    );
+
+    await loadHistory();
+  } catch (e) {
+    console.error(e);
+    setMsg("Erreur : " + e.message, "err");
+  }
+}
+
+/* ============================================================
+   PARTIE 10 — HISTORIQUE
+============================================================ */
+
 async function loadHistory() {
   const qH = query(
     collection(db, "transformations"),
@@ -480,15 +740,31 @@ async function loadHistory() {
   }
 
   let html = "";
+
   snap.forEach(d => {
     const t = d.data();
+
+    const type =
+      t.type === "simple"
+        ? "Simple (1→1)"
+        : t.type === "recette"
+        ? "Recette (n→1)"
+        : t.type;
+
+    const source =
+      t.type === "simple"
+        ? `${t.sourcePlu} (${toNum(t.kgSource).toFixed(2)}kg)`
+        : `${(t.ingredients || [])
+            .map(i => `${i.plu} (${i.kg}kg)`)
+            .join(", ")}`;
+
     html += `
       <tr>
         <td>${fmtDate(t.createdAt)}</td>
-        <td>${t.sourcePlu} (${toNum(t.kgSource).toFixed(2)}kg)</td>
-        <td>${t.ciblePlu} (${toNum(t.kgCible).toFixed(2)}kg)</td>
+        <td>${type}</td>
+        <td>${source}</td>
+        <td>${t.ciblePlu || t.lotCibleId}</td>
         <td>${toNum(t.paCible).toFixed(2)} €/kg</td>
-        <td>${t.lotCibleId}</td>
         <td><button class="btn btn-small btn-muted" data-id="${d.id}">Voir</button></td>
       </tr>
     `;
@@ -507,16 +783,42 @@ async function viewTransfo(id) {
   if (!snap.exists()) return;
 
   const t = snap.data();
-  const lines = [
-    `📅 ${fmtDate(t.createdAt)}`,
-    `Source : ${t.sourcePlu} (${toNum(t.kgSource)}kg)`,
-    `Cible : ${t.ciblePlu} (${toNum(t.kgCible)}kg)`,
+
+  let lines = [];
+
+  lines.push(`📅 ${fmtDate(t.createdAt)}`);
+
+  if (t.type === "simple") {
+    lines.push(
+      `Source : ${t.sourcePlu} (${toNum(t.kgSource)}kg)`,
+      `Cible : ${t.ciblePlu} (${toNum(t.kgCible)}kg)`
+    );
+  }
+
+  if (t.type === "recette") {
+    lines.push(`Ingrédients :`);
+    (t.ingredients || []).forEach(i => {
+      lines.push(`- ${i.plu} : ${i.kg}kg`);
+    });
+  }
+
+  lines.push(
     `PA final : ${toNum(t.paCible).toFixed(2)} €/kg`,
     `Lot créé : ${t.lotCibleId}`,
     ``,
-    `Lots utilisés :`,
-    ...(t.lotsSource || []).map(l => `- ${l.lotId} : ${l.kgPris}kg × ${l.prixKg}€/kg`)
-  ];
+    `Lots utilisés :`
+  );
+
+  const used =
+    t.type === "simple"
+      ? t.lotsSource || []
+      : t.ingredients?.flatMap(i => i.used) || [];
+
+  used.forEach(l =>
+    lines.push(
+      `- ${l.lot.lotId} : ${l.takeKg}kg × ${l.lot.prixAchatKg}€/kg`
+    )
+  );
 
   alert(lines.join("\n"));
 }
