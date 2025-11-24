@@ -273,8 +273,25 @@ async function loadLotsFIFO(plu) {
   const snap = await getDocs(qLots);
   const lots = [];
 
-  snap.forEach(d => {
+  for (const d of snap.docs) {
     const L = d.data();
+
+    let photo = L.photo_url || L.photo || null;
+
+    // 🔥 si pas de photo → aller chercher dans la ligne d’achat
+    if ((!photo) && L.achatId && L.ligneId) {
+      try {
+        const ligneRef = doc(db, `achats/${L.achatId}/lignes`, L.ligneId);
+        const ligneSnap = await getDoc(ligneRef);
+        if (ligneSnap.exists()) {
+          const data = ligneSnap.data();
+          photo = data.photo_url || data.photo || null;
+        }
+      } catch (e) {
+        console.warn("Photo BL introuvable pour lot", d.id);
+      }
+    }
+
     lots.push({
       id: d.id,
       ref: d.ref,
@@ -292,9 +309,9 @@ async function loadLotsFIFO(plu) {
       achatId: L.achatId || null,
       ligneId: L.ligneId || null,
       engin: L.engin || "",
-      photo_url: L.photo_url || L.photo || null
+      photo_url: photo  // ← 🔥 maintenant TOUJOURS alimenté
     });
-  });
+  }
 
   return lots.filter(l => l.poidsRestant > 0);
 }
