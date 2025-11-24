@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Comptabilité</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+  <div class="top-bar">
+    <h1>📘 Comptabilité</h1>
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">
+      ← Retour accueil
+    </button>
+  </div>
+
+  <div class="header-box">
+    <h2>Sous-modules</h2>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:1em;">
+
+      <a href="/pages/compta-lettrage.html" class="trace-card" style="text-decoration:none;">
+        <div class="trace-title">📑 Lettrage fournisseurs</div>
+        <div class="trace-meta">
+          Pointer tes factures papier avec tes achats saisis.<br>
+          Aucun impact stock.
+        </div>
+      </a>
+
+      <a href="/pages/compta-dashboard.html" class="trace-card" style="text-decoration:none;">
+        <div class="trace-title">📊 Tableau de bord</div>
+        <div class="trace-meta">
+          CA / achats / marges jour-semaine-mois.<br>
+          Basé sur CA + inventaires + factures lettrées.
+        </div>
+      </a>
+
+      <a href="/pages/compta-stats.html" class="trace-card" style="text-decoration:none;">
+        <div class="trace-title">📈 Statistiques</div>
+        <div class="trace-meta">
+          Stats articles / fournisseurs :<br>
+          ventes, CA, prix moyens, marges.
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+</body>
+</html>
