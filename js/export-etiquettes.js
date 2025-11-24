@@ -8,12 +8,12 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// ExcelJS global (chargé par <script> dans HTML)
+// ExcelJS global
 const ExcelJS = window.ExcelJS;
 
-/* ----------------------------------------------
-   🔧 Canonisation Engin (pour affichage propre)
----------------------------------------------- */
+/* ---------------------------------------------------------
+   🔧 Canonisation Engin (format cohérent Evolis)
+--------------------------------------------------------- */
 function canoniseEngin(v) {
   if (!v) return "";
   const s = v.toUpperCase().trim();
@@ -26,81 +26,129 @@ function canoniseEngin(v) {
   return v;
 }
 
-/* ----------------------------------------------
-   🔥 Récupère toutes les infos d’un PLU
-   Priorité : LOT > Achat > Article (fallback)
----------------------------------------------- */
+/* ---------------------------------------------------------
+   🔥 AGRÉGER TOUTES LES VALEURS MULTIPLES (lots)
+--------------------------------------------------------- */
+function uniqValues(values) {
+  return [...new Set(values.filter(v => v && v.trim() !== ""))].join(", ");
+}
+
+/* ---------------------------------------------------------
+   🔥 Récupérer TOUTES LES INFOS d’un PLU
+   Ordre :
+     1) lots ouverts (multi valeurs)
+     2) achats (si aucune info en lot)
+     3) articles (fallback)
+     + stock_articles pour pvTTCreel
+--------------------------------------------------------- */
 async function getInfoPLU(plu) {
-  const qLots = query(
-    collection(db, "lots"),
-    where("plu", "==", plu),
-    where("closed", "==", false)
+
+  /* ----------------------
+     LOTS (toutes valeurs)
+  ---------------------- */
+  const snapLots = await getDocs(
+    query(collection(db, "lots"), where("plu", "==", plu), where("closed", "==", false))
   );
 
-  const snapLots = await getDocs(qLots);
+  let designations = [];
+  let nomsLatin = [];
+  let faos = [];
+  let engins = [];
+  let decongeles = [];
+  let allergenesLots = [];
 
-  // 1️⃣ LOT (prioritaire)
-  if (!snapLots.empty) {
-    const d = snapLots.docs[0].data();
-    return {
-      type: d.type || "TRAD",
-      criee: d.criee || "",
-      designation: d.designation || "",
-      nomLatin: d.nomLatin || "",
-      fao: d.fao || "",
-      engin: canoniseEngin(d.engin),
-      decongele: d.decongele ? "Oui" : "Non",
-      allergenes: d.allergenes || "",
-      prix: d.prixVenteKg || 0,
-      unite: "€/kg",
-    };
+  snapLots.forEach(lot => {
+    const d = lot.data();
+    designations.push(d.designation || "");
+    nomsLatin.push(d.nomLatin || "");
+    faos.push(d.fao || "");
+    engins.push(canoniseEngin(d.engin));
+    decongeles.push(d.decongele ? "Oui" : "Non");
+    allergenesLots.push(d.allergenes || "");
+  });
+
+  const hasLots = !snapLots.empty;
+
+  /* ----------------------
+     STOCK ARTICLES (PV TTC RÉEL)
+  ---------------------- */
+  let pvReal = 0;
+  const snapStockArt = await getDoc(doc(db, "stock_articles", "PLU_" + plu));
+  if (snapStockArt.exists()) {
+    pvReal = snapStockArt.data().pvTTCreel || 0;
   }
 
-  // 2️⃣ ACHAT
+  /* ----------------------
+     ACHAT fallback (si pas lot)
+  ---------------------- */
+  let achatData = null;
+
   const snapAchats = await getDocs(
     query(collection(db, "achats"), where("plu", "==", plu))
   );
 
   if (!snapAchats.empty) {
-    const d = snapAchats.docs[0].data();
-    return {
-      type: "TRAD",
-      criee: d.criee || "",
-      designation: d.designation || "",
-      nomLatin: d.nomLatin || "",
-      fao: d.fao || "",
-      engin: canoniseEngin(d.engin),
-      decongele: d.decongele ? "Oui" : "Non",
-      allergenes: d.allergenes || "",
-      prix: d.prixKg || 0,
-      unite: "€/kg",
-    };
+    achatData = snapAchats.docs[0].data();
   }
 
-  // 3️⃣ ARTICLE (fallback)
+  /* ----------------------
+     ARTICLE fallback (allergènes notamment)
+  ---------------------- */
   const snapArt = await getDoc(doc(db, "articles", plu));
-  if (snapArt.exists()) {
-    const d = snapArt.data();
-    return {
-      type: "TRAD",
-      criee: "",
-      designation: d.designation || "",
-      nomLatin: d.nomLatin || "",
-      fao: d.fao || "",
-      engin: canoniseEngin(d.engin),
-      decongele: d.decongele ? "Oui" : "Non",
-      allergenes: d.allergenes || "",
-      prix: d.pvTTCreel || d.pv || 0,
-      unite: "€/kg",
-    };
-  }
+  let artData = snapArt.exists() ? snapArt.data() : {};
 
-  return null;
+  /* ----------------------
+     CONSTRUCTION FINALE
+  ---------------------- */
+
+  return {
+    type: "TRAD",
+    criee: hasLots ? uniqValues(snapLots.docs.map(l => l.data().criee || "")) : (achatData?.criee || ""),
+
+    designation:
+      uniqValues(designations) ||
+      achatData?.designation ||
+      artData?.designation ||
+      "",
+
+    nomLatin:
+      uniqValues(nomsLatin) ||
+      achatData?.nomLatin ||
+      artData?.nomLatin ||
+      "",
+
+    fao:
+      uniqValues(faos) ||
+      achatData?.fao ||
+      artData?.fao ||
+      "",
+
+    engin:
+      uniqValues(engins) ||
+      canoniseEngin(achatData?.engin) ||
+      canoniseEngin(artData?.engin) ||
+      "",
+
+    decongele:
+      uniqValues(decongeles) ||
+      (achatData?.decongele ? "Oui" : "Non") ||
+      (artData?.decongele ? "Oui" : "Non") ||
+      "Non",
+
+    allergenes:
+      uniqValues(allergenesLots) ||
+      achatData?.allergenes ||
+      artData?.allergenes ||
+      "",
+
+    prix: pvReal || 0,
+    unite: "€/kg",
+  };
 }
 
-/* ----------------------------------------------
-   📤 GENERATE XLSX
----------------------------------------------- */
+/* ---------------------------------------------------------
+   📤 EXPORT XLSX
+--------------------------------------------------------- */
 export async function exportEtiquettes() {
   console.log("⏳ Export étiquettes…");
 
@@ -125,7 +173,6 @@ export async function exportEtiquettes() {
 
   for (const plu of PLUs) {
     const info = await getInfoPLU(plu);
-    if (!info) continue;
 
     ws.addRow([
       info.type,
@@ -134,7 +181,7 @@ export async function exportEtiquettes() {
       plu,
       info.designation,
       info.nomLatin,
-      "", // Méthode Prod (non gérée encore)
+      "", // Méthode Prod à ajouter plus tard
       info.fao,
       info.engin,
       info.decongele,
