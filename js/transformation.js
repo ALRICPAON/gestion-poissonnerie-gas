@@ -351,22 +351,41 @@ async function consumeFIFO(lots, needed) {
 function inheritMeta(used) {
   if (used.length === 0) return {};
 
+  // majoritaire = plus gros takeKg
   const main = used.slice().sort((a, b) => b.takeKg - a.takeKg)[0].lot;
 
+  // dlc la plus proche si plusieurs
   const dlcs = used
     .map(u => u.lot.dlc)
     .filter(Boolean)
     .map(d => (d.toDate ? d.toDate() : d))
     .sort((a, b) => a - b);
 
+  // 🔥 listes complètes pour traçabilité
+  const allFAO = [...new Set(used.map(u => u.lot.fao).filter(Boolean))];
+  const allZone = [...new Set(used.map(u => u.lot.zone).filter(Boolean))];
+  const allSousZone = [...new Set(used.map(u => u.lot.sousZone).filter(Boolean))];
+  const allEngins = [...new Set(used.map(u => u.lot.engin).filter(Boolean))];
+  const allLatin = [...new Set(used.map(u => u.lot.nomLatin).filter(Boolean))];
+  const allPhotos = [...new Set(used.map(u => u.lot.photo_url).filter(Boolean))];
+
   return {
+    // valeurs majoritaires (inchangé)
     fao: main.fao,
     zone: main.zone,
     sousZone: main.sousZone,
     nomLatin: main.nomLatin,
     dlc: dlcs.length ? Timestamp.fromDate(dlcs[0]) : null,
     engin: main.engin || "",
-    photo_url: main.photo_url || main.photo || null
+    photo_url: main.photo_url || null,
+
+    // nouvelles listes complètes
+    liste_fao: allFAO,
+    liste_zone: allZone,
+    liste_sousZone: allSousZone,
+    liste_engin: allEngins,
+    liste_nomLatin: allLatin,
+    liste_photos: allPhotos
   };
 }
 
@@ -634,31 +653,40 @@ async function createRecipeLot(plu, des, poids, paFinal, usedAll) {
   const lotId = genLotId();
 
   await setDoc(doc(db, "lots", lotId), {
-    source: "recette",
-    lotId,
-    plu,
-    designation: des,
-    poidsInitial: poids,
-    poidsRestant: poids,
-    prixAchatKg: paFinal,
+  source: "recette",
+  lotId,
+  plu,
+  designation: des,
+  poidsInitial: poids,
+  poidsRestant: poids,
+  prixAchatKg: paFinal,
 
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    closed: false,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+  closed: false,
 
-    fao: meta.fao,
-    zone: meta.zone,
-    sousZone: meta.sousZone,
-    nomLatin: meta.nomLatin,
-    dlc: meta.dlc,
-    engin: meta.engin,
-    photo_url: meta.photo_url,
+  // majoritaire
+  fao: meta.fao,
+  zone: meta.zone,
+  sousZone: meta.sousZone,
+  nomLatin: meta.nomLatin,
+  dlc: meta.dlc,
+  engin: meta.engin,
+  photo_url: meta.photo_url,
 
-    achatId: first ? first.achatId : null,
-    ligneId: first ? first.ligneId : null,
+  // 🔥 nouvelles listes complètes
+  liste_fao: meta.liste_fao,
+  liste_zone: meta.liste_zone,
+  liste_sousZone: meta.liste_sousZone,
+  liste_engin: meta.liste_engin,
+  liste_nomLatin: meta.liste_nomLatin,
+  liste_photos: meta.liste_photos,
 
-    ingredients: usedAll
-  });
+  achatId: first ? first.achatId : null,
+  ligneId: first ? first.ligneId : null,
+
+  ingredients: usedAll
+});
 
   return lotId;
 }
