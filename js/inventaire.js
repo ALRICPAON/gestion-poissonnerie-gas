@@ -47,6 +47,76 @@ dateInput.addEventListener("change", () => {
 let dataInventaire = [];
 
 //--------------------------------------------------------
+// 🔥 EXPANSION PLATEAUX À PARTIR DU CA
+// - ventesEAN : { ean: caTTC }
+// retourne : { ventesEANNet, extraPoidsByPlu, extraCaByPlu }
+//--------------------------------------------------------
+async function expandPlateauxFromCA(ventesEAN) {
+  const user = auth.currentUser;
+  if (!user) return { ventesEANNet: ventesEAN, extraPoidsByPlu: {}, extraCaByPlu: {} };
+
+  // clone pour pouvoir supprimer les ean plateau
+  const ventesEANNet = { ...(ventesEAN || {}) };
+
+  // 1) charge tous les plateaux user
+  const snapPlateaux = await getDocs(
+    query(collection(db, "plateaux"), where("userId", "==", user.uid))
+  );
+
+  if (snapPlateaux.empty) {
+    return { ventesEANNet, extraPoidsByPlu: {}, extraCaByPlu: {} };
+  }
+
+  const extraPoidsByPlu = {}; // plu composant -> kg/pièces vendus via plateaux
+  const extraCaByPlu = {};    // ca recalculé pour affichage (optionnel)
+
+  for (const docP of snapPlateaux.docs) {
+    const p = docP.data();
+
+    const plateauPlu = String(p.plu || "").trim();
+    const pvPlateau  = Number(p.pv || 0);
+    const comps      = Array.isArray(p.composants) ? p.composants : [];
+
+    if (!plateauPlu || pvPlateau <= 0 || comps.length === 0) continue;
+
+    // 2) retrouve l’EAN du plateau
+    let eanPlateau = p.ean || null;
+
+    if (!eanPlateau) {
+      const artSnap = await getDoc(doc(db, "articles", plateauPlu));
+      if (artSnap.exists()) eanPlateau = artSnap.data().ean || null;
+    }
+
+    if (!eanPlateau) continue;
+
+    const caPlateau = Number(ventesEANNet[eanPlateau] || 0);
+    if (caPlateau <= 0) continue;
+
+    // 3) calcule parts vendues
+    const parts = caPlateau / pvPlateau;
+
+    // 4) répartit sur les composants
+    for (const c of comps) {
+      const pluC = String(c.plu || "").trim();
+      const qtyC = Number(c.qty || 0);
+
+      if (!pluC || qtyC <= 0) continue;
+
+      const poids = parts * qtyC;
+
+      if (!extraPoidsByPlu[pluC]) extraPoidsByPlu[pluC] = 0;
+      extraPoidsByPlu[pluC] += poids;
+    }
+
+    // 5) on retire le CA plateau brut pour éviter double comptage
+    delete ventesEANNet[eanPlateau];
+  }
+
+  return { ventesEANNet, extraPoidsByPlu, extraCaByPlu };
+}
+
+
+//--------------------------------------------------------
 // Format
 //--------------------------------------------------------
 function n2(v) {
@@ -64,7 +134,10 @@ async function chargerInventaire() {
     return;
   }
 
-  const ventes = JSON.parse(localStorage.getItem("inventaireCA") || "{}");
+  const ventesRaw = JSON.parse(localStorage.getItem("inventaireCA") || "{}");
+
+// 🔥 on transforme les ventes plateau -> ventes composants
+const { ventesEANNet, extraPoidsByPlu } = await expandPlateauxFromCA(ventesRaw);
   tbody.innerHTML = "<tr><td colspan='9'>⏳ Chargement…</td></tr>";
 
   // 1. Lire tous les lots ouverts
@@ -112,24 +185,34 @@ async function chargerInventaire() {
     const artSnap = await getDoc(doc(db, "articles", plu));
     const ean = artSnap.exists() ? artSnap.data().ean : null;
 
-    const caTTC = ean && ventes[ean] ? ventes[ean] : 0;
-    const prixKg = prixVente[plu] || 0;
+    const caTTC = ean && ventesEANNet[ean] ? ventesEANNet[ean] : 0;
+const prixKg = prixVente[plu] || 0;
 
-    const poidsVendu = prixKg > 0 ? caTTC / prixKg : 0;
+// ventes classiques
+let poidsVendu = prixKg > 0 ? caTTC / prixKg : 0;
 
-    const stockReel = stockTheo - poidsVendu;
-    const ecart = stockReel - stockTheo;
+// 🔥 + ventes issues des plateaux
+const extraPoids = extraPoidsByPlu[plu] || 0;
+poidsVendu += extraPoids;
 
-    dataInventaire.push({
-      plu,
-      designation,
-      stockTheo,
-      prixKg,
-      caTTC,
-      poidsVendu,
-      stockReel,
-      ecart
-    });
+// optionnel : afficher un CA TTC qui inclut les plateaux
+const caPlateaux = extraPoids * prixKg;
+const caTTCAffiche = caTTC + caPlateaux;
+
+const stockReel = stockTheo - poidsVendu;
+const ecart = stockReel - stockTheo;
+
+
+   dataInventaire.push({
+  plu,
+  designation,
+  stockTheo,
+  prixKg,
+  caTTC: caTTCAffiche,
+  poidsVendu,
+  stockReel,
+  ecart
+});
 
     rows.push(`
       <tr data-plu="${plu}">
@@ -139,6 +222,10 @@ async function chargerInventaire() {
         <td>${n2(prixKg)}</td>
         <td>${n2(caTTC)}</td>
         <td>${n2(poidsVendu)}</td>
+        <td>${n2(caTTCAffiche)}</td>
+<td>${n2(poidsVendu)}</td>
+
+
 
         <td>
           <input class="stock-reel-input" 
