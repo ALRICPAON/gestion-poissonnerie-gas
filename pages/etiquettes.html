@@ -1,6 +1,50 @@
-<button id="btnExport">📤 Export Étiquettes</button>
-<script type="module">
-  import { exportEtiquettes } from "../js/export-etiquettes.js";
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Export Étiquettes Evolis</title>
 
-  document.querySelector("#btnExport").addEventListener("click", exportEtiquettes);
-</script>
+  <!-- ExcelJS chargé globalement -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+
+  <!-- Firebase -->
+  <script type="module" src="./js/firebase-init.js"></script>
+
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+    button {
+      background: #0284c7;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 17px;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0369a1;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>📦 Export Étiquettes Evolis — Poissonnerie</h1>
+
+  <button id="btnExport">📤 Export Étiquettes</button>
+
+  <script type="module">
+    import { exportEtiquettes } from "./js/export-etiquettes.js";
+
+    document.querySelector("#btnExport").addEventListener("click", exportEtiquettes);
+  </script>
+</body>
+</html>
