@@ -223,7 +223,6 @@ const ecart = stockReel - stockTheo;
         <td>${n2(caTTC)}</td>
         <td>${n2(poidsVendu)}</td>
         <td>${n2(caTTCAffiche)}</td>
-<td>${n2(poidsVendu)}</td>
 
 
 
