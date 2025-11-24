@@ -30,13 +30,11 @@ function toDateOrNull(str) {
 function fmtDate(val) {
   if (!val) return "";
 
-  // Firestore Timestamp
   if (val.toDate) {
     const d = val.toDate();
     return d.toLocaleDateString("fr-FR");
   }
 
-  // Date native
   if (val instanceof Date) {
     return val.toLocaleDateString("fr-FR");
   }
@@ -64,7 +62,6 @@ els.btn.addEventListener("click", () => {
   loadTraceability().catch(console.error);
 });
 
-// Mise en place d’une date “Au” automatique à aujourd’hui
 window.addEventListener("load", () => {
   const today = new Date();
   els.to.value = today.toISOString().split("T")[0];
@@ -85,7 +82,6 @@ async function loadTraceability() {
   const fournFilter = normStr(els.fourn.value.trim());
   const typeFilter = els.type.value;
 
-  // 1️⃣ Charger les lots
   const lots = await fetchLots({ fromDate, toDate, pluFilter });
 
   if (!lots.length) {
@@ -96,20 +92,16 @@ async function loadTraceability() {
 
   const cards = [];
 
-  // 2️⃣ Pour chaque lot → achat + ligne + mouvements
   for (const lotDoc of lots) {
     const lotId = lotDoc.id;
     const lot = lotDoc.data();
 
-   const achatInfo = await fetchAchatAndLine(lot);
+    const achatInfo = await fetchAchatAndLine(lot);
 
-// CAS 1 — lot d’achat normal → si pas d’achatInfo = on SKIP
-if (!achatInfo && lot.source !== "transformation") continue;
+    if (!achatInfo && lot.source !== "transformation") continue;
 
-// CAS 2 — lot de transformation → OK même sans achatInfo
-const { achat = null, ligne = null } = achatInfo || {};
+    const { achat = null, ligne = null } = achatInfo || {};
 
-    // filtre fournisseur
     if (fournFilter) {
       const f = normStr(achat?.fournisseurNom || achat?.fournisseur || "");
       if (!f.includes(fournFilter)) continue;
@@ -117,7 +109,6 @@ const { achat = null, ligne = null } = achatInfo || {};
 
     const mouvements = await fetchMovementsForLot(lotId);
 
-    // règles métier de filtrage
     const poidsRestant = lot.poidsRestant ?? 0;
     const closed = !!lot.closed || poidsRestant <= 0;
 
@@ -143,7 +134,7 @@ const { achat = null, ligne = null } = achatInfo || {};
     if (!include) continue;
 
     const photo = await fetchPhotoForLot(lot, ligne);
-cards.push({ lotId, lot, achat, ligne, mouvements, photo });
+    cards.push({ lotId, lot, achat, ligne, mouvements, photo });
   }
 
   if (!cards.length) {
@@ -152,7 +143,6 @@ cards.push({ lotId, lot, achat, ligne, mouvements, photo });
     return;
   }
 
-  // 3️⃣ Tri des lots : plus récent d’abord
   cards.sort((a, b) => {
     const dateA =
       a.achat?.date?.toDate?.() ||
@@ -169,7 +159,6 @@ cards.push({ lotId, lot, achat, ligne, mouvements, photo });
     return dateB - dateA;
   });
 
-  // 4️⃣ rendu final
   renderCards(cards, typeFilter);
 
   els.btn.disabled = false;
@@ -243,14 +232,14 @@ async function fetchMovementsForLot(lotId) {
   const snap = await getDocs(qRef);
   return snap.docs.map(d => d.data());
 }
+
+
 /*******************************************
  * FETCH PHOTO (lot → ligne achat)
  *******************************************/
 async function fetchPhotoForLot(lot, ligne) {
-  // 1️⃣ Lot possède déjà une photo → OK
   if (lot.photo_url) return lot.photo_url;
 
-  // 2️⃣ Pas lié à un achat → impossible
   if (!lot.achatId || !lot.ligneId) return null;
 
   try {
@@ -275,6 +264,35 @@ function renderCards(cards, typeFilter) {
   let html = "";
 
   for (const { lotId, lot, achat, ligne, mouvements, photo } of cards) {
+    
+    // -------- MULTI-ESPECES TRAÇABILITE --------
+    let faoHtml = "";
+    let zoneHtml = "";
+    let enginHtml = "";
+    let latinHtml = "";
+    let photosHtml = "";
+
+    if (Array.isArray(lot.liste_zone) && lot.liste_zone.length) {
+      faoHtml  = `<strong>FAO :</strong> ${lot.liste_fao.join(" / ")}<br>`;
+      zoneHtml = `<strong>Zones :</strong> ${lot.liste_zone.join(" / ")}<br>`;
+      enginHtml = `<strong>Engins :</strong> ${lot.liste_engin.join(" — ")}<br>`;
+      latinHtml = `<strong>Espèces :</strong> ${lot.liste_nomLatin.join(", ")}<br>`;
+    } else {
+      faoHtml = `<strong>FAO :</strong> ${lot.fao || ""}<br>`;
+      zoneHtml = `<strong>Zone :</strong> ${lot.zone || ""} ${lot.sousZone || ""}<br>`;
+      enginHtml = `<strong>Engin :</strong> ${lot.engin || ""}<br>`;
+      latinHtml = lot.nomLatin ? `<strong>Espèce :</strong> ${lot.nomLatin}<br>` : "";
+    }
+
+    if (Array.isArray(lot.liste_photos) && lot.liste_photos.length) {
+      photosHtml = lot.liste_photos
+        .map(url => `<img class="trace-photo" src="${url}">`)
+        .join("");
+    } else if (lot.photo_url) {
+      photosHtml = `<img class="trace-photo" src="${lot.photo_url}">`;
+    }
+    // -------------------------------------------
+
     const photoUrl = photo || lot.photo_url || ligne?.photo_url || null;
     const poidsInitial = lot.poidsInitial || ligne?.poidsKg || 0;
     const poidsRestant = lot.poidsRestant ?? 0;
@@ -284,14 +302,13 @@ function renderCards(cards, typeFilter) {
     const badgeLabel = closed ? "CONSOMMÉ" : "EN COURS";
 
     const fournisseur =
-    achat?.fournisseurNom ||
-    achat?.fournisseur ||
-    (lot.source === "transformation" ? "Transformation interne" : "");
+      achat?.fournisseurNom ||
+      achat?.fournisseur ||
+      (lot.source === "transformation" ? "Transformation interne" : "");
 
     const achatDate =
       achat?.date || achat?.createdAt || lot.createdAt;
 
-    // Filtrage des mouvements affichés
     let filteredMovements = mouvements;
 
     if (typeFilter === "vente") {
@@ -315,54 +332,20 @@ function renderCards(cards, typeFilter) {
           <strong>PLU :</strong> ${lot.plu || ligne?.plu} — ${lot.designation || ligne?.designation}<br>
           <strong>Fournisseur :</strong> ${fournisseur}<br>
           <strong>Poids initial :</strong> ${poidsInitial} kg<br>
-          // 🔥 Traçabilité multi-espèces (lot recette)
-let zoneHtml = "";
-let enginHtml = "";
-let latinHtml = "";
-let faoHtml = "";
 
-// Cas multi-espèces (recettes)
-if (Array.isArray(lot.liste_zone) && lot.liste_zone.length) {
-  faoHtml = `<strong>FAO :</strong> ${lot.liste_fao.join(" / ")}<br>`;
-  zoneHtml = `<strong>Zones :</strong> ${lot.liste_zone.join(" / ")}<br>`;
-  enginHtml = `<strong>Engins :</strong> ${lot.liste_engin.join(" — ")}<br>`;
-  latinHtml = `<strong>Espèces :</strong> ${lot.liste_nomLatin.join(", ")}<br>`;
-} else {
-  // Lot simple (ancien)
-  faoHtml = `<strong>FAO :</strong> ${lot.fao || ""}<br>`;
-  zoneHtml = `<strong>Zone :</strong> ${lot.zone || ""} ${lot.sousZone || ""}<br>`;
-  enginHtml = `<strong>Engin :</strong> ${lot.engin || ""}<br>`;
-  latinHtml = lot.nomLatin ? `<strong>Espèce :</strong> ${lot.nomLatin}<br>` : "";
-}
-
-// 🔥 Photos multiples
-let photosHtml = "";
-if (Array.isArray(lot.liste_photos) && lot.liste_photos.length) {
-  photosHtml = lot.liste_photos
-    .map(url => `<img class="trace-photo" src="${url}">`)
-    .join("");
-} else if (lot.photo_url) {
-  photosHtml = `<img class="trace-photo" src="${lot.photo_url}">`;
-}
-          ${ lot.photo_url ? `
-  <br><img class="trace-photo" src="${lot.photo_url}">
-` : "" }
+          ${faoHtml}
+          ${zoneHtml}
+          ${enginHtml}
+          ${latinHtml}
+          ${photosHtml}
 
           ${ lot.source === "transformation" && lot.origineLots ? `
-  <strong>Origine :</strong><br>
-  ${lot.origineLots.map(o => `• Lot ${o.lotId} : ${o.kgPris}kg`).join("<br>")}
-` : "" }
+            <strong>Origine :</strong><br>
+            ${lot.origineLots.map(o => `• Lot ${o.lotId} : ${o.kgPris}kg`).join("<br>")}
+          ` : "" }
 
           <span class="${badgeClass}">${badgeLabel}</span><br>
-<strong>Reste :</strong> ${poidsRestant} kg / ${poidsInitial} kg
-
-${ (() => {
-      const url = photo || lot.photo_url || ligne?.photo_url || null;
-      return url ? `<br><img class="trace-photo" src="${url}">` : "";
-    })()
-}
-
-
+          <strong>Reste :</strong> ${poidsRestant} kg / ${poidsInitial} kg
         </div>
 
         <div class="movements-title">Mouvements du lot</div>
@@ -391,5 +374,5 @@ ${ (() => {
 
   els.list.innerHTML = html;
 }
-window.fetchPhotoForLot = fetchPhotoForLot;
 
+window.fetchPhotoForLot = fetchPhotoForLot;
