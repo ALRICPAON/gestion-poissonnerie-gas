@@ -315,8 +315,35 @@ function renderCards(cards, typeFilter) {
           <strong>PLU :</strong> ${lot.plu || ligne?.plu} — ${lot.designation || ligne?.designation}<br>
           <strong>Fournisseur :</strong> ${fournisseur}<br>
           <strong>Poids initial :</strong> ${poidsInitial} kg<br>
-          <strong>Zone :</strong> ${lot.zone || ligne?.zone || ""} ${lot.sousZone || ligne?.sousZone || ""}<br>
-          <strong>Engin :</strong> ${lot.engin || ligne?.engin || ""}<br>
+          // 🔥 Traçabilité multi-espèces (lot recette)
+let zoneHtml = "";
+let enginHtml = "";
+let latinHtml = "";
+let faoHtml = "";
+
+// Cas multi-espèces (recettes)
+if (Array.isArray(lot.liste_zone) && lot.liste_zone.length) {
+  faoHtml = `<strong>FAO :</strong> ${lot.liste_fao.join(" / ")}<br>`;
+  zoneHtml = `<strong>Zones :</strong> ${lot.liste_zone.join(" / ")}<br>`;
+  enginHtml = `<strong>Engins :</strong> ${lot.liste_engin.join(" — ")}<br>`;
+  latinHtml = `<strong>Espèces :</strong> ${lot.liste_nomLatin.join(", ")}<br>`;
+} else {
+  // Lot simple (ancien)
+  faoHtml = `<strong>FAO :</strong> ${lot.fao || ""}<br>`;
+  zoneHtml = `<strong>Zone :</strong> ${lot.zone || ""} ${lot.sousZone || ""}<br>`;
+  enginHtml = `<strong>Engin :</strong> ${lot.engin || ""}<br>`;
+  latinHtml = lot.nomLatin ? `<strong>Espèce :</strong> ${lot.nomLatin}<br>` : "";
+}
+
+// 🔥 Photos multiples
+let photosHtml = "";
+if (Array.isArray(lot.liste_photos) && lot.liste_photos.length) {
+  photosHtml = lot.liste_photos
+    .map(url => `<img class="trace-photo" src="${url}">`)
+    .join("");
+} else if (lot.photo_url) {
+  photosHtml = `<img class="trace-photo" src="${lot.photo_url}">`;
+}
           ${ lot.photo_url ? `
   <br><img class="trace-photo" src="${lot.photo_url}">
 ` : "" }
