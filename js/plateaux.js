@@ -85,7 +85,7 @@ function renderForm(data = null) {
       <div class="form-row">
         <input id="plateau-plu" class="input" placeholder="PLU plateau..." style="width:120px;">
         <input id="plateau-des" class="input" placeholder="Désignation auto" disabled>
-        <input id="plateau-pv" class="input" placeholder="PV TTC" disabled style="width:120px;">
+        <input id="plateau-pv" class="input" placeholder="PV TTC" style="width:120px;">
         <button id="plateau-f9" class="btn btn-muted">F9</button>
       </div>
 
