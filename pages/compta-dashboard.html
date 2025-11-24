@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tableau de bord – Comptabilité</title>
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    .box { background:var(--bg-box); padding:1em; border-radius:var(--radius);
+           box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:1.2em; }
+    .row { display:flex; gap:1em; flex-wrap:wrap; align-items:end; }
+    .row > label { display:flex; flex-direction:column; font-weight:600; font-size:14px; color:var(--text-main); }
+    .row input, .row select { padding:0.5em; border:1px solid var(--border); border-radius:var(--radius); }
+
+    .tabs { display:flex; gap:.5em; flex-wrap:wrap; }
+    .tab-btn {
+      padding:.45em .9em; border-radius:999px; border:1px solid var(--border);
+      cursor:pointer; background:#dff3f7; color:var(--text-main); font-weight:600; font-size:13px;
+    }
+    .tab-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    .summary { display:flex; gap:1em; flex-wrap:wrap; }
+    .summary .resume-item { flex:1 1 180px; }
+
+    .small { font-size:12px; color:var(--text-muted); }
+
+    .chart-wrap { background:var(--bg-box); padding:1em; border-radius:var(--radius);
+                  box-shadow:var(--shadow); border:1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <h1>📊 Tableau de bord</h1>
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">
+      ← Retour accueil
+    </button>
+  </div>
+
+  <!-- HEADER FILTRES -->
+  <div class="box">
+    <h2 style="margin-top:0;">Filtres d’affichage</h2>
+
+    <div class="tabs" id="modeTabs">
+      <button class="tab-btn active" data-mode="day">Jour</button>
+      <button class="tab-btn" data-mode="week">Semaine</button>
+      <button class="tab-btn" data-mode="month">Mois</button>
+      <button class="tab-btn" data-mode="year">Année</button>
+      <button class="tab-btn" data-mode="custom">Période</button>
+    </div>
+
+    <div class="row" style="margin-top:12px;" id="inputsRow">
+      <!-- inputs injectés par JS -->
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <label>
+        CA réel HT (Z)
+        <input id="zCaHT" type="number" step="0.01" placeholder="Saisie du Z du jour">
+      </label>
+
+      <button id="btnSaveZ" class="btn btn-accent">💾 Enregistrer le Z</button>
+
+      <div class="small" style="align-self:center;">
+        Le CA réel est utilisé pour la marge. Le CA théorique reste une info de contrôle.
+      </div>
+    </div>
+
+    <div id="status" class="small" style="margin-top:6px;"></div>
+  </div>
+
+  <!-- CARTES SYNTHÈSE -->
+  <div class="header-box">
+    <h2 style="margin-top:0;">Synthèse période</h2>
+    <div class="summary">
+      <div class="resume-item">
+        <h3>📘 CA réel HT</h3>
+        <p><span id="sumCaReel">0.00</span> €</p>
+        <p class="small">Somme des Z saisis sur la période</p>
+      </div>
+      <div class="resume-item">
+        <h3>📦 Achats consommés HT</h3>
+        <p><span id="sumAchatsConso">0.00</span> €</p>
+        <p class="small">Factures lettrées priorisées</p>
+      </div>
+      <div class="resume-item">
+        <h3>📉 Variation stock HT</h3>
+        <p><span id="sumVarStock">0.00</span> €</p>
+        <p class="small">StockDébut – StockFin</p>
+      </div>
+      <div class="resume-item total">
+        <h3>💶 Marge brute</h3>
+        <p>
+          <span id="sumMarge">0.00</span> € –
+          <span id="sumMargePct">0.0</span> %
+        </p>
+        <p class="small">CA réel – Achats consommés</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DÉTAILS -->
+  <div class="box">
+    <h2>Détails</h2>
+    <table>
+      <tbody>
+        <tr><th>Stock début HT</th><td id="stockDebut">0.00 €</td></tr>
+        <tr><th>Stock fin HT</th><td id="stockFin">0.00 €</td></tr>
+        <tr><th>Achats période HT</th><td id="achatsPeriode">0.00 €</td></tr>
+        <tr><th>Achats consommés HT</th><td id="achatsConso">0.00 €</td></tr>
+        <tr><th>CA théorique HT</th><td id="caTheo">0.00 €</td></tr>
+        <tr><th>CA réel HT</th><td id="caReel">0.00 €</td></tr>
+      </tbody>
+    </table>
+
+    <div class="small" style="margin-top:8px;">
+      Achats = somme des achats de la période, mais si une facture lettrée existe, elle remplace l’achat.
+    </div>
+  </div>
+
+  <!-- GRAPHIQUES -->
+  <div class="chart-wrap">
+    <h2 style="margin-top:0;">Graphiques</h2>
+    <canvas id="chartMain" height="110"></canvas>
+  </div>
+
+  <script type="module" src="../js/compta-dashboard.js"></script>
+</body>
+</html>
