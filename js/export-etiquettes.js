@@ -56,6 +56,7 @@ async function getInfoPLU(plu) {
   let engins = [];
   let decongeles = [];
   let allergenesLots = [];
+  let methodesProd = [];       // 🔥 nouvelle liste
 
   snapLots.forEach(lot => {
     const d = lot.data();
@@ -65,9 +66,11 @@ async function getInfoPLU(plu) {
     engins.push(canoniseEngin(d.engin));
     decongeles.push(d.decongele ? "Oui" : "Non");
     allergenesLots.push(d.allergenes || "");
+    methodesProd.push(d.categorie || d.methodeProd || "");  // 🔥 méthode prod en LOT
   });
 
   const hasLots = !snapLots.empty;
+
 
   /* ----------------------
      STOCK ARTICLES (PV TTC RÉEL)
@@ -78,10 +81,12 @@ async function getInfoPLU(plu) {
     pvReal = snapStockArt.data().pvTTCreel || 0;
   }
 
+
   /* ----------------------
      ACHAT fallback (si pas lot)
   ---------------------- */
   let achatData = null;
+  let achatMethode = "";
 
   const snapAchats = await getDocs(
     query(collection(db, "achats"), where("plu", "==", plu))
@@ -89,21 +94,27 @@ async function getInfoPLU(plu) {
 
   if (!snapAchats.empty) {
     achatData = snapAchats.docs[0].data();
+    achatMethode = achatData?.categorie || achatData?.methodeProd || "";
   }
 
+
   /* ----------------------
-     ARTICLE fallback (allergènes notamment)
+     ARTICLE fallback (allergènes + catégorie)
   ---------------------- */
   const snapArt = await getDoc(doc(db, "articles", plu));
   let artData = snapArt.exists() ? snapArt.data() : {};
+  const artMethode = artData?.categorie || artData?.methodeProd || "";
+
 
   /* ----------------------
-     CONSTRUCTION FINALE
+     CONSTRUCTION FINAL OBJECT
   ---------------------- */
-
   return {
     type: "TRAD",
-    criee: hasLots ? uniqValues(snapLots.docs.map(l => l.data().criee || "")) : (achatData?.criee || ""),
+
+    criee: hasLots
+      ? uniqValues(snapLots.docs.map(l => l.data().criee || ""))
+      : (achatData?.criee || ""),
 
     designation:
       uniqValues(designations) ||
@@ -141,10 +152,17 @@ async function getInfoPLU(plu) {
       artData?.allergenes ||
       "",
 
+    methodeProd:                  // 🔥 ICI la logique finale
+      uniqValues(methodesProd) ||
+      achatMethode ||
+      artMethode ||
+      "",
+
     prix: pvReal || 0,
     unite: "€/kg",
   };
 }
+
 
 /* ---------------------------------------------------------
    📤 EXPORT XLSX
@@ -181,7 +199,7 @@ export async function exportEtiquettes() {
       plu,
       info.designation,
       info.nomLatin,
-      "", // Méthode Prod à ajouter plus tard
+      info.methodeProd,
       info.fao,
       info.engin,
       info.decongele,
