@@ -226,7 +226,7 @@ export async function exportEtiquettes() {
       info.methodeProd,
       info.fao,
       info.engin,
-      info.decongele,
+      "",   // colonne Décongelé volontairement vide
       info.allergenes,
       info.prix,
       info.unite
