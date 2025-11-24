@@ -131,6 +131,7 @@ function renderForm(data = null) {
   // events PLU plateau
   qs("#plateau-f9").onclick = () => openF9("plateau");
   qs("#plateau-plu").onchange = onPlateauPluChange;
+  qs("#plateau-pv").oninput = calcTotalPR;
 
   // btn add composants
   qs("#btn-add-comp").onclick = addCompRow;
@@ -177,8 +178,10 @@ function onPlateauPluChange() {
 
   qs("#plateau-des").value = art.Designation || "";
   // essaye plusieurs champs possibles selon ta base
+  if (!qs("#plateau-pv").value) {
   qs("#plateau-pv").value =
     art.PVTTC_Choisi ?? art.PVTTC ?? art.PV_TTC ?? art.PV ?? "";
+}
   calcTotalPR();
 }
 
