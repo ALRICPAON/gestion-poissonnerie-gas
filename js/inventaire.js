@@ -318,10 +318,15 @@ btnValider.addEventListener("click", async () => {
     });
 
     // Mise à jour stock_articles
-    await updateDoc(doc(db, "stock_articles", "PLU_" + item.plu), {
-      poids: totalKg,
-      updatedAt: serverTimestamp()
-    });
+    await setDoc(
+  doc(db, "stock_articles", "PLU_" + item.plu),
+  {
+    poids: totalKg,
+    updatedAt: serverTimestamp()
+  },
+  { merge: true }
+);
+
 
     totalHT += totalAchat;
   }
