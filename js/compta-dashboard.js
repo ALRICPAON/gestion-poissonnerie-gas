@@ -1,7 +1,7 @@
 import { db, auth } from "./firebase-init.js";
 import {
   collection, doc, getDoc, getDocs, query, where,
-  setDoc, serverTimestamp
+  setDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* ---------------- Utils ---------------- */
@@ -66,7 +66,11 @@ const inputsRow = document.getElementById("inputsRow");
 
 const el = {
   zCaHT: document.getElementById("zCaHT"),
+  zNote: document.getElementById("zNote"),
   btnSaveZ: document.getElementById("btnSaveZ"),
+  btnValiderJournee: document.getElementById("btnValiderJournee"),
+  btnRecalcJournee: document.getElementById("btnRecalcJournee"),
+  btnUnvalidateJournee: document.getElementById("btnUnvalidateJournee"),
   status: document.getElementById("status"),
 
   sumCaReel: document.getElementById("sumCaReel"),
@@ -74,13 +78,6 @@ const el = {
   sumVarStock: document.getElementById("sumVarStock"),
   sumMarge: document.getElementById("sumMarge"),
   sumMargePct: document.getElementById("sumMargePct"),
-
-  stockDebut: document.getElementById("stockDebut"),
-  stockFin: document.getElementById("stockFin"),
-  achatsPeriode: document.getElementById("achatsPeriode"),
-  achatsConso: document.getElementById("achatsConso"),
-  caTheo: document.getElementById("caTheo"),
-  caReel: document.getElementById("caReel"),
 
   tdStockDebut: document.getElementById("stockDebut"),
   tdStockFin: document.getElementById("stockFin"),
@@ -94,6 +91,8 @@ const el = {
 
 let mode = "day";
 let chart = null;
+let editingDay = false;          // si on est en mode modification après recalcul
+let savedDayData = null;         // cache doc journal du jour si existant
 
 /* ---------------- Inputs dynamiques selon mode ---------------- */
 function renderInputs(){
@@ -108,16 +107,13 @@ function renderInputs(){
     `;
   }
   if(mode==="week"){
-    // input week ISO
-    const w = getISOWeekNumber(now);
     inputsRow.innerHTML = `
       <label>Semaine
         <input id="inpWeek" type="week">
       </label>
     `;
-    // set current week value
-    const inp = document.getElementById("inpWeek");
-    inp.value = `${now.getFullYear()}-W${String(w).padStart(2,"0")}`;
+    const w = getISOWeekNumber(now);
+    document.getElementById("inpWeek").value = `${now.getFullYear()}-W${String(w).padStart(2,"0")}`;
   }
   if(mode==="month"){
     inputsRow.innerHTML = `
@@ -144,20 +140,24 @@ function renderInputs(){
     `;
   }
 
-  // events refresh
   inputsRow.querySelectorAll("input").forEach(i=>{
-    i.addEventListener("change", refreshDashboard);
+    i.addEventListener("change", () => {
+      editingDay = false;
+      savedDayData = null;
+      refreshDashboard();
+    });
   });
 
-  // auto adjust Z input for day mode
-  refreshZField();
+  refreshHeaderButtons();
+  refreshDashboard();
 }
 
-function refreshZField(){
-  const d = getSelectedRange().start;
-  const zMode = (mode==="day");
-  el.zCaHT.disabled = !zMode;
-  el.btnSaveZ.disabled = !zMode;
+function refreshHeaderButtons(){
+  const dayMode = (mode === "day");
+  el.btnSaveZ.style.display = dayMode ? "" : "none";
+  el.btnValiderJournee.style.display = dayMode ? "" : "none";
+  el.btnRecalcJournee.style.display = dayMode ? "" : "none";
+  el.btnUnvalidateJournee.style.display = dayMode ? "" : "none";
 }
 
 /* ISO week number */
@@ -208,7 +208,7 @@ function getSelectedRange(){
   return { start: now, end: now };
 }
 
-/* ---------------- Data loaders ---------------- */
+/* ---------------- Data loaders LIVE ---------------- */
 
 /** 1) Inventaires journal_inventaires */
 async function loadInventaires(){
@@ -224,18 +224,16 @@ async function loadInventaires(){
   return invs;
 }
 
-/** get nearest inventory BEFORE start, and nearest inventory AT/BEFORE end */
+/** nearest BEFORE start, and nearest AT/BEFORE end */
 function pickStocks(invs, start, end){
   let stockDebut = 0;
   let stockFin = 0;
 
-  // nearest before start
   const beforeStart = invs.filter(x=>x.date < start);
   if(beforeStart.length){
     stockDebut = beforeStart[beforeStart.length-1].valeur;
   }
 
-  // nearest at/before end
   const beforeEnd = invs.filter(x=>x.date <= end);
   if(beforeEnd.length){
     stockFin = beforeEnd[beforeEnd.length-1].valeur;
@@ -261,34 +259,27 @@ async function loadAchatsAndFactures(start, end){
       date: dt,
       totalHT: toNum(r.totalHT || r.montantHT || r.total || 0),
       factureId: r.factureId || null,
-      fournisseurCode: r.fournisseurCode || "",
     });
   });
 
-  // factures nécessaires (uniquement celles référencées)
   const factureIds = [...new Set(achats.map(a=>a.factureId).filter(Boolean))];
   const facturesMap = {};
+
   for(const fid of factureIds){
     const fsnap = await getDoc(doc(db, "factures", fid));
     if(fsnap.exists()){
       const f = fsnap.data();
-      facturesMap[fid] = {
-        montantFournisseurHT: toNum(f.montantFournisseurHT || 0),
-        date: f.date
-      };
+      facturesMap[fid] = toNum(f.montantFournisseurHT || 0);
     }
   }
 
-  // Calcul achats période avec règle :
-  // si facture lettrée → on prend facture une seule fois
-  // sinon achat
   let achatsPeriodeHT = 0;
-
   const facturesCounted = new Set();
+
   for(const a of achats){
     if(a.factureId && facturesMap[a.factureId]){
       if(!facturesCounted.has(a.factureId)){
-        achatsPeriodeHT += facturesMap[a.factureId].montantFournisseurHT;
+        achatsPeriodeHT += facturesMap[a.factureId];
         facturesCounted.add(a.factureId);
       }
     } else {
@@ -296,16 +287,11 @@ async function loadAchatsAndFactures(start, end){
     }
   }
 
-  return { achats, facturesMap, achatsPeriodeHT };
+  return achatsPeriodeHT;
 }
 
-/** 3) CA théorique (depuis localStorage inventaireCA, par période)
- *  -> Ici on cumule juste les imports journaliers stockés en local si tu les as.
- *  Si tu veux le mettre en Firestore plus tard, on le branchera.
- */
+/** 3) CA théorique HT (localStorage) */
 function loadCaTheorique(start, end){
-  // on cherche une clé locale inventaireCA_YYYY-MM-DD si tu veux,
-  // sinon fallback inventaireCA global
   let total = 0;
   const oneDay = 86400000;
   for(let t=start.getTime(); t<=end.getTime(); t+=oneDay){
@@ -314,7 +300,6 @@ function loadCaTheorique(start, end){
     if(!raw) continue;
     try{
       const ventes = JSON.parse(raw||"{}");
-      // ventes = {ean: caTTC}, on additionne tout
       total += Object.values(ventes).reduce((s,v)=>s+toNum(v),0);
     }catch(e){}
   }
@@ -322,40 +307,180 @@ function loadCaTheorique(start, end){
 }
 
 /** 4) CA réel HT (Z saisis) */
-async function loadCaReel(start, end){
-  const user = auth.currentUser;
-  const snap = await getDocs(collection(db, "ventes_reelles"));
-  const items = [];
-  snap.forEach(d=>{
-    const r = d.data();
-    if(r.userId && user && r.userId!==user.uid) return;
-    const dt = new Date(r.date || d.id);
-    if(!isFinite(dt)) return;
-    if(!inRange(dt, start, end)) return;
-    items.push({ date: dt, caHT: toNum(r.caHT||0) });
-  });
-  const total = items.reduce((s,x)=>s+x.caHT,0);
-  return { total, items };
+async function loadZForDate(dateStr){
+  const snap = await getDoc(doc(db,"ventes_reelles",dateStr));
+  if(!snap.exists()) return { caHT:0, note:"" };
+  const r = snap.data();
+  return { caHT: toNum(r.caHT||0), note: r.note || "" };
 }
 
-/* ---------------- Save Z (day mode only) ---------------- */
+/* ---------------- Journaux VALIDÉS ---------------- */
+
+async function getJournal(dateStr){
+  const snap = await getDoc(doc(db,"compta_journal",dateStr));
+  return snap.exists() ? snap.data() : null;
+}
+
+async function loadJournauxRange(start, end){
+  const snap = await getDocs(collection(db,"compta_journal"));
+  const jours = [];
+  snap.forEach(d=>{
+    const r = d.data();
+    const dt = new Date(r.date || d.id);
+    if(!isFinite(dt)) return;
+    if(inRange(dt,start,end)) jours.push(r);
+  });
+  jours.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  return jours;
+}
+
+/* ---------------- Calcul LIVE d’une journée ---------------- */
+async function calculateLiveDay(dateStr){
+  const d = new Date(dateStr);
+  const start = new Date(d); start.setHours(0,0,0,0);
+  const end = new Date(d); end.setHours(23,59,59,999);
+
+  const invs = await loadInventaires();
+  const { stockDebut, stockFin } = pickStocks(invs, start, end);
+  const varStock = stockDebut - stockFin;
+
+  const achatsPeriodeHT = await loadAchatsAndFactures(start, end);
+  const caTheo = loadCaTheorique(start, end);
+
+  const z = await loadZForDate(dateStr);
+  const caReel = toNum(z.caHT);
+  const note = z.note || "";
+
+  const achatsConsoHT = achatsPeriodeHT + varStock;
+  const marge = caReel - achatsConsoHT;
+  const margePct = caReel>0 ? (marge/caReel*100) : 0;
+
+  return {
+    date: dateStr,
+    stockDebut, stockFin, varStock,
+    achatsPeriodeHT, achatsConsoHT,
+    caTheo, caReel,
+    marge, margePct,
+    noteZ: note
+  };
+}
+
+/* ---------------- UI helpers ---------------- */
+
+function setDayInputsDisabled(disabled){
+  el.zCaHT.disabled = disabled;
+  el.zNote.disabled = disabled;
+  el.btnSaveZ.disabled = disabled;
+  el.btnValiderJournee.disabled = disabled;
+}
+
+function afficherDonnees(d){
+  el.sumCaReel.textContent = n2(d.caReel||0);
+  el.sumAchatsConso.textContent = n2(d.achatsConsoHT||0);
+  el.sumVarStock.textContent = n2(d.varStock||0);
+  el.sumMarge.textContent = n2(d.marge||0);
+  el.sumMargePct.textContent = n2(d.margePct||0);
+
+  el.tdStockDebut.textContent = `${n2(d.stockDebut||0)} €`;
+  el.tdStockFin.textContent = `${n2(d.stockFin||0)} €`;
+  el.tdAchatsPeriode.textContent = `${n2(d.achatsPeriodeHT||0)} €`;
+  el.tdAchatsConso.textContent = `${n2(d.achatsConsoHT||0)} €`;
+  el.tdCaTheo.textContent = `${n2(d.caTheo||0)} €`;
+  el.tdCaReel.textContent = `${n2(d.caReel||0)} €`;
+}
+
+/* ---------------- Save Z (jour) ---------------- */
 async function saveZ(){
   const user = auth.currentUser;
   if(!user) return alert("Non connecté.");
 
   const { start } = getSelectedRange();
   const dateStr = ymd(start);
+
   const caHT = toNum(el.zCaHT.value||0);
+  const note = (el.zNote.value||"").trim();
+
   if(caHT<=0) return alert("CA HT invalide.");
 
   await setDoc(doc(db,"ventes_reelles",dateStr),{
     userId: user.uid,
     date: dateStr,
     caHT,
-    createdAt: serverTimestamp()
+    note,
+    updatedAt: serverTimestamp()
   },{merge:true});
 
   el.status.textContent = `✅ Z enregistré pour ${dateStr}.`;
+  refreshDashboard();
+}
+
+/* ---------------- Valider journée ---------------- */
+async function validerJournee(){
+  const user = auth.currentUser;
+  if(!user) return alert("Non connecté.");
+
+  const { start } = getSelectedRange();
+  const dateStr = ymd(start);
+
+  // calcul live complet
+  const live = await calculateLiveDay(dateStr);
+
+  await setDoc(doc(db,"compta_journal",dateStr),{
+    userId: user.uid,
+    validated: true,
+    ...live,
+    createdAt: serverTimestamp()
+  },{merge:true});
+
+  editingDay = false;
+  el.status.textContent = `✔ Journée ${dateStr} validée et archivée.`;
+  refreshDashboard();
+}
+
+/* ---------------- Recalculer / Modifier journée ---------------- */
+async function recalcJournee(){
+  const { start } = getSelectedRange();
+  const dateStr = ymd(start);
+
+  const saved = await getJournal(dateStr);
+  if(!saved) return alert("Journée non validée → rien à recalculer.");
+
+  // A/B = OUI : on garde CA réel + note
+  const caKeep = toNum(saved.caReel || 0);
+  const noteKeep = saved.noteZ || "";
+
+  const live = await calculateLiveDay(dateStr);
+  live.caReel = caKeep;
+  live.noteZ = noteKeep;
+
+  // on passe en mode édition
+  editingDay = true;
+  savedDayData = saved;
+
+  // inputs restent éditables
+  setDayInputsDisabled(false);
+  el.zCaHT.value = n2(caKeep);
+  el.zNote.value = noteKeep;
+
+  afficherDonnees(live);
+  el.status.textContent = `♻ Journée ${dateStr} recalculée (stock/achats/CA theo). Tu peux re-valider.`;
+
+  // on stocke temporairement pour revalidation
+  window.__liveDayTemp = live;
+}
+
+/* ---------------- Supprimer validation ---------------- */
+async function unvalidateJournee(){
+  const { start } = getSelectedRange();
+  const dateStr = ymd(start);
+
+  if(!confirm(`Supprimer la validation du ${dateStr} ?`)) return;
+
+  await deleteDoc(doc(db,"compta_journal",dateStr));
+
+  editingDay = false;
+  savedDayData = null;
+  el.status.textContent = `🗑️ Validation supprimée pour ${dateStr}.`;
   refreshDashboard();
 }
 
@@ -369,91 +494,105 @@ async function refreshDashboard(){
 
   const { start, end } = getSelectedRange();
 
-  // Inventaires
-  const invs = await loadInventaires();
-  const { stockDebut, stockFin } = pickStocks(invs, start, end);
-  const varStock = stockDebut - stockFin;
+  // Modes période : on cumule UNIQUEMENT journaux validés
+  if(mode !== "day"){
+    const jours = await loadJournauxRange(start,end);
 
-  // Achats + factures
-  const { achatsPeriodeHT } = await loadAchatsAndFactures(start, end);
+    const sum = (k)=> jours.reduce((s,j)=> s + toNum(j[k]||0), 0);
 
-  // CA
-  const caTheo = loadCaTheorique(start, end);
-  const { total: caReel, items: zItems } = await loadCaReel(start, end);
+    const caReel = sum("caReel");
+    const achatsConso = sum("achatsConsoHT");
+    const varStock = sum("varStock");
+    const marge = sum("marge");
+    const margePct = caReel>0 ? (marge/caReel*100) : 0;
 
-  // Achats consommés
-  const achatsConsoHT = achatsPeriodeHT + varStock;
+    const data = {
+      caReel,
+      achatsConsoHT: achatsConso,
+      varStock,
+      marge,
+      margePct,
+      stockDebut: sum("stockDebut"),
+      stockFin: sum("stockFin"),
+      achatsPeriodeHT: sum("achatsPeriodeHT"),
+      caTheo: sum("caTheo")
+    };
 
-  // Marge
-  const marge = caReel - achatsConsoHT;
-  const margePct = caReel>0 ? (marge/caReel*100) : 0;
+    afficherDonnees(data);
+    renderChartFromJournaux(jours);
 
-  // UI
-  el.sumCaReel.textContent = n2(caReel);
-  el.sumAchatsConso.textContent = n2(achatsConsoHT);
-  el.sumVarStock.textContent = n2(varStock);
-  el.sumMarge.textContent = n2(marge);
-  el.sumMargePct.textContent = n2(margePct);
-
-  el.tdStockDebut.textContent = `${n2(stockDebut)} €`;
-  el.tdStockFin.textContent = `${n2(stockFin)} €`;
-  el.tdAchatsPeriode.textContent = `${n2(achatsPeriodeHT)} €`;
-  el.tdAchatsConso.textContent = `${n2(achatsConsoHT)} €`;
-  el.tdCaTheo.textContent = `${n2(caTheo)} €`;
-  el.tdCaReel.textContent = `${n2(caReel)} €`;
-
-  // Z field for selected day
-  if(mode==="day"){
-    const dayStr = ymd(start);
-    const z = zItems.find(x=>ymd(x.date)===dayStr);
-    el.zCaHT.value = z ? n2(z.caHT) : "";
-  } else {
     el.zCaHT.value = "";
+    el.zNote.value = "";
+    setDayInputsDisabled(true);
+    return;
   }
 
-  renderChart(start, end, zItems, achatsPeriodeHT, achatsConsoHT, marge);
+  // Mode JOUR
+  const dateStr = ymd(start);
+
+  // si on est en édition (après recalc), on affiche le live temp
+  if(editingDay && window.__liveDayTemp && window.__liveDayTemp.date===dateStr){
+    const d = window.__liveDayTemp;
+    afficherDonnees(d);
+    renderChartFromJournaux([d]);
+    setDayInputsDisabled(false);
+    return;
+  }
+
+  // sinon : on check journal validé
+  const saved = await getJournal(dateStr);
+  savedDayData = saved;
+
+  if(saved){
+    // affichage ARCHIVÉ
+    afficherDonnees(saved);
+    renderChartFromJournaux([saved]);
+
+    el.zCaHT.value = n2(saved.caReel||0);
+    el.zNote.value = saved.noteZ || "";
+
+    setDayInputsDisabled(true);
+    el.btnRecalcJournee.disabled = false;
+    el.btnUnvalidateJournee.disabled = false;
+    el.status.textContent = `✔ Journée ${dateStr} validée (lecture archivage).`;
+    return;
+  }
+
+  // sinon calcul live
+  const live = await calculateLiveDay(dateStr);
+  afficherDonnees(live);
+  renderChartFromJournaux([live]);
+
+  el.zCaHT.value = live.caReel ? n2(live.caReel) : "";
+  el.zNote.value = live.noteZ || "";
+
+  setDayInputsDisabled(false);
+  el.btnRecalcJournee.disabled = true;
+  el.btnUnvalidateJournee.disabled = true;
+  el.status.textContent = `Journée non validée → calcul en direct.`;
 }
 
-/* ---------------- Chart ---------------- */
-function renderChart(start, end, zItems, achatsPeriodeHT, achatsConsoHT, marge){
-  // labels = jours de la période
-  const labels = [];
-  const caSeries = [];
-  const oneDay = 86400000;
-  for(let t=start.getTime(); t<=end.getTime(); t+=oneDay){
-    const d = new Date(t);
-    const key = ymd(d);
-    labels.push(key);
-
-    const z = zItems.find(x=>ymd(x.date)===key);
-    caSeries.push(z ? z.caHT : 0);
-  }
-
-  const achatsSeries = labels.map(()=>0);
-  const consoSeries = labels.map(()=>0);
-  // On met les totaux en “barres plate” pour la période
-  if(labels.length){
-    achatsSeries[labels.length-1] = achatsPeriodeHT;
-    consoSeries[labels.length-1] = achatsConsoHT;
-  }
+/* ---------------- Chart from journaux ---------------- */
+function renderChartFromJournaux(jours){
+  const labels = jours.map(j=>j.date);
+  const ca = jours.map(j=>toNum(j.caReel||0));
+  const achatsConso = jours.map(j=>toNum(j.achatsConsoHT||0));
+  const marge = jours.map(j=>toNum(j.marge||0));
 
   if(chart) chart.destroy();
   chart = new Chart(el.chartMain, {
-    type: "bar",
     data: {
       labels,
       datasets: [
-        { label:"CA réel HT (Z)", data: caSeries, type:"line", tension:0.25 },
-        { label:"Achats période HT", data: achatsSeries },
-        { label:"Achats consommés HT", data: consoSeries },
+        { label:"CA réel HT", data: ca, type:"line", tension:0.25 },
+        { label:"Achats consommés HT", data: achatsConso, type:"bar" },
+        { label:"Marge brute HT", data: marge, type:"bar" },
       ]
     },
     options: {
       responsive:true,
       plugins:{ legend:{ position:"top" } },
-      scales:{
-        y:{ beginAtZero:true }
-      }
+      scales:{ y:{ beginAtZero:true } }
     }
   });
 }
@@ -465,14 +604,17 @@ tabs.addEventListener("click", (e)=>{
   mode = btn.dataset.mode;
 
   tabs.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b===btn));
+  editingDay = false;
+  savedDayData = null;
   renderInputs();
-  refreshDashboard();
 });
 
-/* ---------------- Init auth + first render ---------------- */
+/* ---------------- Events ---------------- */
 el.btnSaveZ.addEventListener("click", saveZ);
+el.btnValiderJournee.addEventListener("click", validerJournee);
+el.btnRecalcJournee.addEventListener("click", recalcJournee);
+el.btnUnvalidateJournee.addEventListener("click", unvalidateJournee);
 
+/* ---------------- Init ---------------- */
 renderInputs();
-auth.onAuthStateChanged(()=>{
-  refreshDashboard();
-});
+auth.onAuthStateChanged(()=> refreshDashboard());
