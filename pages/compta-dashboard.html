@@ -13,7 +13,11 @@
            box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:1.2em; }
     .row { display:flex; gap:1em; flex-wrap:wrap; align-items:end; }
     .row > label { display:flex; flex-direction:column; font-weight:600; font-size:14px; color:var(--text-main); }
-    .row input, .row select { padding:0.5em; border:1px solid var(--border); border-radius:var(--radius); }
+    .row input, .row select, .row textarea {
+      padding:0.5em; border:1px solid var(--border); border-radius:var(--radius);
+      font-size:14px; background:#fff; color:var(--text-main);
+    }
+    textarea { min-width:260px; min-height:40px; resize:vertical; }
 
     .tabs { display:flex; gap:.5em; flex-wrap:wrap; }
     .tab-btn {
@@ -29,6 +33,8 @@
 
     .chart-wrap { background:var(--bg-box); padding:1em; border-radius:var(--radius);
                   box-shadow:var(--shadow); border:1px solid var(--border); }
+
+    .btn-group { display:flex; gap:.5em; flex-wrap:wrap; }
   </style>
 </head>
 <body>
@@ -58,14 +64,25 @@
 
     <div class="row" style="margin-top:12px;">
       <label>
-        CA réel HT (Z)
-        <input id="zCaHT" type="number" step="0.01" placeholder="Saisie du Z du jour">
+        CA réel HT (Z du jour)
+        <input id="zCaHT" type="number" step="0.01" placeholder="Saisie du Z HT">
       </label>
 
-      <button id="btnSaveZ" class="btn btn-accent">💾 Enregistrer le Z</button>
+      <label>
+        Notes / remarques Z
+        <textarea id="zNote" placeholder="Ex : casse, promo, anomalie..."></textarea>
+      </label>
+
+      <div class="btn-group">
+        <button id="btnSaveZ" class="btn btn-accent">💾 Enregistrer le Z</button>
+        <button id="btnValiderJournee" class="btn btn-accent">✔ Valider la journée</button>
+        <button id="btnRecalcJournee" class="btn btn-muted">♻ Recalculer / Modifier</button>
+        <button id="btnUnvalidateJournee" class="btn btn-danger">🗑️ Supprimer validation</button>
+      </div>
 
       <div class="small" style="align-self:center;">
-        Le CA réel est utilisé pour la marge. Le CA théorique reste une info de contrôle.
+        En mode Jour : tu valides pour figer la marge.  
+        Recalculer met à jour stock/achats/CA théorique, en gardant ton Z + notes.
       </div>
     </div>
 
@@ -79,7 +96,7 @@
       <div class="resume-item">
         <h3>📘 CA réel HT</h3>
         <p><span id="sumCaReel">0.00</span> €</p>
-        <p class="small">Somme des Z saisis sur la période</p>
+        <p class="small">Somme des Z validés</p>
       </div>
       <div class="resume-item">
         <h3>📦 Achats consommés HT</h3>
@@ -117,7 +134,7 @@
     </table>
 
     <div class="small" style="margin-top:8px;">
-      Achats = somme des achats de la période, mais si une facture lettrée existe, elle remplace l’achat.
+      Achats = achats de la période, mais si une facture lettrée existe, elle remplace l’achat.
     </div>
   </div>
 
