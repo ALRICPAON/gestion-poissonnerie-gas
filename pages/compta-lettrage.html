@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Lettrage fournisseurs</title>
+  <link rel="stylesheet" href="../css/style.css">
+
+  <style>
+    .box { background:var(--bg-box); padding:1em; border-radius:var(--radius);
+           box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:1.2em; }
+    .row { display:flex; gap:1em; flex-wrap:wrap; align-items:end; }
+    .row > label { display:flex; flex-direction:column; font-weight:600; font-size:14px; color:var(--text-main); }
+    .row input, .row select { padding:0.5em; border:1px solid var(--border); border-radius:var(--radius); }
+    .summary { display:flex; gap:1em; flex-wrap:wrap; }
+    .summary .resume-item { flex:1 1 160px; }
+    .small { font-size:12px; color:var(--text-muted); }
+    .link { color:var(--accent); cursor:pointer; text-decoration:underline; font-size:13px; }
+
+    /* popup lignes */
+    #popup-lines { position:fixed; inset:0; background:rgba(0,30,50,0.55); display:none;
+                   justify-content:center; align-items:center; padding:20px; z-index:10000;}
+    #popup-lines .modal-content { background:white; width:95%; max-width:720px; max-height:90vh; overflow:auto;
+                                  border-radius:10px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.25);}
+    #popup-lines h3{ margin:0 0 10px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <h1>📑 Lettrage fournisseurs</h1>
+    <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">
+      ← Retour accueil
+    </button>
+  </div>
+
+  <!-- Bloc facture -->
+  <div class="box">
+    <div class="row">
+      <label>
+        Fournisseur
+        <select id="fourSelect"></select>
+      </label>
+
+      <label>
+        Date facture
+        <input id="factDate" type="date">
+      </label>
+
+      <label>
+        N° facture (libre)
+        <input id="factNumero" type="text" placeholder="ex: F2025-123">
+      </label>
+
+      <label>
+        Montant facture HT
+        <input id="factHT" type="number" step="0.01" placeholder="0.00">
+      </label>
+
+      <button id="btnCharger" class="btn btn-accent">Charger achats</button>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <label style="font-weight:500;">
+        Filtrer achats :
+        <select id="filterMode">
+          <option value="all">Tous</option>
+          <option value="open">Non pointés</option>
+        </select>
+      </label>
+      <span class="small">“Non pointés” = achats sans lien avec une facture.</span>
+    </div>
+  </div>
+
+  <!-- Tableau achats -->
+  <div class="box">
+    <h2>Achats du fournisseur</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Achat</th>
+          <th>Total HT</th>
+          <th>Pointer achat</th>
+          <th>Détail lignes</th>
+          <th>Déjà pointé</th>
+        </tr>
+      </thead>
+      <tbody id="achatsBody">
+        <tr><td colspan="6">Choisis un fournisseur puis “Charger achats”.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Résumé -->
+  <div class="header-box">
+    <h2>Résumé lettrage</h2>
+    <div class="summary">
+      <div class="resume-item">
+        <h3>Facture HT</h3>
+        <p><span id="sumFactHT">0.00</span> €</p>
+      </div>
+      <div class="resume-item">
+        <h3>Total pointé HT</h3>
+        <p><span id="sumPointeHT">0.00</span> €</p>
+      </div>
+      <div class="resume-item total">
+        <h3>Écart HT</h3>
+        <p><span id="sumEcartHT">0.00</span> €</p>
+        <p class="small">Tu peux corriger l’écart avant validation.</p>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <label>
+        Montant facture fournisseur HT (réel)
+        <input id="factHTReel" type="number" step="0.01" placeholder="auto = facture HT">
+      </label>
+
+      <label style="flex:1 1 240px;">
+        Note écart (optionnel)
+        <input id="ecartNote" type="text" placeholder="ex: port, avoir, ligne oubliée…">
+      </label>
+
+      <button id="btnValider" class="btn btn-accent">✅ Valider la facture</button>
+    </div>
+
+    <div id="status" class="small" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- POPUP lignes -->
+  <div id="popup-lines">
+    <div class="modal-content">
+      <h3 id="popupTitle">Détail achat</h3>
+      <table class="table-select">
+        <thead>
+          <tr>
+            <th>PLU</th>
+            <th>Désignation</th>
+            <th>Poids</th>
+            <th>Prix kg</th>
+            <th>Montant HT</th>
+            <th>Pointer ligne</th>
+          </tr>
+        </thead>
+        <tbody id="linesBody"></tbody>
+      </table>
+
+      <div style="display:flex; justify-content:space-between; margin-top:12px;">
+        <button id="popupClose" class="btn btn-muted">Fermer</button>
+        <button id="popupApply" class="btn btn-accent">Appliquer sélection</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../js/compta-lettrage.js"></script>
+</body>
+</html>
