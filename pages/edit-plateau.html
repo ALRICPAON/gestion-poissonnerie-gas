@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Modifier Plateau</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<header id="topbar"></header>
+
+<main class="container">
+  <div class="top-bar">
+    <h1>🦪 Modèle de plateau</h1>
+    <button class="btn btn-muted" onclick="window.location.href='plateaux.html'">← Retour</button>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <label>Nom du plateau</label>
+    <input id="model-nom" class="input" placeholder="Plateau Prestige">
+
+    <label style="margin-top:.75rem;">Prix de vente (optionnel)</label>
+    <input id="model-prix" class="input" placeholder="89.90">
+
+    <h3 style="margin-top:1rem;">Composition</h3>
+
+    <table class="table" id="compo-table">
+      <thead>
+        <tr>
+          <th>PLU</th>
+          <th>Désignation</th>
+          <th>Kg</th>
+          <th>Mode</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button id="btn-add" class="btn btn-muted" style="margin-top:.5rem;">+ Ajouter ingrédient</button>
+
+    <button id="btn-save" class="btn btn-primary" style="margin-top:1rem;width:100%;">Enregistrer</button>
+
+    <div id="msg" style="margin-top:.5rem;"></div>
+  </div>
+</main>
+
+<!-- Popup F9 réutilisée -->
+<div class="popup" id="popup-f9" style="display:none;">
+  <div class="popup-content">
+    <h3>Choisir un article</h3>
+    <input type="text" id="f9-search" class="search-input" placeholder="Rechercher...">
+
+    <table class="table-select">
+      <thead>
+        <tr><th>PLU</th><th>Désignation</th><th>Nom latin</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button id="f9-close" class="btn btn-muted" style="margin-top:10px;width:100%;">Fermer</button>
+  </div>
+</div>
+
+<script type="module" src="../js/firebase-init.js"></script>
+<script type="module" src="../js/auth.js"></script>
+<script type="module" src="../js/menu.js"></script>
+<script type="module" src="../js/edit-plateau.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => { window.__requireAuth && window.__requireAuth(); });
+</script>
+</body>
+</html>
