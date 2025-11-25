@@ -9,92 +9,103 @@
 
 <body>
 
-  <!-- Barre du haut -->
-  <div class="top-bar">
-    <h1>📈 Statistiques</h1>
-    <button class="btn btn-muted" onclick="window.location.href='/pages/comptabilite.html'">
-      ← Retour comptabilité
-    </button>
+<div class="top-bar">
+  <h1>📈 Statistiques</h1>
+  <button class="btn btn-muted" onclick="window.location.href='/pages/comptabilite.html'">
+    ← Retour compta
+  </button>
+</div>
+
+<div class="header-box">
+  <h2>Filtrer la période</h2>
+
+  <!-- Boutons rapides -->
+  <div style="display:flex; gap:10px; margin-bottom:10px;">
+    <button class="btn btn-muted" data-period="day">Jour</button>
+    <button class="btn btn-muted" data-period="week">Semaine</button>
+    <button class="btn btn-muted" data-period="month">Mois</button>
+    <button class="btn btn-muted" data-period="year">Année</button>
   </div>
 
-  <!-- Filtres de période -->
-  <div class="header-box">
-    <h2>Filtrer par période</h2>
+  <div class="margin-settings">
+    <label>
+      Du :
+      <input type="date" id="dateFrom">
+    </label>
 
-    <div class="margin-settings">
-      <label>
-        Du :
-        <input type="date" id="dateFrom">
-      </label>
+    <label>
+      Au :
+      <input type="date" id="dateTo">
+    </label>
 
-      <label>
-        Au :
-        <input type="date" id="dateTo">
-      </label>
+    <button class="btn btn-accent" id="btnLoad">🔍 Charger</button>
+  </div>
+</div>
 
-      <button class="btn btn-accent" id="btnLoad">🔍 Charger</button>
-    </div>
+<!-- Résumés -->
+<div class="stock-resume">
+  <div class="resume-item">
+    <h3>CA total</h3>
+    <p id="resume-ca">0 €</p>
   </div>
 
-  <!-- Résumé global -->
-  <div class="stock-resume">
-    <div class="resume-item">
-      <h3>CA total</h3>
-      <p id="resume-ca">0 €</p>
-    </div>
-
-    <div class="resume-item">
-      <h3>Achats consommés</h3>
-      <p id="resume-achats">0 €</p>
-    </div>
-
-    <div class="resume-item total">
-      <h3>Marge totale</h3>
-      <p id="resume-marge">0 €</p>
-    </div>
+  <div class="resume-item">
+    <h3>Achats consommés</h3>
+    <p id="resume-achats">0 €</p>
   </div>
 
-  <!-- Graphiques -->
-  <h2>Top 10 Fournisseurs (marge)</h2>
-  <div class="totaux">
-    <canvas id="chartFournisseurs" height="110"></canvas>
+  <div class="resume-item total">
+    <h3>Marge totale</h3>
+    <p id="resume-marge">0 €</p>
   </div>
+</div>
 
-  <h2>Détails par fournisseur</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Fournisseur</th>
-        <th>CA</th>
-        <th>Achats</th>
-        <th>Marge €</th>
-        <th>Marge %</th>
-      </tr>
-    </thead>
-    <tbody id="table-fournisseurs"></tbody>
-  </table>
 
-  <h2>Top 10 Articles (marge)</h2>
-  <div class="totaux">
-    <canvas id="chartArticles" height="110"></canvas>
-  </div>
+<!-- FOURNISSEURS -->
+<h2>Top 10 Fournisseurs (marge)</h2>
+<input class="search-input" id="searchF" placeholder="🔍 Rechercher fournisseur...">
 
-  <h2>Détails par article</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>PLU</th>
-        <th>Désignation</th>
-        <th>CA</th>
-        <th>Achats</th>
-        <th>Marge €</th>
-        <th>Marge %</th>
-      </tr>
-    </thead>
-    <tbody id="table-articles"></tbody>
-  </table>
+<div class="totaux">
+  <canvas id="chartFournisseurs" height="110"></canvas>
+</div>
 
-  <script type="module" src="../js/compta-stats.js"></script>
+<table>
+  <thead>
+    <tr>
+      <th>Fournisseur</th>
+      <th>CA</th>
+      <th>Achats</th>
+      <th>Marge €</th>
+      <th>Marge %</th>
+    </tr>
+  </thead>
+  <tbody id="table-fournisseurs"></tbody>
+</table>
+
+
+<!-- ARTICLES -->
+<h2>Top 10 Articles (marge)</h2>
+<input class="search-input" id="searchA" placeholder="🔍 Rechercher PLU ou désignation...">
+
+<div class="totaux">
+  <canvas id="chartArticles" height="110"></canvas>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>PLU</th>
+      <th>Désignation</th>
+      <th>CA</th>
+      <th>Achats</th>
+      <th>Marge €</th>
+      <th>Marge %</th>
+    </tr>
+  </thead>
+  <tbody id="table-articles"></tbody>
+</table>
+
+<script type="module" src="../js/compta-stats.js"></script>
 
 </body>
 </html>
