@@ -415,6 +415,7 @@ async function saveZ(){
 }
 
 /* ---------------- Valider journée ---------------- */
+/* ---------------- Valider journée ---------------- */
 async function validerJournee(){
   const user = auth.currentUser;
   if(!user) return alert("Non connecté.");
@@ -422,18 +423,65 @@ async function validerJournee(){
   const { start } = getSelectedRange();
   const dateStr = ymd(start);
 
-  // calcul live complet
+  // ------------------ 1) Calcul live ------------------
   const live = await calculateLiveDay(dateStr);
 
+  // ------------------ 2) Construire achats_consommes ------------------
+  const movesSnap = await getDocs(collection(db, "stock_movements"));
+  let achats_consommes = {};
+
+  movesSnap.forEach(d => {
+    const r = d.data();
+    if (r.type !== "consume") return;        // uniquement les consommations FIFO
+    if (r.date !== dateStr) return;          // uniquement cette journée
+
+    const four = r.fournisseurCode || "INCONNU";
+    const montant = Number(r.montantHT || 0);
+
+    achats_consommes[four] = (achats_consommes[four] || 0) + montant;
+  });
+
+  // ------------------ 3) Construire consommation_par_article ------------------
+  let consommation_par_article = {};
+
+  movesSnap.forEach(d => {
+    const r = d.data();
+    if (r.type !== "consume") return;
+    if (r.date !== dateStr) return;
+
+    const plu = r.plu || "INCONNU";
+    const montant = Number(r.montantHT || 0);
+
+    consommation_par_article[plu] =
+      (consommation_par_article[plu] || 0) + montant;
+  });
+
+  // ------------------ 4) Construire ventes_par_article ------------------
+  let ventes_par_article = {};
+  const ventesSnap = await getDoc(doc(db, "ventes_reelles", dateStr));
+
+  if (ventesSnap.exists()) {
+    const v = ventesSnap.data();
+    // structure : ventes_reelles/{date}/articles = { PLU : montantHT }
+    if (v.articles) ventes_par_article = { ...v.articles };
+  }
+
+  // ------------------ 5) Save journal complet ------------------
   await setDoc(doc(db,"compta_journal",dateStr),{
     userId: user.uid,
     validated: true,
     ...live,
+
+    // AJOUTS POUR MODULE STATISTIQUES :
+    achats_consommes,
+    ventes_par_article,
+    consommation_par_article,
+
     createdAt: serverTimestamp()
   },{merge:true});
 
   editingDay = false;
-  el.status.textContent = `✔ Journée ${dateStr} validée et archivée.`;
+  el.status.textContent = `✔ Journée ${dateStr} validée et archivée (stats mises à jour).`;
   refreshDashboard();
 }
 
