@@ -300,6 +300,45 @@ function renderChartArticles(articles) {
     }
   });
 }
+    function renderTableFournisseurs(fournisseurs) {
+  const tbody = document.getElementById("table-fournisseurs");
+
+  tbody.innerHTML = Object.entries(fournisseurs)
+    .map(([name, f]) => {
+      const pct = f.vente > 0 ? (f.marge / f.vente * 100) : 0;
+      return `
+        <tr>
+          <td>${name}</td>
+          <td>${f.vente.toFixed(2)} €</td>
+          <td>${f.achat.toFixed(2)} €</td>
+          <td>${f.marge.toFixed(2)} €</td>
+          <td>${pct.toFixed(1)}%</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderTableArticles(articles) {
+  const tbody = document.getElementById("table-articles");
+
+  tbody.innerHTML = Object.entries(articles)
+    .map(([plu, a]) => {
+      const pct = a.vente > 0 ? (a.marge / a.vente * 100) : 0;
+      return `
+        <tr>
+          <td>${plu}</td>
+          <td>${a.designation || ""}</td>
+          <td>${a.vente.toFixed(2)} €</td>
+          <td>${a.achat.toFixed(2)} €</td>
+          <td>${a.marge.toFixed(2)} €</td>
+          <td>${pct.toFixed(1)}%</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
 renderTableFournisseurs(stats.fournisseurs);
 renderTableArticles(stats.articles);
 
