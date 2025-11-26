@@ -1,438 +1,233 @@
-// -------------------------------------------------------
-// COMPTA-STATS.JS
-// Résumé = compta_journal (Z réel)
-// Détail Fournisseurs & Articles = LOTS + STOCK (consommé)
-// -------------------------------------------------------
+// ------------------------------------------------------
+// COMPTA STATS — VERSION FINALISÉE
+// Applique EXACTEMENT la logique du tableau de bord,
+// mais ventilée par fournisseur + par PLU
+// ------------------------------------------------------
+
 import { db } from "./firebase-init.js";
 import {
-  collection,
-  getDocs,
-  doc,
-  getDoc
+  collection, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// ---------- Sélecteurs DOM ----------
-const dateFrom   = document.getElementById("dateFrom");
-const dateTo     = document.getElementById("dateTo");
-const btnLoad    = document.getElementById("btnLoad");
-const btnPeriods = document.querySelectorAll("[data-period]");
+const elSearchF = document.getElementById("searchF");
+const elSearchA = document.getElementById("searchA");
 
-const searchF = document.getElementById("searchF");
-const searchA = document.getElementById("searchA");
 
-const tbodyF  = document.getElementById("table-fournisseurs");
-const tbodyA  = document.getElementById("table-articles");
+/* ---------------- Utils ---------------- */
+const toNum = v => Number(String(v || 0).replace(",", "."));
+const n2 = v => Number(v || 0).toFixed(2);
 
-const resumeCA      = document.getElementById("resume-ca");
-const resumeAchats  = document.getElementById("resume-achats");
-const resumeMarge   = document.getElementById("resume-marge");
 
-// Charts
-let chartF = null;
-let chartA = null;
-
-// ---------- Utils ----------
-const fmtMoney = (n) =>
-  Number(n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-
-const n2 = (v) => Number(v || 0).toFixed(2);
-
-function ymd(date) {
-  const d = new Date(date);
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
-function tsToYmd(v) {
-  if (!v) return null;
-  if (v.toDate) return ymd(v.toDate());
-  if (v instanceof Date) return ymd(v);
-  return ymd(v);
-}
-
-function matchSearch(text, q) {
-  if (!q) return true;
-  return String(text || "").toLowerCase().includes(q.toLowerCase());
-}
-
-// -------------------------------------------------------
-// 1) COMPTA_JOURNAL : Résumé CA / Achats consommés / Marge
-// -------------------------------------------------------
-async function loadJournaux(from = null, to = null) {
+/* ------------------------------------------------------
+   1) Charger journaux validés (ta source officielle CA)
+------------------------------------------------------ */
+async function loadJournaux() {
   const snap = await getDocs(collection(db, "compta_journal"));
   const jours = [];
-  const hasRange = !!(from && to);
 
-  snap.forEach(docSnap => {
-    const r = docSnap.data();
+  snap.forEach(d => {
+    const r = d.data();
     if (!r.validated) return;
-
-    const dstr = r.date; // "YYYY-MM-DD"
-    if (!dstr) return;
-
-    if (hasRange) {
-      if (dstr < from || dstr > to) return;
-    }
     jours.push(r);
   });
 
   return jours;
 }
 
-function computeResume(journaux) {
-  let totalCA = 0;
-  let totalAchatsConso = 0;
-  let totalMarge = 0;
 
-  for (const j of journaux) {
-    const ca   = Number(j.caReel || 0);
-    const ach  = Number(j.achatsConsoHT || 0);
-    const marg = (j.marge != null)
-      ? Number(j.marge)
-      : ca - ach;
-
-    totalCA          += ca;
-    totalAchatsConso += ach;
-    totalMarge       += marg;
-  }
-
-  return { totalCA, totalAchatsConso, totalMarge };
-}
-
-function renderResume(totalCA, totalAchatsConso, totalMarge) {
-  resumeCA.textContent     = fmtMoney(totalCA);
-  resumeAchats.textContent = fmtMoney(totalAchatsConso);
-
-  const pct = totalCA > 0 ? (totalMarge / totalCA) * 100 : 0;
-  resumeMarge.textContent  = `${fmtMoney(totalMarge)} (${n2(pct)}%)`;
-}
-
-// -------------------------------------------------------
-// 2) LOTS + STOCK : Fournisseurs & Articles (consommation réelle)
-// -------------------------------------------------------
-
-// Charge tous les lots dans la période (par date de création du lot)
-async function loadLotsInPeriod(from = null, to = null) {
+/* ------------------------------------------------------
+   2) Charger TOUS les lots pour valoriser les stocks
+------------------------------------------------------ */
+async function loadLots() {
   const snap = await getDocs(collection(db, "lots"));
-  const res = [];
-  const hasRange = !!(from && to);
+  const lots = [];
 
   snap.forEach(d => {
     const r = d.data();
-
-    // On ne s'intéresse qu'aux lots issus d'un achat
-    if (r.source && r.source !== "achat") return;
-
-    const dstr = tsToYmd(r.createdAt || r.updatedAt);
-    if (!dstr) return;
-
-    if (hasRange) {
-      if (dstr < from || dstr > to) return;
-    }
-
-    res.push({
-      ...r,
-      _dateStr: dstr
-    });
+    lots.push(r);
   });
 
-  return res;
+  return lots;
 }
 
-// Charge la map achatId -> fournisseurNom
-async function loadAchatsMap(achatIds) {
-  const map = {};
-  for (const id of achatIds) {
-    try {
-      const ref = doc(db, "achats", id);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const data = snap.data();
-        map[id] = {
-          fournisseurNom: data.fournisseurNom || "Inconnu"
-        };
-      }
-    } catch (e) {
-      console.error("Erreur getDoc achats", id, e);
-    }
-  }
-  return map;
-}
 
-// Charge la map PLU -> pvTTCreel (+ désignation si dispo)
-async function loadStockArticlesMap() {
-  const snap = await getDocs(collection(db, "stock_articles"));
-  const map = {};
+/* ------------------------------------------------------
+   3) Charger TOUTES les factures (pour achats période)
+------------------------------------------------------ */
+async function loadAchats() {
+  const snap = await getDocs(collection(db, "achats"));
+  const achats = [];
+
   snap.forEach(d => {
-    const data = d.data();
-    const id   = d.id; // ex: "PLU_2001"
-    const plu  = id.startsWith("PLU_") ? id.slice(4) : id;
-    map[plu] = {
-      pvTTCreel: Number(data.pvTTCreel || 0),
-      designation: data.designation || ""
-    };
+    const r = d.data();
+    achats.push(r);
+  });
+
+  return achats;
+}
+
+
+/* ------------------------------------------------------
+   4) Regrouper par fournisseur et par article
+------------------------------------------------------ */
+function groupBy(arr, key) {
+  const map = {};
+  arr.forEach(x => {
+    const k = x[key] || "INCONNU";
+    if (!map[k]) map[k] = [];
+    map[k].push(x);
   });
   return map;
 }
 
-// Calcule les stats Fournisseurs & Articles à partir des lots
-// ⚠️ Ici on travaille sur la CONSOMMATION réelle : poidsConsomme = poidsInitial - poidsRestant
-function computeStatsFromLots(lots, achatsMap, stockMap) {
-  const fournisseurs = {}; // { fournisseurNom: { achatsHT, ca, marge, poidsConsomme } }
-  const articles = {};     // { plu: { designation, achatsHT, ca, marge, poidsConsomme } }
 
-  for (const lot of lots) {
-    const plu          = lot.plu || "???";
-    const achatId      = lot.achatId || null;
-    const fournisseur  =
-      (achatId && achatsMap[achatId]?.fournisseurNom) || "Inconnu";
-
-    const prixAchatKg  = Number(lot.prixAchatKg || 0);
-    const poidsInitial = Number(lot.poidsInitial || 0);
-    const poidsRestant = Number(lot.poidsRestant || 0);
-
-    // 💡 Consommé réel = ce qui est parti du stock
-    const poidsConsomme = Math.max(0, poidsInitial - poidsRestant);
-    if (poidsConsomme <= 0) {
-      // Rien consommé sur ce lot → pas d'impact sur la marge de la période
-      continue;
-    }
-
-    const pvTTCreel    = Number(stockMap[plu]?.pvTTCreel || 0);
-    const designation  =
-      lot.designation || stockMap[plu]?.designation || "";
-
-    const achatsHT     = poidsConsomme * prixAchatKg;
-    const ca           = poidsConsomme * pvTTCreel;
-    const marge        = ca - achatsHT;
-
-    // ---- Fournisseurs ----
-    if (!fournisseurs[fournisseur]) {
-      fournisseurs[fournisseur] = {
-        achatsHT: 0,
-        ca: 0,
-        marge: 0,
-        poidsConsomme: 0
-      };
-    }
-    const f = fournisseurs[fournisseur];
-    f.achatsHT      += achatsHT;
-    f.ca            += ca;
-    f.marge         += marge;
-    f.poidsConsomme += poidsConsomme;
-
-    // ---- Articles ----
-    if (!articles[plu]) {
-      articles[plu] = {
-        plu,
-        designation,
-        achatsHT: 0,
-        ca: 0,
-        marge: 0,
-        poidsConsomme: 0
-      };
-    }
-    const a = articles[plu];
-    a.achatsHT      += achatsHT;
-    a.ca            += ca;
-    a.marge         += marge;
-    a.poidsConsomme += poidsConsomme;
-  }
-
-  return { fournisseurs, articles };
+/* ------------------------------------------------------
+   5) Valeur stock (début/fin) = Σ (poidsRestant × prixKg)
+------------------------------------------------------ */
+function computeStockValue(lots, filterFn) {
+  return lots
+    .filter(filterFn)
+    .reduce((sum, lot) =>
+      sum + (toNum(lot.poidsRestant) * toNum(lot.prixAchatKg)), 0);
 }
 
-// -------------------------------------------------------
-// 3) AFFICHAGE TABLEAUX + GRAPHIQUES
-// -------------------------------------------------------
-function renderTablesAndCharts(fournisseurs, articles) {
-  const qF = (searchF.value || "").trim().toLowerCase();
-  const qA = (searchA.value || "").trim().toLowerCase();
 
-  // ----- Fournisseurs -----
-  let entriesF = Object.entries(fournisseurs);
-
-  // tri par marge décroissante
-  entriesF.sort(([, a], [, b]) => b.marge - a.marge);
-
-  // filtre recherche
-  entriesF = entriesF.filter(([name]) => matchSearch(name, qF));
-
-  const topF = entriesF.slice(0, 10);
-
-  tbodyF.innerHTML = topF
-    .map(([name, v]) => {
-      const pct = v.ca > 0 ? (v.marge / v.ca) * 100 : 0;
-      return `<tr>
-        <td>${name}</td>
-        <td>${fmtMoney(v.ca)}</td>
-        <td>${fmtMoney(v.achatsHT)}</td>
-        <td>${fmtMoney(v.marge)}</td>
-        <td>${n2(pct)}%</td>
-      </tr>`;
-    })
-    .join("");
-
-  // Chart Fournisseurs (marge)
-  try {
-    const ctxF = document.getElementById("chartFournisseurs").getContext("2d");
-    if (chartF) chartF.destroy();
-    chartF = new Chart(ctxF, {
-      type: "bar",
-      data: {
-        labels: topF.map(([name]) => name),
-        datasets: [
-          {
-            label: "Marge € (consommé)",
-            data: topF.map(([, v]) => Number(v.marge || 0))
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false
-      }
-    });
-  } catch (e) {
-    console.warn("Chart Fournisseurs :", e);
-  }
-
-  // ----- Articles -----
-  let entriesA = Object.entries(articles);
-
-  // tri par marge décroissante
-  entriesA.sort(([, a], [, b]) => b.marge - a.marge);
-
-  entriesA = entriesA.filter(([, v]) =>
-    matchSearch(v.plu + " " + (v.designation || ""), qA)
-  );
-
-  const topA = entriesA.slice(0, 10);
-
-  tbodyA.innerHTML = topA
-    .map(([, v]) => {
-      const pct = v.ca > 0 ? (v.marge / v.ca) * 100 : 0;
-      return `<tr>
-        <td>${v.plu}</td>
-        <td>${v.designation || ""}</td>
-        <td>${fmtMoney(v.ca)}</td>
-        <td>${fmtMoney(v.achatsHT)}</td>
-        <td>${fmtMoney(v.marge)}</td>
-        <td>${n2(pct)}%</td>
-      </tr>`;
-    })
-    .join("");
-
-  // Chart Articles (marge)
-  try {
-    const ctxA = document.getElementById("chartArticles").getContext("2d");
-    if (chartA) chartA.destroy();
-    chartA = new Chart(ctxA, {
-      type: "bar",
-      data: {
-        labels: topA.map(([, v]) => v.plu),
-        datasets: [
-          {
-            label: "Marge € (consommé)",
-            data: topA.map(([, v]) => Number(v.marge || 0))
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false
-      }
-    });
-  } catch (e) {
-    console.warn("Chart Articles :", e);
-  }
+/* ------------------------------------------------------
+   6) Achats période (facture si existe, sinon BL)
+------------------------------------------------------ */
+function computeAchatsPeriode(achats, filterFn) {
+  return achats
+    .filter(filterFn)
+    .reduce((sum, a) =>
+      sum + toNum(a.factureHT || a.totalHT || a.montantHT || 0), 0);
 }
 
-// -------------------------------------------------------
-// 4) RAFRAÎCHISSEMENT GLOBAL
-// -------------------------------------------------------
+
+/* ------------------------------------------------------
+   7) Agrégation finale Stats
+------------------------------------------------------ */
+async function aggregateStats() {
+
+  const journaux = await loadJournaux();
+  const lots = await loadLots();
+  const achats = await loadAchats();
+
+  const statsF = {};   // fournisseur : { achat, vente, marge }
+  const statsA = {};   // PLU : { achat, vente, marge }
+
+  for (const j of journaux) {
+
+    const dateStr = j.date;
+
+    // ----------- STOCK DÉBUT -----------
+    const stockDebutF = groupBy(lots, "fournisseurNom");
+    const stockDebutA = groupBy(lots, "plu");
+
+    // ----------- STOCK FIN (même lots : poidsRestant mis à jour) -----------
+    const stockFinF = stockDebutF; // même structure
+    const stockFinA = stockDebutA;
+
+    // ----------- Achats période -----------
+    const achatsF = groupBy(achats, "fournisseurNom");
+    const achatsA = groupBy(achats, "plu");
+
+    // ----------- Pour CHAQUE FOURNISSEUR -----------
+    for (const four of Object.keys(stockDebutF)) {
+
+      const stockDebutVal = computeStockValue(stockDebutF[four], () => true);
+      const stockFinVal   = computeStockValue(stockFinF[four],   () => true);
+
+      const achatsVal = computeAchatsPeriode(
+        achatsF[four] || [],
+        a => a.date === dateStr
+      );
+
+      const achatsConso = achatsVal + (stockDebutVal - stockFinVal);
+
+      const vente = toNum(j.caReel || 0);
+      const marge = vente - achatsConso;
+
+      if (!statsF[four]) statsF[four] = { achat: 0, vente: 0, marge: 0 };
+      statsF[four].achat += achatsConso;
+      statsF[four].vente += vente;
+      statsF[four].marge += marge;
+    }
+
+    // ----------- Pour CHAQUE ARTICLE -----------
+    for (const plu of Object.keys(stockDebutA)) {
+
+      const stockDebutVal = computeStockValue(stockDebutA[plu], () => true);
+      const stockFinVal   = computeStockValue(stockFinA[plu],   () => true);
+
+      const achatsVal = computeAchatsPeriode(
+        achatsA[plu] || [],
+        a => a.date === dateStr
+      );
+
+      const achatsConso = achatsVal + (stockDebutVal - stockFinVal);
+
+      const vente = toNum(j.ventes_par_article?.[plu] || 0);
+      const marge = vente - achatsConso;
+
+      if (!statsA[plu]) statsA[plu] = { achat: 0, vente: 0, marge: 0 };
+      statsA[plu].achat += achatsConso;
+      statsA[plu].vente += vente;
+      statsA[plu].marge += marge;
+    }
+  }
+
+  return { statsF, statsA };
+}
+
+
+/* ------------------------------------------------------
+   8) Rendu HTML
+------------------------------------------------------ */
+function renderTables(statsF, statsA) {
+
+  // -------- TABLE FOURNISSEURS --------
+  document.getElementById("table-fournisseurs").innerHTML =
+    Object.entries(statsF).map(([four, v]) => {
+      const mPct = v.vente > 0 ? (v.marge / v.vente * 100) : 0;
+      return `
+        <tr>
+          <td>${four}</td>
+          <td>${n2(v.vente)} €</td>
+          <td>${n2(v.achat)} €</td>
+          <td>${n2(v.marge)} €</td>
+          <td>${n2(mPct)}%</td>
+        </tr>
+      `;
+    }).join("");
+
+  // -------- TABLE ARTICLES --------
+  document.getElementById("table-articles").innerHTML =
+    Object.entries(statsA).map(([plu, v]) => {
+      const mPct = v.vente > 0 ? (v.marge / v.vente * 100) : 0;
+      return `
+        <tr>
+          <td>${plu}</td>
+          <td></td>
+          <td>${n2(v.vente)} €</td>
+          <td>${n2(v.achat)} €</td>
+          <td>${n2(v.marge)} €</td>
+          <td>${n2(mPct)}%</td>
+        </tr>
+      `;
+    }).join("");
+}
+
+
+/* ------------------------------------------------------
+   9) Search + init
+------------------------------------------------------ */
 async function refreshStats() {
-  try {
-    const from = dateFrom.value || null;
-    const to   = dateTo.value || null;
-
-    // Résumé compta_journal (Z réel + achats consommés)
-    const journaux = await loadJournaux(from, to);
-    const { totalCA, totalAchatsConso, totalMarge } = computeResume(journaux);
-    renderResume(totalCA, totalAchatsConso, totalMarge);
-
-    // Détail Fournisseurs / Articles via LOTS + STOCK (consommé)
-    const lots = await loadLotsInPeriod(from, to);
-
-    const achatIds = Array.from(
-      new Set(
-        lots.map(l => l.achatId).filter(Boolean)
-      )
-    );
-
-    const [achatsMap, stockMap] = await Promise.all([
-      loadAchatsMap(achatIds),
-      loadStockArticlesMap()
-    ]);
-
-    const { fournisseurs, articles } = computeStatsFromLots(lots, achatsMap, stockMap);
-
-    renderTablesAndCharts(fournisseurs, articles);
-  } catch (e) {
-    console.error("Erreur refreshStats :", e);
-    alert("Erreur lors du chargement des statistiques (voir console).");
-  }
+  const { statsF, statsA } = await aggregateStats();
+  renderTables(statsF, statsA);
 }
 
-// -------------------------------------------------------
-// 5) ÉVÈNEMENTS
-// -------------------------------------------------------
+elSearchF.addEventListener("input", refreshStats);
+elSearchA.addEventListener("input", refreshStats);
 
-// Boutons rapides (Jour / Semaine / Mois / Année)
-btnPeriods.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const p = btn.dataset.period;
-    const now = new Date();
+window.addEventListener("load", refreshStats);
 
-    if (p === "day") {
-      dateFrom.value = dateTo.value = ymd(now);
-    } else if (p === "week") {
-      const d = new Date(now);
-      d.setDate(d.getDate() - 6);
-      dateFrom.value = ymd(d);
-      dateTo.value   = ymd(now);
-    } else if (p === "month") {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - 1);
-      dateFrom.value = ymd(d);
-      dateTo.value   = ymd(now);
-    } else if (p === "year") {
-      const d = new Date(now);
-      d.setFullYear(d.getFullYear() - 1);
-      dateFrom.value = ymd(d);
-      dateTo.value   = ymd(now);
-    }
-
-    refreshStats();
-  });
-});
-
-// Bouton "Charger"
-btnLoad.addEventListener("click", () => {
-  refreshStats();
-});
-
-// Recherche live
-searchF.addEventListener("input", () => refreshStats());
-searchA.addEventListener("input", () => refreshStats());
-
-// Premier chargement : par défaut 1 semaine
-window.addEventListener("load", () => {
-  const now = new Date();
-  const d = new Date(now);
-  d.setDate(d.getDate() - 6);
-  dateFrom.value = ymd(d);
-  dateTo.value   = ymd(now);
-  refreshStats();
-});
