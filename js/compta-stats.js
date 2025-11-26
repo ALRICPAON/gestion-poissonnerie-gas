@@ -34,10 +34,9 @@ async function loadCA(from, to) {
    🔥 2) LOAD MOUVEMENTS FIFO (sorties = consommations)
 -------------------------------------------------------------------*/
 async function loadMouvements(from, to) {
-  console.log("📥 Load mouvements FIFO (FULL SCAN)…");
+  console.log("📥 Load MOVEMENTS from stock_movements…");
 
-  const col = collection(db, "mouvements_fifo");
-  const snap = await getDocs(col);
+  const snap = await getDocs(collection(db, "stock_movements"));
 
   const list = [];
   const fromD = new Date(from + "T00:00:00");
@@ -45,24 +44,24 @@ async function loadMouvements(from, to) {
 
   snap.forEach(doc => {
     const d = doc.data();
-    let dt = null;
 
-    // --- on récupère la date sous n'importe quelle forme ---
+    // on ne garde QUE les sorties (ventes réelles FIFO)
+    if (d.sens !== "sortie") return;
+
+    // récupérer date
+    let dt = null;
     if (d.createdAt?.toDate) dt = d.createdAt.toDate();
     else if (d.createdAt instanceof Date) dt = d.createdAt;
-    else if (typeof d.date === "string") dt = new Date(d.date);
-    else return; // pas de date → skip
+    else return;
 
-    // --- filtre période ---
+    // filtre période
     if (dt >= fromD && dt <= toD) {
-      if (d.sens === "sortie") list.push(d);
       console.log("✔ Mouvement trouvé :", d);
+      list.push(d);
     }
   });
 
   console.log(`📦 ${list.length} mouvements trouvés`);
-  console.log(list);
-
   return list;
 }
 
