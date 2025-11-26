@@ -45,18 +45,16 @@ async function loadMouvements(from, to) {
   snap.forEach(doc => {
     const d = doc.data();
 
-    // on ne garde QUE les sorties (ventes réelles FIFO)
     if (d.sens !== "sortie") return;
+    if (d.type === "inventory") return; // ❗ ne pas compter inventaire comme vente
 
-    // récupérer date
     let dt = null;
     if (d.createdAt?.toDate) dt = d.createdAt.toDate();
     else if (d.createdAt instanceof Date) dt = d.createdAt;
     else return;
 
-    // filtre période
     if (dt >= fromD && dt <= toD) {
-      console.log("✔ Mouvement trouvé :", d);
+      console.log("✔ Vente FIFO :", d);
       list.push(d);
     }
   });
@@ -64,6 +62,7 @@ async function loadMouvements(from, to) {
   console.log(`📦 ${list.length} mouvements trouvés`);
   return list;
 }
+
 
 /* ------------------------------------------------------------------
    🔥 3) LOAD LOTS
@@ -264,6 +263,45 @@ document.querySelectorAll("[data-period]").forEach(btn => {
       from = now.getFullYear() + "-01-01";
       to = d2(now);
     }
+    function renderChartFournisseurs(fournisseurs) {
+  const ctx = document.getElementById('chartFournisseurs').getContext('2d');
+  const labels = Object.keys(fournisseurs);
+  const data = Object.values(fournisseurs).map(f => f.marge);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: "Marge (€)",
+        data
+      }]
+    }
+  });
+}
+
+function renderChartArticles(articles) {
+  const ctx = document.getElementById('chartArticles').getContext('2d');
+  const labels = Object.keys(articles);
+  const data = Object.values(articles).map(a => a.marge);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: "Marge (€)",
+        data
+      }]
+    }
+  });
+}
+renderTableFournisseurs(stats.fournisseurs);
+renderTableArticles(stats.articles);
+
+renderChartFournisseurs(stats.fournisseurs);
+renderChartArticles(stats.articles);
+
 
     document.querySelector("#dateFrom").value = from;
     document.querySelector("#dateTo").value = to;
