@@ -1,7 +1,7 @@
 // -------------------------------------------------------
 // COMPTA-STATS.JS
 // Résumé = compta_journal (Z réel)
-// Détail Fournisseurs & Articles = LOTS + STOCK
+// Détail Fournisseurs & Articles = LOTS + STOCK (consommé)
 // -------------------------------------------------------
 import { db } from "./firebase-init.js";
 import {
@@ -57,7 +57,7 @@ function matchSearch(text, q) {
 }
 
 // -------------------------------------------------------
-// 1) COMPTA_JOURNAL : Résumé CA / Achats / Marge
+// 1) COMPTA_JOURNAL : Résumé CA / Achats consommés / Marge
 // -------------------------------------------------------
 async function loadJournaux(from = null, to = null) {
   const snap = await getDocs(collection(db, "compta_journal"));
@@ -109,7 +109,7 @@ function renderResume(totalCA, totalAchatsConso, totalMarge) {
 }
 
 // -------------------------------------------------------
-// 2) LOTS + STOCK : Fournisseurs & Articles
+// 2) LOTS + STOCK : Fournisseurs & Articles (consommation réelle)
 // -------------------------------------------------------
 
 // Charge tous les lots dans la période (par date de création du lot)
@@ -121,6 +121,7 @@ async function loadLotsInPeriod(from = null, to = null) {
   snap.forEach(d => {
     const r = d.data();
 
+    // On ne s'intéresse qu'aux lots issus d'un achat
     if (r.source && r.source !== "achat") return;
 
     const dstr = tsToYmd(r.createdAt || r.updatedAt);
@@ -159,7 +160,7 @@ async function loadAchatsMap(achatIds) {
   return map;
 }
 
-// Charge la map PLU -> pvTTCreel
+// Charge la map PLU -> pvTTCreel (+ désignation si dispo)
 async function loadStockArticlesMap() {
   const snap = await getDocs(collection(db, "stock_articles"));
   const map = {};
@@ -176,13 +177,13 @@ async function loadStockArticlesMap() {
 }
 
 // Calcule les stats Fournisseurs & Articles à partir des lots
+// ⚠️ Ici on travaille sur la CONSOMMATION réelle : poidsConsomme = poidsInitial - poidsRestant
 function computeStatsFromLots(lots, achatsMap, stockMap) {
-  const fournisseurs = {}; // { fournisseurNom: { achatsHT, ca, marge, poidsAchat } }
-  const articles = {};     // { plu: { designation, achatsHT, ca, marge, poidsAchat, poidsVendu } }
+  const fournisseurs = {}; // { fournisseurNom: { achatsHT, ca, marge, poidsConsomme } }
+  const articles = {};     // { plu: { designation, achatsHT, ca, marge, poidsConsomme } }
 
   for (const lot of lots) {
     const plu          = lot.plu || "???";
-    const designation  = lot.designation || stockMap[plu]?.designation || "";
     const achatId      = lot.achatId || null;
     const fournisseur  =
       (achatId && achatsMap[achatId]?.fournisseurNom) || "Inconnu";
@@ -190,30 +191,38 @@ function computeStatsFromLots(lots, achatsMap, stockMap) {
     const prixAchatKg  = Number(lot.prixAchatKg || 0);
     const poidsInitial = Number(lot.poidsInitial || 0);
     const poidsRestant = Number(lot.poidsRestant || 0);
-    const poidsVendu   = Math.max(0, poidsInitial - poidsRestant);
+
+    // 💡 Consommé réel = ce qui est parti du stock
+    const poidsConsomme = Math.max(0, poidsInitial - poidsRestant);
+    if (poidsConsomme <= 0) {
+      // Rien consommé sur ce lot → pas d'impact sur la marge de la période
+      continue;
+    }
 
     const pvTTCreel    = Number(stockMap[plu]?.pvTTCreel || 0);
+    const designation  =
+      lot.designation || stockMap[plu]?.designation || "";
 
-    const achatsHT     = poidsInitial * prixAchatKg;
-    const ca           = poidsVendu * pvTTCreel;
+    const achatsHT     = poidsConsomme * prixAchatKg;
+    const ca           = poidsConsomme * pvTTCreel;
     const marge        = ca - achatsHT;
 
-    // Fournisseurs
+    // ---- Fournisseurs ----
     if (!fournisseurs[fournisseur]) {
       fournisseurs[fournisseur] = {
         achatsHT: 0,
         ca: 0,
         marge: 0,
-        poidsAchat: 0
+        poidsConsomme: 0
       };
     }
     const f = fournisseurs[fournisseur];
-    f.achatsHT   += achatsHT;
-    f.ca         += ca;
-    f.marge      += marge;
-    f.poidsAchat += poidsInitial;
+    f.achatsHT      += achatsHT;
+    f.ca            += ca;
+    f.marge         += marge;
+    f.poidsConsomme += poidsConsomme;
 
-    // Articles
+    // ---- Articles ----
     if (!articles[plu]) {
       articles[plu] = {
         plu,
@@ -221,16 +230,14 @@ function computeStatsFromLots(lots, achatsMap, stockMap) {
         achatsHT: 0,
         ca: 0,
         marge: 0,
-        poidsAchat: 0,
-        poidsVendu: 0
+        poidsConsomme: 0
       };
     }
     const a = articles[plu];
-    a.achatsHT   += achatsHT;
-    a.ca         += ca;
-    a.marge      += marge;
-    a.poidsAchat += poidsInitial;
-    a.poidsVendu += poidsVendu;
+    a.achatsHT      += achatsHT;
+    a.ca            += ca;
+    a.marge         += marge;
+    a.poidsConsomme += poidsConsomme;
   }
 
   return { fournisseurs, articles };
@@ -246,8 +253,10 @@ function renderTablesAndCharts(fournisseurs, articles) {
   // ----- Fournisseurs -----
   let entriesF = Object.entries(fournisseurs);
 
+  // tri par marge décroissante
   entriesF.sort(([, a], [, b]) => b.marge - a.marge);
 
+  // filtre recherche
   entriesF = entriesF.filter(([name]) => matchSearch(name, qF));
 
   const topF = entriesF.slice(0, 10);
@@ -275,7 +284,7 @@ function renderTablesAndCharts(fournisseurs, articles) {
         labels: topF.map(([name]) => name),
         datasets: [
           {
-            label: "Marge € (théorique sur lots)",
+            label: "Marge € (consommé)",
             data: topF.map(([, v]) => Number(v.marge || 0))
           }
         ]
@@ -292,6 +301,7 @@ function renderTablesAndCharts(fournisseurs, articles) {
   // ----- Articles -----
   let entriesA = Object.entries(articles);
 
+  // tri par marge décroissante
   entriesA.sort(([, a], [, b]) => b.marge - a.marge);
 
   entriesA = entriesA.filter(([, v]) =>
@@ -324,7 +334,7 @@ function renderTablesAndCharts(fournisseurs, articles) {
         labels: topA.map(([, v]) => v.plu),
         datasets: [
           {
-            label: "Marge € (théorique sur lots)",
+            label: "Marge € (consommé)",
             data: topA.map(([, v]) => Number(v.marge || 0))
           }
         ]
@@ -347,12 +357,12 @@ async function refreshStats() {
     const from = dateFrom.value || null;
     const to   = dateTo.value || null;
 
-    // Résumé compta_journal (Z réel)
+    // Résumé compta_journal (Z réel + achats consommés)
     const journaux = await loadJournaux(from, to);
     const { totalCA, totalAchatsConso, totalMarge } = computeResume(journaux);
     renderResume(totalCA, totalAchatsConso, totalMarge);
 
-    // Détail Fournisseurs / Articles via LOTS + STOCK
+    // Détail Fournisseurs / Articles via LOTS + STOCK (consommé)
     const lots = await loadLotsInPeriod(from, to);
 
     const achatIds = Array.from(
