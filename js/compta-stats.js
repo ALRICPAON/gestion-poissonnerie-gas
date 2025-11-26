@@ -34,18 +34,45 @@ async function loadMovements(from, to) {
   snap.forEach(d => {
     const r = d.data();
     if (r.type !== "consume") return;
-    if (!r.date) return;
+   function getDateFromMovement(r) {
+  if (r.date) {
+    console.log("📅 mouvement avec r.date =", r.date);
+    return r.date;
+  }
 
-    if (r.date >= from && r.date <= to) {
-      arr.push({ id: d.id, ...r });
+  if (r.createdAt && r.createdAt.toDate) {
+    const d = ymd(r.createdAt.toDate());
+    console.log("📅 mouvement converti depuis createdAt :", d);
+    return d;
+  }
+
+  console.warn("⚠ aucun champ date pour :", r);
+  return null;
+}
+
+/* ----- loadMovements ----- */
+async function loadMovements(from, to) {
+  console.log("📥 Load mouvements FIFO...");
+  const snap = await getDocs(collection(db, "stock_movements"));
+  const arr = [];
+
+  snap.forEach(d => {
+    const r = d.data();
+    if (r.type !== "consume") return; // on garde seulement les mouvements FIFO réels
+
+    const movementDate = getDateFromMovement(r);
+    if (!movementDate) return;
+
+    if (movementDate >= from && movementDate <= to) {
+      console.log("✔ Mouvement dans la période :", movementDate, r);
+      arr.push({ id: d.id, ...r, movementDate });
     }
   });
 
   console.log(`📊 ${arr.length} mouvements trouvés entre ${from} → ${to}`);
-  console.log("👉 Exemple mouvement :", arr[0]);
-
   return arr;
 }
+
 
 /* =====================================================
    2) Lot
