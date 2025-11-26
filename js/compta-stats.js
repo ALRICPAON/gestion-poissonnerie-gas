@@ -1,13 +1,11 @@
 // -------------------------------------------------------
 // COMPTA-STATS.JS
-// Stats Fournisseurs & Articles basées sur LOTS + STOCK
+// Stats basées sur COMPTA_JOURNAL (réel : Z + lots)
 // -------------------------------------------------------
 import { db } from "./firebase-init.js";
 import {
   collection,
-  getDocs,
-  doc,
-  getDoc
+  getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // ---------- Sélecteurs DOM ----------
@@ -26,7 +24,7 @@ const resumeCA      = document.getElementById("resume-ca");
 const resumeAchats  = document.getElementById("resume-achats");
 const resumeMarge   = document.getElementById("resume-marge");
 
-// Charts (optionnel)
+// Charts
 let chartF = null;
 let chartA = null;
 
@@ -43,196 +41,138 @@ function ymd(date) {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-function tsToYmd(v) {
-  if (!v) return null;
-  if (v.toDate) return ymd(v.toDate());
-  if (v instanceof Date) return ymd(v);
-  return ymd(v);
+function matchSearch(text, q) {
+  if (!q) return true;
+  return String(text || "").toLowerCase().includes(q.toLowerCase());
 }
 
-// ---------- Chargement des données de base ----------
-
-// Charge tous les prix de vente (stock_articles)
-async function loadStockArticlesMap() {
-  const snap = await getDocs(collection(db, "stock_articles"));
-  const map = {};
-  snap.forEach(d => {
-    const data = d.data();
-    const id = d.id;            // ex: "PLU_2001"
-    const plu = id.startsWith("PLU_") ? id.slice(4) : id;
-    map[plu] = {
-      pvTTCreel: Number(data.pvTTCreel || 0)
-    };
-  });
-  return map;
-}
-
-// Charge les achats (uniquement ceux utilisés)
-async function loadAchatsMap(achatIds) {
-  const map = {};
-  for (const id of achatIds) {
-    try {
-      const ref = doc(db, "achats", id);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const data = snap.data();
-        map[id] = {
-          fournisseurNom: data.fournisseurNom || "Inconnu"
-        };
-      }
-    } catch (e) {
-      console.error("Erreur getDoc achats", id, e);
-    }
-  }
-  return map;
-}
-
-// Charge les lots dans la période
-async function loadLotsInPeriod(from, to) {
-  const snap = await getDocs(collection(db, "lots"));
-  const res = [];
+// ---------- Chargement des journaux ----------
+async function loadJournaux(from = null, to = null) {
+  const snap = await getDocs(collection(db, "compta_journal"));
+  const jours = [];
 
   const hasRange = !!(from && to);
 
-  snap.forEach(d => {
-    const r = d.data();
+  snap.forEach(docSnap => {
+    const r = docSnap.data();
+    if (!r.validated) return;
 
-    // on ne garde que les lots issus d'un achat
-    if (r.source && r.source !== "achat") return;
-
-    const dstr = tsToYmd(r.createdAt || r.updatedAt);
+    const dstr = r.date; // "YYYY-MM-DD"
     if (!dstr) return;
 
     if (hasRange) {
       if (dstr < from || dstr > to) return;
     }
 
-    res.push({
-      ...r,
-      _dateStr: dstr
-    });
+    jours.push(r);
   });
 
-  return res;
+  return jours;
 }
 
-// ---------- CALCUL DES STATS ----------
-async function computeStats(from, to) {
-  // 1) Charger les lots filtrés par période
-  const lots = await loadLotsInPeriod(from, to);
-  if (!lots.length) {
-    console.warn("Aucun lot dans la période");
-  }
-
-  // 2) Construire la liste des achatId utilisés
-  const achatIds = Array.from(
-    new Set(
-      lots
-        .map(l => l.achatId)
-        .filter(Boolean)
-    )
-  );
-
-  // 3) Charger fournisseurs (achats) + prix vente (stock_articles)
-  const [achatsMap, stockMap] = await Promise.all([
-    loadAchatsMap(achatIds),
-    loadStockArticlesMap()
-  ]);
-
-  // 4) Agrégations
-  const statsFournisseurs = {}; // { fournisseurNom: { achats, ca, marge } }
-  const statsArticles = {};     // { plu: { designation, achats, poidsAchat, poidsVendu, ca, marge } }
-
-  let totalAchats = 0;
+// ---------- Calcul global ----------
+function computeAggregates(journaux) {
   let totalCA = 0;
+  let totalAchatsConso = 0;
   let totalMarge = 0;
 
-  for (const lot of lots) {
-    const plu  = lot.plu || "???";
-    const designation = lot.designation || "";
-    const achatId = lot.achatId || null;
-
-    const fournisseurNom =
-      (achatId && achatsMap[achatId]?.fournisseurNom) || "Inconnu";
-
-    const prixAchatKg = Number(lot.prixAchatKg || 0);
-    const poidsInitial = Number(lot.poidsInitial || 0);
-    const poidsRestant = Number(lot.poidsRestant || 0);
-    const poidsVendu = Math.max(0, poidsInitial - poidsRestant);
-
-    const pvTTCreel = Number(stockMap[plu]?.pvTTCreel || 0);
-
-    const achats = poidsInitial * prixAchatKg;
-    const ca = poidsVendu * pvTTCreel;
-    const marge = ca - achats;
-
-    totalAchats += achats;
-    totalCA += ca;
-    totalMarge += marge;
-
-    // Fournisseur
-    if (!statsFournisseurs[fournisseurNom]) {
-      statsFournisseurs[fournisseurNom] = {
-        achats: 0,
-        ca: 0,
-        marge: 0
-      };
-    }
-    statsFournisseurs[fournisseurNom].achats += achats;
-    statsFournisseurs[fournisseurNom].ca += ca;
-    statsFournisseurs[fournisseurNom].marge += marge;
-
-    // Article
-    if (!statsArticles[plu]) {
-      statsArticles[plu] = {
-        plu,
-        designation,
-        achats: 0,
-        poidsAchat: 0,
-        poidsVendu: 0,
-        ca: 0,
-        marge: 0
-      };
-    }
-    const sa = statsArticles[plu];
-    sa.achats += achats;
-    sa.poidsAchat += poidsInitial;
-    sa.poidsVendu += poidsVendu;
-    sa.ca += ca;
-    sa.marge += marge;
+  for (const j of journaux) {
+    totalCA          += Number(j.caReel || 0);
+    totalAchatsConso += Number(j.achatsConsoHT || 0);
+    // on additionne la marge déjà calculée (réelle)
+    totalMarge       += Number(j.marge || (j.caReel || 0) - (j.achatsConsoHT || 0));
   }
 
-  return {
-    totalAchats,
-    totalCA,
-    totalMarge,
-    statsFournisseurs,
-    statsArticles
-  };
+  return { totalCA, totalAchatsConso, totalMarge };
 }
 
-// ---------- AFFICHAGE ----------
-function renderResume(totalAchats, totalCA, totalMarge) {
-  resumeCA.textContent = fmtMoney(totalCA);
-  resumeAchats.textContent = fmtMoney(totalAchats);
+// ---------- Stats Fournisseurs & Articles ----------
+function computeStats(journaux) {
+  const fournisseurs = {}; // { nom: { achatsConso, ca, marge } }
+  const articles = {};     // { plu: { achatConso, ca, marge } }
+
+  for (const j of journaux) {
+    const caReel        = Number(j.caReel || 0);
+    const achatsConsoHT = Number(j.achatsConsoHT || 0);
+
+    const mapF = j.achats_consommes || {};
+    const mapConsoArt = j.consommation_par_article || {};
+    const mapVentesArt = j.ventes_par_article || {};
+
+    // ----- Fournisseurs -----
+    for (const [four, achatConso] of Object.entries(mapF)) {
+      const a = Number(achatConso || 0);
+      if (a <= 0) continue;
+
+      // Répartition CA au prorata de la consommation de ce fournisseur
+      const caFour = (achatsConsoHT > 0)
+        ? caReel * (a / achatsConsoHT)
+        : 0;
+      const margeFour = caFour - a;
+
+      if (!fournisseurs[four]) {
+        fournisseurs[four] = { achatsConso: 0, ca: 0, marge: 0 };
+      }
+      fournisseurs[four].achatsConso += a;
+      fournisseurs[four].ca          += caFour;
+      fournisseurs[four].marge       += margeFour;
+    }
+
+    // ----- Articles -----
+    // On prend l'union des PLU présents dans conso ou ventes
+    const allPlus = new Set([
+      ...Object.keys(mapConsoArt),
+      ...Object.keys(mapVentesArt)
+    ]);
+
+    for (const plu of allPlus) {
+      const achatConso = Number(mapConsoArt[plu] || 0);
+      const caArt      = Number(mapVentesArt[plu] || 0);
+      const margeArt   = caArt - achatConso;
+
+      if (!articles[plu]) {
+        articles[plu] = {
+          plu,
+          designation: "", // à enrichir plus tard depuis la collection articles/stock_articles
+          achatConso: 0,
+          ca: 0,
+          marge: 0
+        };
+      }
+      const a = articles[plu];
+      a.achatConso += achatConso;
+      a.ca         += caArt;
+      a.marge      += margeArt;
+    }
+  }
+
+  return { fournisseurs, articles };
+}
+
+// ---------- Affichage résumé ----------
+function renderResume(totalCA, totalAchatsConso, totalMarge) {
+  resumeCA.textContent     = fmtMoney(totalCA);
+  resumeAchats.textContent = fmtMoney(totalAchatsConso);
 
   const pct = totalCA > 0 ? (totalMarge / totalCA) * 100 : 0;
-  resumeMarge.textContent =
-    `${fmtMoney(totalMarge)} (${n2(pct)}%)`;
+  resumeMarge.textContent  = `${fmtMoney(totalMarge)} (${n2(pct)}%)`;
 }
 
-function renderTablesAndCharts(data) {
+// ---------- Affichage tableaux + graphiques ----------
+function renderTablesAndCharts(fournisseurs, articles) {
   const qF = (searchF.value || "").trim().toLowerCase();
   const qA = (searchA.value || "").trim().toLowerCase();
 
   // ----- Fournisseurs -----
-  let entriesF = Object.entries(data.statsFournisseurs);
+  let entriesF = Object.entries(fournisseurs);
 
-  entriesF.sort(([, a], [, b]) => b.marge - a.marge); // tri marge décroissante
-  entriesF = entriesF.filter(([name]) =>
-    !qF || name.toLowerCase().includes(qF)
-  );
+  // tri par marge décroissante
+  entriesF.sort(([, a], [, b]) => b.marge - a.marge);
 
+  // filtre recherche
+  entriesF = entriesF.filter(([name]) => matchSearch(name, qF));
+
+  // top 10
   const topF = entriesF.slice(0, 10);
 
   tbodyF.innerHTML = topF
@@ -241,21 +181,17 @@ function renderTablesAndCharts(data) {
       return `<tr>
         <td>${name}</td>
         <td>${fmtMoney(v.ca)}</td>
-        <td>${fmtMoney(v.achats)}</td>
+        <td>${fmtMoney(v.achatsConso)}</td>
         <td>${fmtMoney(v.marge)}</td>
         <td>${n2(pct)}%</td>
       </tr>`;
     })
     .join("");
 
-  // Chart fournisseurs (marge)
+  // Graphique Fournisseurs (marge)
   try {
-    const ctxF = document
-      .getElementById("chartFournisseurs")
-      .getContext("2d");
-
+    const ctxF = document.getElementById("chartFournisseurs").getContext("2d");
     if (chartF) chartF.destroy();
-
     chartF = new Chart(ctxF, {
       type: "bar",
       data: {
@@ -273,17 +209,19 @@ function renderTablesAndCharts(data) {
       }
     });
   } catch (e) {
-    console.warn("Chart fournisseurs erreur :", e);
+    console.warn("Chart Fournisseurs :", e);
   }
 
   // ----- Articles -----
-  let entriesA = Object.entries(data.statsArticles);
+  let entriesA = Object.entries(articles);
 
+  // tri par marge décroissante
   entriesA.sort(([, a], [, b]) => b.marge - a.marge);
-  entriesA = entriesA.filter(([, v]) => {
-    const txt = (v.plu + " " + (v.designation || "")).toLowerCase();
-    return !qA || txt.includes(qA);
-  });
+
+  // filtre recherche (PLU + désignation)
+  entriesA = entriesA.filter(([, v]) =>
+    matchSearch(v.plu + " " + (v.designation || ""), qA)
+  );
 
   const topA = entriesA.slice(0, 10);
 
@@ -294,21 +232,17 @@ function renderTablesAndCharts(data) {
         <td>${v.plu}</td>
         <td>${v.designation || ""}</td>
         <td>${fmtMoney(v.ca)}</td>
-        <td>${fmtMoney(v.achats)}</td>
+        <td>${fmtMoney(v.achatConso)}</td>
         <td>${fmtMoney(v.marge)}</td>
         <td>${n2(pct)}%</td>
       </tr>`;
     })
     .join("");
 
-  // Chart articles (marge)
+  // Graphique Articles (marge)
   try {
-    const ctxA = document
-      .getElementById("chartArticles")
-      .getContext("2d");
-
+    const ctxA = document.getElementById("chartArticles").getContext("2d");
     if (chartA) chartA.destroy();
-
     chartA = new Chart(ctxA, {
       type: "bar",
       data: {
@@ -326,26 +260,32 @@ function renderTablesAndCharts(data) {
       }
     });
   } catch (e) {
-    console.warn("Chart articles erreur :", e);
+    console.warn("Chart Articles :", e);
   }
 }
 
-// ---------- RAFRAÎCHISSEMENT GLOBAL ----------
+// ---------- Rafraîchissement global ----------
 async function refreshStats() {
   try {
     const from = dateFrom.value || null;
-    const to = dateTo.value || null;
+    const to   = dateTo.value || null;
 
-    const data = await computeStats(from, to);
-    renderResume(data.totalAchats, data.totalCA, data.totalMarge);
-    renderTablesAndCharts(data);
+    const journaux = await loadJournaux(from, to);
+
+    const { totalCA, totalAchatsConso, totalMarge } =
+      computeAggregates(journaux);
+
+    const { fournisseurs, articles } = computeStats(journaux);
+
+    renderResume(totalCA, totalAchatsConso, totalMarge);
+    renderTablesAndCharts(fournisseurs, articles);
   } catch (e) {
     console.error("Erreur refreshStats :", e);
     alert("Erreur lors du chargement des statistiques (voir console).");
   }
 }
 
-// ---------- ÉVÈNEMENTS ----------
+// ---------- Évènements ----------
 
 // Boutons rapides (Jour / Semaine / Mois / Année)
 btnPeriods.forEach(btn => {
@@ -359,17 +299,17 @@ btnPeriods.forEach(btn => {
       const d = new Date(now);
       d.setDate(d.getDate() - 6);
       dateFrom.value = ymd(d);
-      dateTo.value = ymd(now);
+      dateTo.value   = ymd(now);
     } else if (p === "month") {
       const d = new Date(now);
       d.setMonth(d.getMonth() - 1);
       dateFrom.value = ymd(d);
-      dateTo.value = ymd(now);
+      dateTo.value   = ymd(now);
     } else if (p === "year") {
       const d = new Date(now);
       d.setFullYear(d.getFullYear() - 1);
       dateFrom.value = ymd(d);
-      dateTo.value = ymd(now);
+      dateTo.value   = ymd(now);
     }
 
     refreshStats();
@@ -385,12 +325,12 @@ btnLoad.addEventListener("click", () => {
 searchF.addEventListener("input", () => refreshStats());
 searchA.addEventListener("input", () => refreshStats());
 
-// Premier chargement : par défaut, 1 semaine
+// Premier chargement : par défaut 1 semaine
 window.addEventListener("load", () => {
   const now = new Date();
   const d = new Date(now);
   d.setDate(d.getDate() - 6);
   dateFrom.value = ymd(d);
-  dateTo.value = ymd(now);
+  dateTo.value   = ymd(now);
   refreshStats();
 });
