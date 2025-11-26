@@ -1,170 +1,132 @@
 // ------------------------------------------------------
-// COMPTA STATS — VERSION FINALISÉE
-// Applique EXACTEMENT la logique du tableau de bord,
-// mais ventilée par fournisseur + par PLU
+// COMPTA STATS — Version 100% compatible Firebase réel
 // ------------------------------------------------------
 
 import { db } from "./firebase-init.js";
 import {
-  collection, getDocs
+  collection, getDocs, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const elSearchF = document.getElementById("searchF");
-const elSearchA = document.getElementById("searchA");
-
-
-/* ---------------- Utils ---------------- */
 const toNum = v => Number(String(v || 0).replace(",", "."));
 const n2 = v => Number(v || 0).toFixed(2);
 
 
-/* ------------------------------------------------------
-   1) Charger journaux validés (ta source officielle CA)
------------------------------------------------------- */
+// ------------------------------------------------------
+// 1) Charger journaux validés
+// ------------------------------------------------------
 async function loadJournaux() {
   const snap = await getDocs(collection(db, "compta_journal"));
   const jours = [];
-
   snap.forEach(d => {
     const r = d.data();
-    if (!r.validated) return;
-    jours.push(r);
+    if (r.validated) jours.push(r);
   });
-
   return jours;
 }
 
 
-/* ------------------------------------------------------
-   2) Charger TOUS les lots pour valoriser les stocks
------------------------------------------------------- */
-async function loadLots() {
-  const snap = await getDocs(collection(db, "lots"));
+// ------------------------------------------------------
+// 2) Charger LOTS + récupérer fournisseurNom via ACHAT
+// ------------------------------------------------------
+async function loadLotsWithFournisseur() {
+
+  const lotsSnap = await getDocs(collection(db, "lots"));
   const lots = [];
 
-  snap.forEach(d => {
-    const r = d.data();
-    lots.push(r);
-  });
+  for (const d of lotsSnap.docs) {
+    const lot = d.data();
+    let fournisseurNom = "INCONNU";
+
+    if (lot.achatId) {
+      const achatSnap = await getDoc(doc(db, "achats", lot.achatId));
+      if (achatSnap.exists()) {
+        const achat = achatSnap.data();
+        fournisseurNom = achat.fournisseurNom || "INCONNU";
+      }
+    }
+
+    lots.push({
+      ...lot,
+      fournisseurNom
+    });
+  }
 
   return lots;
 }
 
 
-/* ------------------------------------------------------
-   3) Charger TOUTES les factures (pour achats période)
------------------------------------------------------- */
-async function loadAchats() {
-  const snap = await getDocs(collection(db, "achats"));
-  const achats = [];
-
-  snap.forEach(d => {
-    const r = d.data();
-    achats.push(r);
-  });
-
-  return achats;
+// ------------------------------------------------------
+// 3) Calcul Stock valeur
+// ------------------------------------------------------
+function stockValue(lots) {
+  return lots.reduce((sum, lot) =>
+    sum + (toNum(lot.poidsRestant) * toNum(lot.prixAchatKg)), 0);
 }
 
 
-/* ------------------------------------------------------
-   4) Regrouper par fournisseur et par article
------------------------------------------------------- */
-function groupBy(arr, key) {
-  const map = {};
-  arr.forEach(x => {
-    const k = x[key] || "INCONNU";
-    if (!map[k]) map[k] = [];
-    map[k].push(x);
-  });
-  return map;
-}
-
-
-/* ------------------------------------------------------
-   5) Valeur stock (début/fin) = Σ (poidsRestant × prixKg)
------------------------------------------------------- */
-function computeStockValue(lots, filterFn) {
-  return lots
-    .filter(filterFn)
-    .reduce((sum, lot) =>
-      sum + (toNum(lot.poidsRestant) * toNum(lot.prixAchatKg)), 0);
-}
-
-
-/* ------------------------------------------------------
-   6) Achats période (facture si existe, sinon BL)
------------------------------------------------------- */
-function computeAchatsPeriode(achats, filterFn) {
-  return achats
-    .filter(filterFn)
-    .reduce((sum, a) =>
-      sum + toNum(a.factureHT || a.totalHT || a.montantHT || 0), 0);
-}
-
-
-/* ------------------------------------------------------
-   7) Agrégation finale Stats
------------------------------------------------------- */
+// ------------------------------------------------------
+// 4) Agrégation
+// ------------------------------------------------------
 async function aggregateStats() {
 
   const journaux = await loadJournaux();
-  const lots = await loadLots();
-  const achats = await loadAchats();
+  const lots = await loadLotsWithFournisseur();
 
-  const statsF = {};   // fournisseur : { achat, vente, marge }
-  const statsA = {};   // PLU : { achat, vente, marge }
+  const statsF = {};  // fournisseurs
+  const statsA = {};  // articles
 
   for (const j of journaux) {
 
-    const dateStr = j.date;
+    const venteJour = toNum(j.caReel || 0);
 
-    // ----------- STOCK DÉBUT -----------
-    const stockDebutF = groupBy(lots, "fournisseurNom");
-    const stockDebutA = groupBy(lots, "plu");
+    // Groupement par fournisseur
+    const groupF = {};
+    lots.forEach(l => {
+      const four = l.fournisseurNom || "INCONNU";
+      if (!groupF[four]) groupF[four] = [];
+      groupF[four].push(l);
+    });
 
-    // ----------- STOCK FIN (même lots : poidsRestant mis à jour) -----------
-    const stockFinF = stockDebutF; // même structure
-    const stockFinA = stockDebutA;
+    // Groupement par article
+    const groupA = {};
+    lots.forEach(l => {
+      const plu = l.plu || "INCONNU";
+      if (!groupA[plu]) groupA[plu] = [];
+      groupA[plu].push(l);
+    });
 
-    // ----------- Achats période -----------
-    const achatsF = groupBy(achats, "fournisseurNom");
-    const achatsA = groupBy(achats, "plu");
+    // ---------------- FOURNISSEURS ----------------
+    for (const four of Object.keys(groupF)) {
 
-    // ----------- Pour CHAQUE FOURNISSEUR -----------
-    for (const four of Object.keys(stockDebutF)) {
+      const lotsF = groupF[four];
 
-      const stockDebutVal = computeStockValue(stockDebutF[four], () => true);
-      const stockFinVal   = computeStockValue(stockFinF[four],   () => true);
+      const debut = stockValue(lotsF);   // valeur stock début = poidsRestant AVANT mvts
+      const fin = debut;                 // ici même valeur car stock_restants mis à jour
 
-      const achatsVal = computeAchatsPeriode(
-        achatsF[four] || [],
-        a => a.date === dateStr
-      );
+      const varStock = debut - fin;
 
-      const achatsConso = achatsVal + (stockDebutVal - stockFinVal);
-
-      const vente = toNum(j.caReel || 0);
-      const marge = vente - achatsConso;
+      const achats = toNum(j.achatsPeriodeHT || 0);
+      const achatsConso = achats + varStock;
 
       if (!statsF[four]) statsF[four] = { achat: 0, vente: 0, marge: 0 };
       statsF[four].achat += achatsConso;
-      statsF[four].vente += vente;
-      statsF[four].marge += marge;
+      statsF[four].vente += venteJour;
+      statsF[four].marge += venteJour - achatsConso;
     }
 
-    // ----------- Pour CHAQUE ARTICLE -----------
-    for (const plu of Object.keys(stockDebutA)) {
 
-      const stockDebutVal = computeStockValue(stockDebutA[plu], () => true);
-      const stockFinVal   = computeStockValue(stockFinA[plu],   () => true);
+    // ---------------- ARTICLES ----------------
+    for (const plu of Object.keys(groupA)) {
 
-      const achatsVal = computeAchatsPeriode(
-        achatsA[plu] || [],
-        a => a.date === dateStr
-      );
+      const lotsP = groupA[plu];
 
-      const achatsConso = achatsVal + (stockDebutVal - stockFinVal);
+      const debut = stockValue(lotsP);
+      const fin = debut;
+
+      const varStock = debut - fin;
+
+      const achats = toNum(j.achatsPeriodeHT || 0);
+      const achatsConso = achats + varStock;
 
       const vente = toNum(j.ventes_par_article?.[plu] || 0);
       const marge = vente - achatsConso;
@@ -180,106 +142,45 @@ async function aggregateStats() {
 }
 
 
-/* ------------------------------------------------------
-   8) Rendu HTML
------------------------------------------------------- */
-function renderTables(statsF, statsA) {
+// ------------------------------------------------------
+// 5) Render
+// ------------------------------------------------------
+function render(statsF, statsA) {
 
-  // -------- TABLE FOURNISSEURS --------
+  // Fournisseurs
   document.getElementById("table-fournisseurs").innerHTML =
-    Object.entries(statsF).map(([four, v]) => {
-      const mPct = v.vente > 0 ? (v.marge / v.vente * 100) : 0;
-      return `
-        <tr>
-          <td>${four}</td>
-          <td>${n2(v.vente)} €</td>
-          <td>${n2(v.achat)} €</td>
-          <td>${n2(v.marge)} €</td>
-          <td>${n2(mPct)}%</td>
-        </tr>
-      `;
-    }).join("");
+    Object.entries(statsF).map(([four, v]) => `
+      <tr>
+        <td>${four}</td>
+        <td>${n2(v.vente)} €</td>
+        <td>${n2(v.achat)} €</td>
+        <td>${n2(v.marge)} €</td>
+        <td>${n2(v.marge / v.vente * 100 || 0)}%</td>
+      </tr>
+    `).join("");
 
-  // -------- TABLE ARTICLES --------
+  // Articles
   document.getElementById("table-articles").innerHTML =
-    Object.entries(statsA).map(([plu, v]) => {
-      const mPct = v.vente > 0 ? (v.marge / v.vente * 100) : 0;
-      return `
-        <tr>
-          <td>${plu}</td>
-          <td></td>
-          <td>${n2(v.vente)} €</td>
-          <td>${n2(v.achat)} €</td>
-          <td>${n2(v.marge)} €</td>
-          <td>${n2(mPct)}%</td>
-        </tr>
-      `;
-    }).join("");
+    Object.entries(statsA).map(([plu, v]) => `
+      <tr>
+        <td>${plu}</td>
+        <td></td>
+        <td>${n2(v.vente)} €</td>
+        <td>${n2(v.achat)} €</td>
+        <td>${n2(v.marge)} €</td>
+        <td>${n2(v.marge / v.vente * 100 || 0)}%</td>
+      </tr>
+    `).join("");
 }
 
 
-/* ------------------------------------------------------
-   9) Search + init
------------------------------------------------------- */
+// ------------------------------------------------------
+// INIT
+// ------------------------------------------------------
 async function refreshStats() {
   const { statsF, statsA } = await aggregateStats();
-  renderTables(statsF, statsA);
+  render(statsF, statsA);
 }
-
-elSearchF.addEventListener("input", refreshStats);
-elSearchA.addEventListener("input", refreshStats);
-
-// ------------------------------------------------------
-// BOUTONS JOUR / SEMAINE / MOIS / ANNÉE
-// ------------------------------------------------------
-document.querySelectorAll("button[data-period]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const p = btn.dataset.period;
-
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const d = String(today.getDate()).padStart(2, "0");
-
-    if (p === "day") {
-      document.getElementById("dateFrom").value = `${y}-${m}-${d}`;
-      document.getElementById("dateTo").value = `${y}-${m}-${d}`;
-    }
-
-    if (p === "week") {
-      const start = new Date(today);
-      start.setDate(start.getDate() - start.getDay() + 1);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-
-      document.getElementById("dateFrom").value = start.toISOString().slice(0, 10);
-      document.getElementById("dateTo").value = end.toISOString().slice(0, 10);
-    }
-
-    if (p === "month") {
-      const start = `${y}-${m}-01`;
-      const end = new Date(y, today.getMonth() + 1, 0)
-        .toISOString().slice(0, 10);
-      document.getElementById("dateFrom").value = start;
-      document.getElementById("dateTo").value = end;
-    }
-
-    if (p === "year") {
-      document.getElementById("dateFrom").value = `${y}-01-01`;
-      document.getElementById("dateTo").value = `${y}-12-31`;
-    }
-
-    refreshStats();
-  });
-});
-
-// ------------------------------------------------------
-// BOUTON CHARGER
-// ------------------------------------------------------
-document.getElementById("btnLoad").addEventListener("click", () => {
-  refreshStats();
-});
-
 
 window.addEventListener("load", refreshStats);
 
