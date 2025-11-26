@@ -1,6 +1,6 @@
 import { db } from "./firebase-init.js";
 import {
-  collection, doc, getDoc, getDocs, query, where
+  collection, doc, getDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* ---------------- Utils ---------------- */
@@ -20,11 +20,15 @@ const elCa  = document.getElementById("resume-ca");
 const elAch = document.getElementById("resume-achats");
 const elMg  = document.getElementById("resume-marge");
 
+console.log("🔧 compta-stats.js chargé");
+
 /* =====================================================
-   1) Charger TOUS les mouvements FIFO dans la période
+   1) Charger les mouvements FIFO
    ===================================================== */
 async function loadMovements(from, to) {
+  console.log("📥 Load mouvements FIFO...");
   const snap = await getDocs(collection(db, "stock_movements"));
+
   const arr = [];
 
   snap.forEach(d => {
@@ -37,40 +41,79 @@ async function loadMovements(from, to) {
     }
   });
 
+  console.log(`📊 ${arr.length} mouvements trouvés entre ${from} → ${to}`);
+  console.log("👉 Exemple mouvement :", arr[0]);
+
   return arr;
 }
 
 /* =====================================================
-   2) Charger un lot
+   2) Lot
    ===================================================== */
 async function loadLot(lotId) {
+  if (!lotId) {
+    console.warn("⚠ lotId vide !");
+    return null;
+  }
+
   const ref = doc(db, "lots", lotId);
   const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
+
+  if (!snap.exists()) {
+    console.warn("❌ Lot introuvable :", lotId);
+    return null;
+  }
+
+  const lot = snap.data();
+  console.log("📦 Lot chargé :", lotId, lot);
+  return lot;
 }
 
 /* =====================================================
-   3) Charger un achat
+   3) Achat
    ===================================================== */
 async function loadAchat(achatId) {
-  const snap = await getDoc(doc(db, "achats", achatId));
-  return snap.exists() ? snap.data() : null;
+  if (!achatId) {
+    console.warn("⚠ achatId vide !");
+    return null;
+  }
+
+  const ref = doc(db, "achats", achatId);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    console.warn("❌ Achat introuvable :", achatId);
+    return null;
+  }
+
+  const achat = snap.data();
+  console.log("🧾 Achat chargé :", achatId, achat);
+  return achat;
 }
 
 /* =====================================================
-   4) Charger CA réel (ventes_reelles)
+   4) CA réel
    ===================================================== */
 async function loadCA(from, to) {
+  console.log("📥 Load CA...");
   let total = 0;
 
-  for (let ts = new Date(from).getTime(); ts <= new Date(to).getTime(); ts += 86400000) {
+  const start = new Date(from).getTime();
+  const end   = new Date(to).getTime();
+
+  for (let ts = start; ts <= end; ts += 86400000) {
     const dateStr = ymd(ts);
-    const snap = await getDoc(doc(db, "ventes_reelles", dateStr));
+    const ref = doc(db, "ventes_reelles", dateStr);
+    const snap = await getDoc(ref);
+
     if (snap.exists()) {
-      total += toNum(snap.data().caHT);
+      const val = toNum(snap.data().caHT);
+      console.log(`💶 CA du ${dateStr} = ${val}`);
+      total += val;
     }
   }
 
+  console.log("💰 Total CA =", total);
   return total;
 }
 
@@ -78,37 +121,46 @@ async function loadCA(from, to) {
    5) Calcul principal
    ===================================================== */
 async function computeStats(from, to) {
+  console.log("🚀 DÉBUT CALCUL STATS");
+  console.log("Période :", from, "→", to);
+
   const moves = await loadMovements(from, to);
 
   let totalAchats = 0;
 
-  const statsF = {};  // par fournisseur
-  const statsA = {};  // par article (PLU)
+  const statsF = {};
+  const statsA = {};
 
   for (const m of moves) {
+    console.log("➡ Traitement mouvement :", m);
 
-    // 1) le lot d'origine
+    // 1) LOT
     const lot = await loadLot(m.lotId);
-    if (!lot) continue;
+    if (!lot) {
+      console.log("⛔ Pas de lot → skip");
+      continue;
+    }
 
     const plu = lot.plu || "INCONNU";
     const achatId = lot.achatId;
 
-    // 2) fournisseur de l'achat
-    let fournisseurNom = "INCONNU";
+    // 2) ACHAT
+    let fournisseurNom = "Inconnu";
     let fournisseurCode = "??";
 
     if (achatId) {
       const achat = await loadAchat(achatId);
       if (achat) {
-        fournisseurNom = achat.fournisseurNom || "INCONNU";
+        fournisseurNom = achat.fournisseurNom || "Inconnu";
         fournisseurCode = achat.fournisseurCode || "??";
       }
     }
 
     const montant = toNum(m.montantHT);
 
-    /* ---------- Stats fournisseur ---------- */
+    console.log(`💵 Mouvement : lot=${m.lotId} plu=${plu} fournisseur=${fournisseurNom} montant=${montant}`);
+
+    /* ---------- FOURNISSEUR ---------- */
     if (!statsF[fournisseurCode]) {
       statsF[fournisseurCode] = {
         code: fournisseurCode,
@@ -117,33 +169,29 @@ async function computeStats(from, to) {
         vente: 0,
         marge: 0,
       };
+      console.log("➕ Nouveau fournisseur :", fournisseurNom);
     }
+
     statsF[fournisseurCode].achat += montant;
     totalAchats += montant;
 
-    /* ---------- Stats article ---------- */
+    /* ---------- ARTICLE ---------- */
     if (!statsA[plu]) {
-      statsA[plu] = {
-        plu,
-        achat: 0,
-        vente: 0,
-        marge: 0
-      };
+      statsA[plu] = { plu, achat: 0, vente: 0, marge: 0 };
+      console.log("📘 Nouveau article :", plu);
     }
+
     statsA[plu].achat += montant;
   }
 
-  /* ----------- CA réel ----------- */
+  console.log("📦 Stats Fournisseurs :", statsF);
+  console.log("📘 Stats Articles :", statsA);
+
+  /* ----------- CA ----------- */
   const ca = await loadCA(from, to);
 
-  /* ----------- marges ----------- */
-  for (const f of Object.values(statsF)) {
-    const percent = f.vente > 0 ? (f.marge / f.vente * 100) : 0;
-    f.pct = percent;
-  }
-  for (const a of Object.values(statsA)) {
-    a.marge = a.vente - a.achat;
-  }
+  console.log("💶 CA total =", ca);
+  console.log("💸 Achats consommés =", totalAchats);
 
   return {
     ca,
@@ -155,27 +203,27 @@ async function computeStats(from, to) {
 }
 
 /* =====================================================
-   6) AFFICHAGE
+   6) Rendu
    ===================================================== */
 function render(stats) {
+  console.log("🖥 RENDER stats :", stats);
+
   elCa.textContent  = n2(stats.ca) + " €";
   elAch.textContent = n2(stats.achats) + " €";
   elMg.textContent  = n2(stats.marge) + " €";
 
   tbodyF.innerHTML = Object.values(stats.fournisseurs)
-    .sort((a,b)=>b.achat - a.achat)
     .map(f=>`
       <tr>
         <td>${f.nom}</td>
         <td>0 €</td>
         <td>${n2(f.achat)} €</td>
         <td>${n2(f.marge)} €</td>
-        <td>${n2(f.pct)}%</td>
+        <td>${f.vente>0 ? n2(f.marge/f.vente*100) : "0"}%</td>
       </tr>
     `).join("");
 
   tbodyA.innerHTML = Object.values(stats.articles)
-    .sort((a,b)=>b.achat - a.achat)
     .map(a=>`
       <tr>
         <td>${a.plu}</td>
@@ -191,9 +239,15 @@ function render(stats) {
    7) MAIN
    ===================================================== */
 btnLoad.addEventListener("click", async ()=>{
+  console.log("👆 CLICK charger");
+
   const from = inputFrom.value;
   const to   = inputTo.value;
 
+  console.log("⏱ Période demandée :", from, to);
+
   const stats = await computeStats(from, to);
+  console.log("📊 STATS FINALES :", stats);
+
   render(stats);
 });
