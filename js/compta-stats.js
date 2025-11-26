@@ -229,5 +229,57 @@ async function refreshStats() {
 elSearchF.addEventListener("input", refreshStats);
 elSearchA.addEventListener("input", refreshStats);
 
+// ------------------------------------------------------
+// BOUTONS JOUR / SEMAINE / MOIS / ANNÉE
+// ------------------------------------------------------
+document.querySelectorAll("button[data-period]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const p = btn.dataset.period;
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+
+    if (p === "day") {
+      document.getElementById("dateFrom").value = `${y}-${m}-${d}`;
+      document.getElementById("dateTo").value = `${y}-${m}-${d}`;
+    }
+
+    if (p === "week") {
+      const start = new Date(today);
+      start.setDate(start.getDate() - start.getDay() + 1);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+
+      document.getElementById("dateFrom").value = start.toISOString().slice(0, 10);
+      document.getElementById("dateTo").value = end.toISOString().slice(0, 10);
+    }
+
+    if (p === "month") {
+      const start = `${y}-${m}-01`;
+      const end = new Date(y, today.getMonth() + 1, 0)
+        .toISOString().slice(0, 10);
+      document.getElementById("dateFrom").value = start;
+      document.getElementById("dateTo").value = end;
+    }
+
+    if (p === "year") {
+      document.getElementById("dateFrom").value = `${y}-01-01`;
+      document.getElementById("dateTo").value = `${y}-12-31`;
+    }
+
+    refreshStats();
+  });
+});
+
+// ------------------------------------------------------
+// BOUTON CHARGER
+// ------------------------------------------------------
+document.getElementById("btnLoad").addEventListener("click", () => {
+  refreshStats();
+});
+
+
 window.addEventListener("load", refreshStats);
 
