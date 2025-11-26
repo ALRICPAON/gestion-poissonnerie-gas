@@ -6,7 +6,9 @@ import {
 
 const elStats = document.getElementById("statsContainer");
 const elMode = document.getElementById("modeSelect");
-const elSearch = document.getElementById("searchInput");
+const elSearchF = document.getElementById("searchF");
+const elSearchA = document.getElementById("searchA");
+
 
 function toNum(v) {
   const x = parseFloat(String(v).replace(/\s/g, '').replace(',', '.'));
@@ -89,15 +91,38 @@ function createTable(title, data) {
 }
 
 async function refreshStats() {
-  const search = elSearch.value.trim();
   const data = await loadJournaux();
-  const { fournisseurs, articles } = aggregateStats(data, search);
 
-  elStats.innerHTML = `
-    ${createTable("Par fournisseur", fournisseurs)}
-    ${createTable("Par article", articles)}
-  `;
+  const { fournisseurs } = aggregateStats(data, elSearchF.value.trim());
+  const { articles } = aggregateStats(data, elSearchA.value.trim());
+
+  document.getElementById("table-fournisseurs").innerHTML = Object.entries(fournisseurs).map(([four, val]) => {
+    const pct = val.vente > 0 ? (val.marge / val.vente * 100) : 0;
+    return `<tr>
+      <td>${four}</td>
+      <td>${n2(val.vente)} €</td>
+      <td>${n2(val.achat)} €</td>
+      <td>${n2(val.marge)} €</td>
+      <td>${n2(pct)}%</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("table-articles").innerHTML = Object.entries(articles).map(([plu, val]) => {
+    const pct = val.vente > 0 ? (val.marge / val.vente * 100) : 0;
+    const designation = ""; // à enrichir si tu as un mapping PLU -> nom
+    return `<tr>
+      <td>${plu}</td>
+      <td>${designation}</td>
+      <td>${n2(val.vente)} €</td>
+      <td>${n2(val.achat)} €</td>
+      <td>${n2(val.marge)} €</td>
+      <td>${n2(pct)}%</td>
+    </tr>`;
+  }).join("");
 }
-
-elSearch.addEventListener("input", refreshStats);
+elSearchF.addEventListener("input", refreshStats);
+elSearchA.addEventListener("input", refreshStats);
 window.addEventListener("load", refreshStats);
+
+
+
