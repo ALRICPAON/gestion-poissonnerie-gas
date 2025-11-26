@@ -45,8 +45,12 @@ async function loadMouvements(from, to) {
   snap.forEach(doc => {
     const d = doc.data();
 
+    // garder uniquement les vraies ventes FIFO
     if (d.sens !== "sortie") return;
-    if (d.type === "inventory") return; // ❗ ne pas compter inventaire comme vente
+    if (d.type === "inventory") return;
+    if (d.type === "transformation") return;
+    if (d.type === "correction") return;
+    if (d.poids <= 0) return;
 
     let dt = null;
     if (d.createdAt?.toDate) dt = d.createdAt.toDate();
@@ -54,7 +58,7 @@ async function loadMouvements(from, to) {
     else return;
 
     if (dt >= fromD && dt <= toD) {
-      console.log("✔ Vente FIFO :", d);
+      console.log("✔ Vente réelle :", d);
       list.push(d);
     }
   });
