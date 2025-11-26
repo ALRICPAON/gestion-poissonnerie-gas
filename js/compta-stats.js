@@ -1,71 +1,82 @@
+/*****************************************************
+ * 📊 COMPTA STATS — VERSION FINALE 26/11/2025
+ * Alric — Gestion Poissonnerie
+ *****************************************************/
+
 import { db } from "./firebase-init.js";
 import {
-  collection, doc, getDoc, getDocs
+  collection, getDocs, getDoc, doc, query, where
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/* ---------------- Utils ---------------- */
-const toNum = v => Number(v || 0);
-const n2 = v => Number(v||0).toFixed(2);
-const ymd = d => new Date(d).toISOString().slice(0,10);
+/*****************************************************
+ * Utils
+ *****************************************************/
+const fmt = n => Number(n || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+const ymd = d => {
+  const x = new Date(d);
+  return x.getFullYear() + "-" +
+    String(x.getMonth()+1).padStart(2,"0") + "-" +
+    String(x.getDate()).padStart(2,"0");
+};
 
-/* ---------------- DOM ---------------- */
-const inputFrom = document.getElementById("dateFrom");
-const inputTo   = document.getElementById("dateTo");
-const btnLoad   = document.getElementById("btnLoad");
+/*****************************************************
+ * 🔍 1) Charger CA réel (ventes_reelles)
+ *****************************************************/
+async function loadCA(from, to) {
+  console.log("📥 Load CA...");
 
-const tbodyF = document.getElementById("table-fournisseurs");
-const tbodyA = document.getElementById("table-articles");
-
-const elCa  = document.getElementById("resume-ca");
-const elAch = document.getElementById("resume-achats");
-const elMg  = document.getElementById("resume-marge");
-
-console.log("🔧 compta-stats.js chargé");
-
-/* =====================================================
-   1) Charger les mouvements FIFO
-   ===================================================== */
-async function loadMovements(from, to) {
-  console.log("📥 Load mouvements FIFO...");
-  const snap = await getDocs(collection(db, "stock_movements"));
-
-  const arr = [];
+  const snap = await getDocs(collection(db, "ventes_reelles"));
+  let total = 0;
 
   snap.forEach(d => {
     const r = d.data();
-    if (r.type !== "consume") return;
-   function getDateFromMovement(r) {
-  if (r.date) {
-    console.log("📅 mouvement avec r.date =", r.date);
-    return r.date;
-  }
+    if (!r.date) return;
+    if (r.date >= from && r.date <= to) {
+      console.log(`💶 CA du ${r.date} = ${r.caHT}`);
+      total += Number(r.caHT || 0);
+    }
+  });
+
+  console.log("💰 Total CA =", total);
+  return total;
+}
+
+/*****************************************************
+ * 🔍 2) Charger mouvements FIFO + Inventaire
+ * IMPORTANT : chez toi, stock_movements N'A PAS de champ "date"
+ * donc on convertit createdAt → YYYY-MM-DD
+ *****************************************************/
+function getMovementDate(r) {
+  if (r.date) return r.date;
 
   if (r.createdAt && r.createdAt.toDate) {
-    const d = ymd(r.createdAt.toDate());
-    console.log("📅 mouvement converti depuis createdAt :", d);
-    return d;
+    return ymd(r.createdAt.toDate());
   }
 
-  console.warn("⚠ aucun champ date pour :", r);
+  if (typeof r.createdAt === "string") return r.createdAt;
+
+  console.warn("⚠ Mouvement sans date :", r);
   return null;
 }
 
-/* ----- loadMovements ----- */
 async function loadMovements(from, to) {
   console.log("📥 Load mouvements FIFO...");
   const snap = await getDocs(collection(db, "stock_movements"));
+
   const arr = [];
 
   snap.forEach(d => {
     const r = d.data();
-    if (r.type !== "consume") return; // on garde seulement les mouvements FIFO réels
 
-    const movementDate = getDateFromMovement(r);
-    if (!movementDate) return;
+    // Garder inventaire + fifo
+    if (r.type !== "consume" && r.type !== "inventory") return;
 
-    if (movementDate >= from && movementDate <= to) {
-      console.log("✔ Mouvement dans la période :", movementDate, r);
-      arr.push({ id: d.id, ...r, movementDate });
+    const mDate = getMovementDate(r);
+    if (!mDate) return;
+
+    if (mDate >= from && mDate <= to) {
+      console.log("✔ Mouvement dans la période :", mDate, r);
+      arr.push({ id: d.id, ...r, mDate });
     }
   });
 
@@ -73,208 +84,199 @@ async function loadMovements(from, to) {
   return arr;
 }
 
+/*****************************************************
+ * 🔍 3) Charger LOTS (prix d'achat + fournisseur)
+ *****************************************************/
+async function loadLots() {
+  console.log("📥 Load LOTS...");
+  const lotsSnap = await getDocs(collection(db, "lots"));
+  const lots = {};
 
-/* =====================================================
-   2) Lot
-   ===================================================== */
-async function loadLot(lotId) {
-  if (!lotId) {
-    console.warn("⚠ lotId vide !");
-    return null;
-  }
+  lotsSnap.forEach(d => {
+    const r = d.data();
+    lots[r.lotId] = r; // accès direct par lotId
+  });
 
-  const ref = doc(db, "lots", lotId);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
-    console.warn("❌ Lot introuvable :", lotId);
-    return null;
-  }
-
-  const lot = snap.data();
-  console.log("📦 Lot chargé :", lotId, lot);
-  return lot;
+  return lots;
 }
 
-/* =====================================================
-   3) Achat
-   ===================================================== */
-async function loadAchat(achatId) {
-  if (!achatId) {
-    console.warn("⚠ achatId vide !");
-    return null;
-  }
+/*****************************************************
+ * 🔍 4) Charger ACHATS pour retrouver fournisseurs
+ *****************************************************/
+async function loadAchats() {
+  console.log("📥 Load ACHATS...");
+  const snap = await getDocs(collection(db, "achats"));
+  const achats = {};
 
-  const ref = doc(db, "achats", achatId);
-  const snap = await getDoc(ref);
+  snap.forEach(d => {
+    const r = d.data();
+    achats[r.id || d.id] = r;
+  });
 
-  if (!snap.exists()) {
-    console.warn("❌ Achat introuvable :", achatId);
-    return null;
-  }
-
-  const achat = snap.data();
-  console.log("🧾 Achat chargé :", achatId, achat);
-  return achat;
+  return achats;
 }
 
-/* =====================================================
-   4) CA réel
-   ===================================================== */
-async function loadCA(from, to) {
-  console.log("📥 Load CA...");
-  let total = 0;
+/*****************************************************
+ * 🔍 5) Charger ARTICLES pour avoir les prix vente
+ *****************************************************/
+async function loadArticlesStock() {
+  console.log("📥 Load ARTICLES STOCK...");
+  const snap = await getDocs(collection(db, "stock_articles"));
+  const articles = {};
 
-  const start = new Date(from).getTime();
-  const end   = new Date(to).getTime();
+  snap.forEach(d => {
+    const r = d.data();
+    articles[r.plu] = r;
+  });
 
-  for (let ts = start; ts <= end; ts += 86400000) {
-    const dateStr = ymd(ts);
-    const ref = doc(db, "ventes_reelles", dateStr);
-    const snap = await getDoc(ref);
-
-    if (snap.exists()) {
-      const val = toNum(snap.data().caHT);
-      console.log(`💶 CA du ${dateStr} = ${val}`);
-      total += val;
-    }
-  }
-
-  console.log("💰 Total CA =", total);
-  return total;
+  return articles;
 }
 
-/* =====================================================
-   5) Calcul principal
-   ===================================================== */
-async function computeStats(from, to) {
+/*****************************************************
+ * 🔍 6) Calcul global : fournisseurs + articles + marge
+ *****************************************************/
+async function calculateStats(from, to) {
   console.log("🚀 DÉBUT CALCUL STATS");
   console.log("Période :", from, "→", to);
 
-  const moves = await loadMovements(from, to);
+  const [movements, lots, achats, stockArticles] = await Promise.all([
+    loadMovements(from, to),
+    loadLots(),
+    loadAchats(),
+    loadArticlesStock()
+  ]);
+
+  const fournisseurs = {};
+  const articles = {};
 
   let totalAchats = 0;
 
-  const statsF = {};
-  const statsA = {};
+  /***********************************************
+   * Parcours des mouvements FIFO + inventaires
+   ***********************************************/
+  movements.forEach(m => {
+    const lot = lots[m.lotId];
+    if (!lot) return;
 
-  for (const m of moves) {
-    console.log("➡ Traitement mouvement :", m);
+    const achat = achats[lot.achatId];
+    const fournisseur = achat?.fournisseurNom || "INCONNU";
 
-    // 1) LOT
-    const lot = await loadLot(m.lotId);
-    if (!lot) {
-      console.log("⛔ Pas de lot → skip");
-      continue;
-    }
+    const plu = m.plu || lot.plu;
+    const poids = Number(m.poids || 0);
+    const prixAchatKg = Number(lot.prixAchatKg || 0);
+    const prixVenteKg = Number(stockArticles[plu]?.pvHTreel || 0);
 
-    const plu = lot.plu || "INCONNU";
-    const achatId = lot.achatId;
+    const achatHT = poids * prixAchatKg;
+    const caHT = poids * prixVenteKg;
 
-    // 2) ACHAT
-    let fournisseurNom = "Inconnu";
-    let fournisseurCode = "??";
-
-    if (achatId) {
-      const achat = await loadAchat(achatId);
-      if (achat) {
-        fournisseurNom = achat.fournisseurNom || "Inconnu";
-        fournisseurCode = achat.fournisseurCode || "??";
-      }
-    }
-
-    const montant = toNum(m.montantHT);
-
-    console.log(`💵 Mouvement : lot=${m.lotId} plu=${plu} fournisseur=${fournisseurNom} montant=${montant}`);
-
-    /* ---------- FOURNISSEUR ---------- */
-    if (!statsF[fournisseurCode]) {
-      statsF[fournisseurCode] = {
-        code: fournisseurCode,
-        nom: fournisseurNom,
-        achat: 0,
-        vente: 0,
-        marge: 0,
+    // ---------- Fournisseurs ----------
+    if (!fournisseurs[fournisseur]) {
+      fournisseurs[fournisseur] = {
+        fournisseur,
+        achats: 0,
+        ventes: 0,
+        marge: 0
       };
-      console.log("➕ Nouveau fournisseur :", fournisseurNom);
     }
 
-    statsF[fournisseurCode].achat += montant;
-    totalAchats += montant;
+    fournisseurs[fournisseur].achats += achatHT;
+    fournisseurs[fournisseur].ventes += caHT;
+    fournisseurs[fournisseur].marge += caHT - achatHT;
 
-    /* ---------- ARTICLE ---------- */
-    if (!statsA[plu]) {
-      statsA[plu] = { plu, achat: 0, vente: 0, marge: 0 };
-      console.log("📘 Nouveau article :", plu);
+    // ---------- Articles ----------
+    if (!articles[plu]) {
+      articles[plu] = {
+        plu,
+        designation: stockArticles[plu]?.designation || "",
+        achats: 0,
+        ventes: 0,
+        marge: 0
+      };
     }
 
-    statsA[plu].achat += montant;
-  }
+    articles[plu].achats += achatHT;
+    articles[plu].ventes += caHT;
+    articles[plu].marge += caHT - achatHT;
 
-  console.log("📦 Stats Fournisseurs :", statsF);
-  console.log("📘 Stats Articles :", statsA);
+    totalAchats += achatHT;
+  });
 
-  /* ----------- CA ----------- */
-  const ca = await loadCA(from, to);
-
-  console.log("💶 CA total =", ca);
-  console.log("💸 Achats consommés =", totalAchats);
-
-  return {
-    ca,
-    achats: totalAchats,
-    marge: ca - totalAchats,
-    fournisseurs: statsF,
-    articles: statsA
-  };
+  return { fournisseurs, articles, totalAchats };
 }
 
-/* =====================================================
-   6) Rendu
-   ===================================================== */
-function render(stats) {
-  console.log("🖥 RENDER stats :", stats);
+/*****************************************************
+ * 🔍 7) Render UI
+ *****************************************************/
+function renderTableFournisseurs(map) {
+  const tbody = document.getElementById("table-fournisseurs");
+  tbody.innerHTML = "";
 
-  elCa.textContent  = n2(stats.ca) + " €";
-  elAch.textContent = n2(stats.achats) + " €";
-  elMg.textContent  = n2(stats.marge) + " €";
-
-  tbodyF.innerHTML = Object.values(stats.fournisseurs)
-    .map(f=>`
-      <tr>
-        <td>${f.nom}</td>
-        <td>0 €</td>
-        <td>${n2(f.achat)} €</td>
-        <td>${n2(f.marge)} €</td>
-        <td>${f.vente>0 ? n2(f.marge/f.vente*100) : "0"}%</td>
-      </tr>
-    `).join("");
-
-  tbodyA.innerHTML = Object.values(stats.articles)
-    .map(a=>`
-      <tr>
-        <td>${a.plu}</td>
-        <td>${n2(a.vente)} €</td>
-        <td>${n2(a.achat)} €</td>
-        <td>${n2(a.marge)} €</td>
-        <td>${a.vente>0 ? n2(a.marge/a.vente*100) : "0"}%</td>
-      </tr>
-    `).join("");
+  Object.values(map)
+    .sort((a,b)=>b.marge - a.marge)
+    .slice(0,10)
+    .forEach(f => {
+      const pct = f.ventes > 0 ? (f.marge / f.ventes * 100).toFixed(1) : "0";
+      tbody.innerHTML += `
+        <tr>
+          <td>${f.fournisseur}</td>
+          <td>${fmt(f.ventes)} €</td>
+          <td>${fmt(f.achats)} €</td>
+          <td>${fmt(f.marge)} €</td>
+          <td>${pct} %</td>
+        </tr>
+      `;
+    });
 }
 
-/* =====================================================
-   7) MAIN
-   ===================================================== */
-btnLoad.addEventListener("click", async ()=>{
+function renderTableArticles(map) {
+  const tbody = document.getElementById("table-articles");
+  tbody.innerHTML = "";
+
+  Object.values(map)
+    .sort((a,b)=>b.marge - a.marge)
+    .slice(0,10)
+    .forEach(a => {
+      const pct = a.ventes > 0 ? (a.marge / a.ventes * 100).toFixed(1) : "0";
+      tbody.innerHTML += `
+        <tr>
+          <td>${a.plu}</td>
+          <td>${a.designation}</td>
+          <td>${fmt(a.ventes)} €</td>
+          <td>${fmt(a.achats)} €</td>
+          <td>${fmt(a.marge)} €</td>
+          <td>${pct} %</td>
+        </tr>
+      `;
+    });
+}
+
+/*****************************************************
+ * 🔍 8) Main Event — Bouton "Charger"
+ *****************************************************/
+document.getElementById("btnLoad").addEventListener("click", async () => {
   console.log("👆 CLICK charger");
 
-  const from = inputFrom.value;
-  const to   = inputTo.value;
+  const from = document.getElementById("dateFrom").value;
+  const to   = document.getElementById("dateTo").value;
 
   console.log("⏱ Période demandée :", from, to);
 
-  const stats = await computeStats(from, to);
-  console.log("📊 STATS FINALES :", stats);
+  const ca = await loadCA(from, to);
+  const { fournisseurs, articles, totalAchats } =
+    await calculateStats(from, to);
 
-  render(stats);
+  const marge = ca - totalAchats;
+
+  // Résumés
+  document.getElementById("resume-ca").textContent    = fmt(ca) + " €";
+  document.getElementById("resume-achats").textContent= fmt(totalAchats) + " €";
+  document.getElementById("resume-marge").textContent = fmt(marge) + " €";
+
+  // Tables
+  renderTableFournisseurs(fournisseurs);
+  renderTableArticles(articles);
+
+  console.log("📊 STATS FINALES :", {
+    ca, achats: totalAchats, marge, fournisseurs, articles
+  });
 });
