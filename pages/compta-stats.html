@@ -1,110 +1,393 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>📈 Statistiques</title>
-  <link rel="stylesheet" href="../css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+// ------------------------------------------------------
+// COMPTA STATS — Fournisseurs & Articles
+// Source : compta_journal (journées VALIDÉES)
+// Utilise :
+//   - caReel, achatsConsoHT, marge
+//   - achats_consommes        (par fournisseurNom)
+//   - consommation_par_article (par PLU)
+//   - ventes_par_article       (par PLU)
+// ------------------------------------------------------
 
-<body>
+import { db } from "./firebase-init.js";
+import {
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-<div class="top-bar">
-  <h1>📈 Statistiques</h1>
-  <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
+/* ---------- Utils ---------- */
+function toNum(v) {
+  return Number(String(v ?? 0).replace(/\s/g, "").replace(",", "."));
+}
+function n2(v) {
+  return Number(v || 0).toFixed(2);
+}
+function ymd(d) {
+  const x = new Date(d);
+  const mm = String(x.getMonth() + 1).padStart(2, "0");
+  const dd = String(x.getDate()).padStart(2, "0");
+  return `${x.getFullYear()}-${mm}-${dd}`;
+}
+function parseDate(str) {
+  if (!str) return null;
+  const d = new Date(str);
+  return isFinite(d) ? d : null;
+}
+function matchSearch(key, q) {
+  if (!q) return true;
+  return String(key).toLowerCase().includes(q.toLowerCase());
+}
 
-</div>
+/* ---------- State global ---------- */
+let fullFournisseurs = {};
+let fullArticles = {};
+let resumeGlobal = { ca: 0, achats: 0, marge: 0 };
+let chartF = null;
+let chartA = null;
 
-<div class="header-box">
-  <h2>Filtrer la période</h2>
+/* ---------- DOM (rempli à l'init) ---------- */
+let el = {};
 
-  <!-- Boutons rapides -->
-  <div style="display:flex; gap:10px; margin-bottom:10px;">
-    <button class="btn btn-muted" data-period="day">Jour</button>
-    <button class="btn btn-muted" data-period="week">Semaine</button>
-    <button class="btn btn-muted" data-period="month">Mois</button>
-    <button class="btn btn-muted" data-period="year">Année</button>
-  </div>
+function getRangeFromInputs() {
+  const today = new Date();
+  let from = parseDate(el.dateFrom.value);
+  let to = parseDate(el.dateTo.value);
 
-  <div class="margin-settings">
-    <label>
-      Du :
-      <input type="date" id="dateFrom">
-    </label>
+  if (!from) {
+    from = new Date(today);
+    el.dateFrom.value = ymd(from);
+  }
+  if (!to) {
+    to = new Date(today);
+    el.dateTo.value = ymd(to);
+  }
 
-    <label>
-      Au :
-      <input type="date" id="dateTo">
-    </label>
+  from.setHours(0, 0, 0, 0);
+  to.setHours(23, 59, 59, 999);
+  return { from, to };
+}
 
-    <button class="btn btn-accent" id="btnLoad">🔍 Charger</button>
-  </div>
-</div>
+/* ------------------------------------------------------
+   Charger journaux validés dans la plage de dates
+------------------------------------------------------ */
+async function loadJournauxInRange(from, to) {
+  const snap = await getDocs(collection(db, "compta_journal"));
+  const jours = [];
 
-<!-- Résumés -->
-<div class="stock-resume">
-  <div class="resume-item">
-    <h3>CA total</h3>
-    <p id="resume-ca">0 €</p>
-  </div>
+  snap.forEach((d) => {
+    const r = d.data();
+    if (!r.validated) return;
 
-  <div class="resume-item">
-    <h3>Achats consommés</h3>
-    <p id="resume-achats">0 €</p>
-  </div>
+    const dateStr = r.date || d.id; // ex: "2025-11-26"
+    const dt = parseDate(dateStr);
+    if (!dt) return;
 
-  <div class="resume-item total">
-    <h3>Marge totale</h3>
-    <p id="resume-marge">0 €</p>
-  </div>
-</div>
+    if (dt >= from && dt <= to) {
+      jours.push({
+        ...r,
+        _date: dt,
+        _dateStr: dateStr,
+      });
+    }
+  });
 
+  jours.sort((a, b) => a._date - b._date);
+  return jours;
+}
 
-<!-- FOURNISSEURS -->
-<h2>Top 10 Fournisseurs (marge)</h2>
-<input class="search-input" id="searchF" placeholder="🔍 Rechercher fournisseur...">
+/* ------------------------------------------------------
+   Agrégation Fournisseurs + Articles
+------------------------------------------------------ */
+function aggregateStats(jours) {
+  const fournisseurs = {};
+  const articles = {};
 
-<div class="totaux">
-  <canvas id="chartFournisseurs" height="110"></canvas>
-</div>
+  let totalCa = 0;
+  let totalAchatsConso = 0;
+  let totalMarge = 0;
 
-<table>
-  <thead>
-    <tr>
-      <th>Fournisseur</th>
-      <th>CA</th>
-      <th>Achats</th>
-      <th>Marge €</th>
-      <th>Marge %</th>
-    </tr>
-  </thead>
-  <tbody id="table-fournisseurs"></tbody>
-</table>
+  for (const j of jours) {
+    const caReel = toNum(j.caReel);
+    const achatsConso = toNum(j.achatsConsoHT);
+    const marge = toNum(j.marge);
 
+    totalCa += caReel;
+    totalAchatsConso += achatsConso;
+    totalMarge += marge;
 
-<!-- ARTICLES -->
-<h2>Top 10 Articles (marge)</h2>
-<input class="search-input" id="searchA" placeholder="🔍 Rechercher PLU ou désignation...">
+    const achatsParFour = j.achats_consommes || {};
+    const achatsParArticle = j.consommation_par_article || {};
+    const ventesParArticle = j.ventes_par_article || {};
 
-<div class="totaux">
-  <canvas id="chartArticles" height="110"></canvas>
-</div>
+    // ------- Fournisseurs -------
+    const totalAchatsJour = Object.values(achatsParFour)
+      .map(toNum)
+      .reduce((s, v) => s + v, 0);
 
-<table>
-  <thead>
-    <tr>
-      <th>PLU</th>
-      <th>Désignation</th>
-      <th>CA</th>
-      <th>Achats</th>
-      <th>Marge €</th>
-      <th>Marge %</th>
-    </tr>
-  </thead>
-  <tbody id="table-articles"></tbody>
-</table>
+    for (const [four, achatVal] of Object.entries(achatsParFour)) {
+      const achat = toNum(achatVal);
 
-<script type="module" src="../js/compta-stats.js"></script>
+      // CA ventilé au prorata de l'achat consommé
+      const vente =
+        totalAchatsJour > 0 ? (caReel * achat) / totalAchatsJour : 0;
+      const mrg = vente - achat;
 
-</body>
-</html>
+      if (!fournisseurs[four]) {
+        fournisseurs[four] = { vente: 0, achat: 0, marge: 0 };
+      }
+      fournisseurs[four].vente += vente;
+      fournisseurs[four].achat += achat;
+      fournisseurs[four].marge += mrg;
+    }
+
+    // ------- Articles -------
+    for (const [plu, achatVal] of Object.entries(achatsParArticle)) {
+      const achat = toNum(achatVal);
+      const vente = toNum(ventesParArticle[plu] || 0);
+      const mrg = vente - achat;
+
+      if (!articles[plu]) {
+        articles[plu] = { vente: 0, achat: 0, marge: 0 };
+      }
+      articles[plu].vente += vente;
+      articles[plu].achat += achat;
+      articles[plu].marge += mrg;
+    }
+  }
+
+  resumeGlobal = {
+    ca: totalCa,
+    achats: totalAchatsConso,
+    marge: totalMarge,
+  };
+
+  fullFournisseurs = fournisseurs;
+  fullArticles = articles;
+}
+
+/* ------------------------------------------------------
+   Rendu résumé
+------------------------------------------------------ */
+function renderResume() {
+  el.resumeCa.textContent = `${n2(resumeGlobal.ca)} €`;
+  el.resumeAchats.textContent = `${n2(resumeGlobal.achats)} €`;
+  el.resumeMarge.textContent = `${n2(resumeGlobal.marge)} €`;
+}
+
+/* ------------------------------------------------------
+   Rendu tables + graphs avec filtres de recherche
+------------------------------------------------------ */
+function renderTablesAndCharts() {
+  const qF = el.searchF.value.trim();
+  const qA = el.searchA.value.trim();
+
+  // ------- Fournisseurs -------
+  let rowsF = Object.entries(fullFournisseurs).map(([four, v]) => {
+    const pct = v.vente > 0 ? (v.marge / v.vente) * 100 : 0;
+    return { four, ...v, pct };
+  });
+
+  rowsF = rowsF.filter((r) => matchSearch(r.four, qF));
+  rowsF.sort((a, b) => b.marge - a.marge); // top marge
+
+  const topF = rowsF.slice(0, 10);
+
+  el.tableF.innerHTML = topF
+    .map(
+      (r) => `
+      <tr>
+        <td>${r.four}</td>
+        <td>${n2(r.vente)} €</td>
+        <td>${n2(r.achat)} €</td>
+        <td>${n2(r.marge)} €</td>
+        <td>${n2(r.pct)}%</td>
+      </tr>`
+    )
+    .join("");
+
+  if (chartF) chartF.destroy();
+  if (el.chartF) {
+    chartF = new Chart(el.chartF, {
+      type: "bar",
+      data: {
+        labels: topF.map((r) => r.four),
+        datasets: [
+          {
+            label: "Marge €",
+            data: topF.map((r) => r.marge),
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+  }
+
+  // ------- Articles -------
+  let rowsA = Object.entries(fullArticles).map(([plu, v]) => {
+    const pct = v.vente > 0 ? (v.marge / v.vente) * 100 : 0;
+    return { plu, ...v, pct };
+  });
+
+  rowsA = rowsA.filter((r) => matchSearch(r.plu, qA));
+  rowsA.sort((a, b) => b.marge - a.marge);
+
+  const topA = rowsA.slice(0, 10);
+
+  el.tableA.innerHTML = topA
+    .map(
+      (r) => `
+      <tr>
+        <td>${r.plu}</td>
+        <td></td>
+        <td>${n2(r.vente)} €</td>
+        <td>${n2(r.achat)} €</td>
+        <td>${n2(r.marge)} €</td>
+        <td>${n2(r.pct)}%</td>
+      </tr>`
+    )
+    .join("");
+
+  if (chartA) chartA.destroy();
+  if (el.chartA) {
+    chartA = new Chart(el.chartA, {
+      type: "bar",
+      data: {
+        labels: topA.map((r) => r.plu),
+        datasets: [
+          {
+            label: "Marge €",
+            data: topA.map((r) => r.marge),
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+  }
+}
+
+/* ------------------------------------------------------
+   Refresh principal (charge Firestore + agrège + rend)
+------------------------------------------------------ */
+async function refreshStats() {
+  const { from, to } = getRangeFromInputs();
+  const jours = await loadJournauxInRange(from, to);
+
+  if (!jours.length) {
+    resumeGlobal = { ca: 0, achats: 0, marge: 0 };
+    fullFournisseurs = {};
+    fullArticles = {};
+    renderResume();
+    el.tableF.innerHTML = "";
+    el.tableA.innerHTML = "";
+    if (chartF) chartF.destroy();
+    if (chartA) chartA.destroy();
+    return;
+  }
+
+  aggregateStats(jours);
+  renderResume();
+  renderTablesAndCharts();
+}
+
+/* ------------------------------------------------------
+   Boutons de période (Jour / Semaine / Mois / Année)
+------------------------------------------------------ */
+function initPeriodButtons() {
+  const today = new Date();
+  el.dateFrom.value = ymd(today);
+  el.dateTo.value = ymd(today);
+
+  el.periodButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const p = btn.dataset.period;
+      const y = today.getFullYear();
+      const m = today.getMonth();
+
+      if (p === "day") {
+        const v = ymd(today);
+        el.dateFrom.value = v;
+        el.dateTo.value = v;
+      }
+
+      if (p === "week") {
+        const start = new Date(today);
+        const day = start.getDay() || 7; // lundi=1
+        if (day !== 1) start.setDate(start.getDate() - (day - 1));
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+
+        el.dateFrom.value = ymd(start);
+        el.dateTo.value = ymd(end);
+      }
+
+      if (p === "month") {
+        const start = new Date(y, m, 1);
+        const end = new Date(y, m + 1, 0);
+        el.dateFrom.value = ymd(start);
+        el.dateTo.value = ymd(end);
+      }
+
+      if (p === "year") {
+        const start = new Date(y, 0, 1);
+        const end = new Date(y, 11, 31);
+        el.dateFrom.value = ymd(start);
+        el.dateTo.value = ymd(end);
+      }
+
+      refreshStats();
+    });
+  });
+}
+
+/* ------------------------------------------------------
+   INIT GLOBALE
+------------------------------------------------------ */
+function init() {
+  // Récupérer les éléments DOM une fois le HTML chargé
+  el = {
+    dateFrom: document.getElementById("dateFrom"),
+    dateTo: document.getElementById("dateTo"),
+    btnLoad: document.getElementById("btnLoad"),
+    periodButtons: document.querySelectorAll("button[data-period]"),
+
+    resumeCa: document.getElementById("resume-ca"),
+    resumeAchats: document.getElementById("resume-achats"),
+    resumeMarge: document.getElementById("resume-marge"),
+
+    searchF: document.getElementById("searchF"),
+    searchA: document.getElementById("searchA"),
+
+    tableF: document.getElementById("table-fournisseurs"),
+    tableA: document.getElementById("table-articles"),
+
+    chartF: document.getElementById("chartFournisseurs"),
+    chartA: document.getElementById("chartArticles"),
+  };
+
+  initPeriodButtons();
+
+  // Bouton "Charger"
+  el.btnLoad.addEventListener("click", () => {
+    refreshStats();
+  });
+
+  // Recherche texte
+  el.searchF.addEventListener("input", () => {
+    renderTablesAndCharts();
+  });
+  el.searchA.addEventListener("input", () => {
+    renderTablesAndCharts();
+  });
+
+  // Première charge
+  refreshStats();
+}
+
+window.addEventListener("DOMContentLoaded", init);
