@@ -1,267 +1,359 @@
-// ------------------------------------------------------------
-// STATS POISSONNERIE – Version 100% FIABLE
-// ------------------------------------------------------------
+// compta-stats.js
 import { db } from "./firebase-init.js";
 import {
-  collection, getDocs, doc, getDoc, query, where
+  collection,
+  getDocs,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const elFrom = document.getElementById("dateFrom");
-const elTo = document.getElementById("dateTo");
-const elBtnLoad = document.getElementById("btnLoad");
+/* ---------- Utils ---------- */
+const toNum = (v) => {
+  if (v == null) return 0;
+  const s = String(v).trim().replace(/\s/g, "").replace(",", ".");
+  const x = parseFloat(s);
+  return isFinite(x) ? x : 0;
+};
+const n2 = (v) => Number(v || 0).toFixed(2);
+
+function todayYMD() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** date string "YYYY-MM-DD" comparables en lexicographique */
+function inDateRange(dStr, fromStr, toStr) {
+  if (!dStr) return false;
+  if (fromStr && dStr < fromStr) return false;
+  if (toStr && dStr > toStr) return false;
+  return true;
+}
+
+/* ---------- DOM ---------- */
+const btnPeriod = document.querySelectorAll("[data-period]");
+const inputFrom = document.getElementById("dateFrom");
+const inputTo = document.getElementById("dateTo");
+const btnLoad = document.getElementById("btnLoad");
+
+const elResumeCA = document.getElementById("resume-ca");
+const elResumeAchats = document.getElementById("resume-achats");
+const elResumeMarge = document.getElementById("resume-marge");
 
 const elSearchF = document.getElementById("searchF");
 const elSearchA = document.getElementById("searchA");
-
-const elCA = document.getElementById("resume-ca");
-const elAchats = document.getElementById("resume-achats");
-const elMarge = document.getElementById("resume-marge");
-
 const tbodyF = document.getElementById("table-fournisseurs");
 const tbodyA = document.getElementById("table-articles");
 
-function toNum(v) { return Number(v || 0); }
-function n2(v) { return Number(v || 0).toFixed(2); }
+const canvasF = document.getElementById("chartFournisseurs");
+const canvasA = document.getElementById("chartArticles");
 
-// ------------------------------------------------------------
-// 1) CHARGER JOURNEES VALIDÉES DANS LA PÉRIODE
-// ------------------------------------------------------------
-async function loadJournaux(from, to) {
+let chartF = null;
+let chartA = null;
+
+// caches globaux pour re-filtrer sans recharger Firestore
+let statsFournisseurs = {}; // { code: { code, nom, achat, vente, marge } }
+let statsArticles = {};     // { plu: { plu, designation, achat, vente, marge } }
+let resumeGlobal = { ca: 0, achats: 0, marge: 0 };
+
+/* ---------- Raccourcis périodes ---------- */
+function setPeriod(type) {
+  const today = new Date();
+  let from = new Date(today);
+  let to = new Date(today);
+
+  if (type === "day") {
+    // aujourd'hui
+  } else if (type === "week") {
+    const day = (today.getDay() + 6) % 7; // lundi=0
+    from.setDate(today.getDate() - day);
+    to = new Date(from);
+    to.setDate(from.getDate() + 6);
+  } else if (type === "month") {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  } else if (type === "year") {
+    from = new Date(today.getFullYear(), 0, 1);
+    to = new Date(today.getFullYear(), 11, 31);
+  }
+
+  const fY = from.getFullYear();
+  const fM = String(from.getMonth() + 1).padStart(2, "0");
+  const fD = String(from.getDate()).padStart(2, "0");
+  const tY = to.getFullYear();
+  const tM = String(to.getMonth() + 1).padStart(2, "0");
+  const tD = String(to.getDate()).padStart(2, "0");
+
+  inputFrom.value = `${fY}-${fM}-${fD}`;
+  inputTo.value = `${tY}-${tM}-${tD}`;
+}
+
+/* ---------- Chargement Firestore ---------- */
+
+/** charge tous les journaux validés dans la plage */
+async function loadJournaux(fromStr, toStr) {
   const snap = await getDocs(collection(db, "compta_journal"));
   const jours = [];
-
-  snap.forEach(d => {
+  snap.forEach((d) => {
     const r = d.data();
     if (!r.validated) return;
-
-    const dt = new Date(r.date);
-    if (dt >= from && dt <= to) jours.push(r);
+    const dateStr = r.date || d.id;
+    if (!inDateRange(dateStr, fromStr, toStr)) return;
+    jours.push({ id: d.id, ...r });
   });
-
   return jours;
 }
 
-// ------------------------------------------------------------
-// 2) LOAD MOUVEMENTS FIFO
-// ------------------------------------------------------------
-async function loadMouvements(fromStr, toStr) {
-  const snap = await getDocs(collection(db, "stock_movements"));
-  const rows = [];
-
-  snap.forEach(d => {
-    const r = d.data();
-    if (r.type !== "consume") return;
-    if (r.date < fromStr || r.date > toStr) return;
-
-    rows.push(r);
-  });
-
-  return rows;
-}
-
-// ------------------------------------------------------------
-// 3) LOAD LOTS (pour récupérer PLU, fournisseur, prix/kg…)
-// ------------------------------------------------------------
-async function loadLotsMap() {
-  const snap = await getDocs(collection(db, "lots"));
+/** map codeFournisseur -> nom (via collection achats) */
+async function loadFournisseursNames() {
+  const snap = await getDocs(collection(db, "achats"));
   const map = {};
-
-  snap.forEach(d => {
+  snap.forEach((d) => {
     const r = d.data();
-    map[r.lotId] = r;
+    const code = r.fournisseurCode;
+    if (!code) return;
+    if (map[code]) return;
+    map[code] = r.fournisseurNom || r.designationFournisseur || code;
   });
-
   return map;
 }
 
-// ------------------------------------------------------------
-// 4) CALCULER STATISTIQUES
-// ------------------------------------------------------------
-async function refreshStats() {
-  const from = new Date(elFrom.value);
-  from.setHours(0,0,0,0);
-  const to = new Date(elTo.value);
-  to.setHours(23,59,59,999);
-
-  const fromStr = elFrom.value;
-  const toStr = elTo.value;
-
-  const jours = await loadJournaux(from, to);
-  const mouvements = await loadMouvements(fromStr, toStr);
-  const lots = await loadLotsMap();
-
-  // Résumés globaux
-  const SUM_CA = jours.reduce((s,j)=> s + toNum(j.caReel), 0);
-  const SUM_ACH = jours.reduce((s,j)=> s + toNum(j.achatsConsoHT), 0);
-  const SUM_MARGE = SUM_CA - SUM_ACH;
-
-  elCA.textContent = n2(SUM_CA)+" €";
-  elAchats.textContent = n2(SUM_ACH)+" €";
-  elMarge.textContent = n2(SUM_MARGE)+" €";
-
-  // TABLEAUX
-  const fournisseurs = {};
-  const articles = {};
-
-  // Parcours mouvements (vagues FIFO)
-  for (const m of mouvements) {
-    const lot = lots[m.lotId];
-    if (!lot) continue;
-
-    const poids = toNum(m.poids);
-    const achatHT = poids * toNum(lot.prixAchatKg);
-    const plu = lot.plu || "INCONNU";
-    const fournisseur = lot.fournisseurRef || "INCONNU";
-
-    // --------------------- FOURNISSEUR ----------------------
-    if (!fournisseurs[fournisseur]) {
-      fournisseurs[fournisseur] = { achat:0, vente:0, marge:0 };
-    }
-    fournisseurs[fournisseur].achat += achatHT;
-
-    // --------------------- ARTICLE --------------------------
-    if (!articles[plu]) {
-      articles[plu] = {
-        designation: lot.designation || "",
-        achat: 0,
-        vente: 0,
-        marge: 0
-      };
-    }
-    articles[plu].achat += achatHT;
+/** map PLU -> designation (via collection articles, si elle existe) */
+async function loadArticlesNames() {
+  try {
+    const snap = await getDocs(collection(db, "articles"));
+    const map = {};
+    snap.forEach((d) => {
+      const r = d.data();
+      const plu = r.plu || d.id;
+      if (!plu) return;
+      map[plu] = r.designation || r.nom || "";
+    });
+    return map;
+  } catch (e) {
+    // si la collection n'existe pas, on renvoie juste un objet vide
+    return {};
   }
-
-  // ----------------- RÉPARTITION CA PAR ARTICLE ---------------
-  // CA réel réparti proportionnellement au montant d’achat consommé
-  const totalAchats = Object.values(articles).reduce((s, a) => s + a.achat, 0);
-
-  for (const plu of Object.keys(articles)) {
-    const A = articles[plu];
-    const part = totalAchats > 0 ? (A.achat / totalAchats) : 0;
-    A.vente = SUM_CA * part;
-    A.marge = A.vente - A.achat;
-  }
-
-  for (const f of Object.keys(fournisseurs)) {
-    const ach = fournisseurs[f].achat;
-    const part = totalAchats > 0 ? (ach / totalAchats) : 0;
-    fournisseurs[f].vente = SUM_CA * part;
-    fournisseurs[f].marge = fournisseurs[f].vente - fournisseurs[f].achat;
-  }
-
-  renderTableFournisseurs(fournisseurs);
-  renderTableArticles(articles);
 }
 
-// ------------------------------------------------------------
-// TABLE FOURNISSEURS
-// ------------------------------------------------------------
-function renderTableFournisseurs(data) {
-  const q = elSearchF.value.trim().toLowerCase();
+/* ---------- Agrégation ---------- */
+async function computeStats(fromStr, toStr) {
+  statsFournisseurs = {};
+  statsArticles = {};
+  resumeGlobal = { ca: 0, achats: 0, marge: 0 };
 
-  const rows = Object.entries(data)
-    .filter(([name]) => !q || name.toLowerCase().includes(q))
-    .map(([name, v]) => {
-      const pct = v.vente > 0 ? (v.marge / v.vente * 100) : 0;
-      return `
-        <tr>
-          <td>${name}</td>
-          <td>${n2(v.vente)} €</td>
-          <td>${n2(v.achat)} €</td>
-          <td>${n2(v.marge)} €</td>
-          <td>${n2(pct)}%</td>
-        </tr>
-      `;
+  const [jours, fourNames, artNames] = await Promise.all([
+    loadJournaux(fromStr, toStr),
+    loadFournisseursNames(),
+    loadArticlesNames()
+  ]);
+
+  for (const j of jours) {
+    const caJour = toNum(j.caReel || 0);
+    const achatsConsoJour = toNum(j.achatsConsoHT || 0);
+
+    resumeGlobal.ca += caJour;
+    resumeGlobal.achats += achatsConsoJour;
+
+    // --------- Fournisseurs : j.achats_consommes => on répartit le CA proportionnellement ---------
+    const mapFour = j.achats_consommes || {};
+    const totalAchatsMap = Object.values(mapFour).reduce(
+      (s, v) => s + toNum(v),
+      0
+    );
+
+    for (const [code, valAchat] of Object.entries(mapFour)) {
+      const achat = toNum(valAchat);
+      if (!statsFournisseurs[code]) {
+        statsFournisseurs[code] = {
+          code,
+          nom: fourNames[code] || code,
+          achat: 0,
+          vente: 0,
+          marge: 0
+        };
+      }
+      const rec = statsFournisseurs[code];
+      rec.achat += achat;
+
+      // CA du fournisseur proportionnel à sa part d'achat consommé
+      let caPart = 0;
+      if (totalAchatsMap > 0 && caJour > 0) {
+        caPart = caJour * (achat / totalAchatsMap);
+      }
+      rec.vente += caPart;
+      rec.marge += caPart - achat;
+    }
+
+    // --------- Articles : consommation_par_article + ventes_par_article ---------
+    const mapConso = j.consommation_par_article || {};
+    const mapVentes = j.ventes_par_article || {};
+
+    const plus = new Set([
+      ...Object.keys(mapConso),
+      ...Object.keys(mapVentes)
+    ]);
+
+    plus.forEach((plu) => {
+      const achat = toNum(mapConso[plu] || 0);
+      const vente = toNum(mapVentes[plu] || 0);
+      const marge = vente - achat;
+
+      if (!statsArticles[plu]) {
+        statsArticles[plu] = {
+          plu,
+          designation: artNames[plu] || "",
+          achat: 0,
+          vente: 0,
+          marge: 0
+        };
+      }
+      const rec = statsArticles[plu];
+      rec.achat += achat;
+      rec.vente += vente;
+      rec.marge += marge;
+    });
+  }
+
+  resumeGlobal.marge = resumeGlobal.ca - resumeGlobal.achats;
+}
+
+/* ---------- Rendering ---------- */
+
+function renderResume() {
+  elResumeCA.textContent = `${n2(resumeGlobal.ca)} €`;
+  elResumeAchats.textContent = `${n2(resumeGlobal.achats)} €`;
+  elResumeMarge.textContent = `${n2(resumeGlobal.marge)} €`;
+}
+
+function renderTablesAndCharts() {
+  const qF = (elSearchF.value || "").toLowerCase();
+  const qA = (elSearchA.value || "").toLowerCase();
+
+  // ------- Fournisseurs -------
+  let arrF = Object.values(statsFournisseurs);
+  arrF.sort((a, b) => b.marge - a.marge);
+
+  if (qF) {
+    arrF = arrF.filter((f) =>
+      (f.nom || f.code).toLowerCase().includes(qF)
+    );
+  }
+
+  tbodyF.innerHTML = arrF
+    .map((f) => {
+      const mPct = f.vente > 0 ? (f.marge / f.vente) * 100 : 0;
+      return `<tr>
+        <td>${f.nom || f.code}</td>
+        <td>${n2(f.vente)} €</td>
+        <td>${n2(f.achat)} €</td>
+        <td>${n2(f.marge)} €</td>
+        <td>${n2(mPct)} %</td>
+      </tr>`;
     })
     .join("");
 
-  tbodyF.innerHTML = rows;
-}
+  // chart top 10
+  const topF = arrF.slice(0, 10);
+  if (chartF) chartF.destroy();
+  chartF = new Chart(canvasF, {
+    type: "bar",
+    data: {
+      labels: topF.map((f) => f.nom || f.code),
+      datasets: [
+        { label: "CA", data: topF.map((f) => f.vente) },
+        { label: "Achats", data: topF.map((f) => f.achat) },
+        { label: "Marge", data: topF.map((f) => f.marge) }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: "top" } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
 
-// ------------------------------------------------------------
-// TABLE ARTICLES
-// ------------------------------------------------------------
-function renderTableArticles(data) {
-  const q = elSearchA.value.trim().toLowerCase();
+  // ------- Articles -------
+  let arrA = Object.values(statsArticles);
+  arrA.sort((a, b) => b.marge - a.marge);
 
-  const rows = Object.entries(data)
-    .filter(([plu, v]) =>
-      !q ||
-      plu.includes(q) ||
-      (v.designation || "").toLowerCase().includes(q)
-    )
-    .map(([plu, v]) => {
-      const pct = v.vente > 0 ? (v.marge / v.vente * 100) : 0;
-      return `
-        <tr>
-          <td>${plu}</td>
-          <td>${v.designation}</td>
-          <td>${n2(v.vente)} €</td>
-          <td>${n2(v.achat)} €</td>
-          <td>${n2(v.marge)} €</td>
-          <td>${n2(pct)}%</td>
-        </tr>
-      `;
+  if (qA) {
+    arrA = arrA.filter((a) => {
+      const label = `${a.plu} ${a.designation || ""}`.toLowerCase();
+      return label.includes(qA);
+    });
+  }
+
+  tbodyA.innerHTML = arrA
+    .map((a) => {
+      const mPct = a.vente > 0 ? (a.marge / a.vente) * 100 : 0;
+      return `<tr>
+        <td>${a.plu}</td>
+        <td>${a.designation || ""}</td>
+        <td>${n2(a.vente)} €</td>
+        <td>${n2(a.achat)} €</td>
+        <td>${n2(a.marge)} €</td>
+        <td>${n2(mPct)} %</td>
+      </tr>`;
     })
     .join("");
 
-  tbodyA.innerHTML = rows;
+  // chart top 10
+  const topA = arrA.slice(0, 10);
+  if (chartA) chartA.destroy();
+  chartA = new Chart(canvasA, {
+    type: "bar",
+    data: {
+      labels: topA.map((a) => a.plu),
+      datasets: [
+        { label: "CA", data: topA.map((a) => a.vente) },
+        { label: "Achats", data: topA.map((a) => a.achat) },
+        { label: "Marge", data: topA.map((a) => a.marge) }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: "top" } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
 }
 
-// ------------------------------------------------------------
-// BOUTONS RAPIDES
-// ------------------------------------------------------------
-function setToday() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,"0");
-  const dd = String(d.getDate()).padStart(2,"0");
+/* ---------- Orchestration ---------- */
+async function loadAndRender() {
+  const fromStr = inputFrom.value || todayYMD();
+  const toStr = inputTo.value || fromStr;
 
-  elFrom.value = `${y}-${m}-${dd}`;
-  elTo.value = `${y}-${m}-${dd}`;
+  await computeStats(fromStr, toStr);
+  renderResume();
+  renderTablesAndCharts();
 }
 
-document.querySelectorAll("button[data-period]").forEach(btn => {
+/* ---------- Events ---------- */
+
+// boutons période
+btnPeriod.forEach((btn) => {
   btn.addEventListener("click", () => {
     const p = btn.dataset.period;
-    const today = new Date();
-
-    if (p === "day") setToday();
-
-    if (p === "week") {
-      const start = new Date(today);
-      start.setDate(start.getDate() - start.getDay() + 1);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      elFrom.value = start.toISOString().slice(0,10);
-      elTo.value = end.toISOString().slice(0,10);
-    }
-
-    if (p === "month") {
-      const y = today.getFullYear();
-      const m = today.getMonth()+1;
-      elFrom.value = `${y}-${String(m).padStart(2,"0")}-01`;
-      const end = new Date(y, m, 0);
-      elTo.value = end.toISOString().slice(0,10);
-    }
-
-    if (p === "year") {
-      const y = today.getFullYear();
-      elFrom.value = `${y}-01-01`;
-      elTo.value = `${y}-12-31`;
-    }
-
-    refreshStats();
+    setPeriod(p);
+    loadAndRender();
   });
 });
 
-// Bouton Charger
-elBtnLoad.addEventListener("click", refreshStats);
+// bouton "Charger"
+btnLoad.addEventListener("click", () => {
+  loadAndRender();
+});
 
-// Recherche live
-elSearchF.addEventListener("input", refreshStats);
-elSearchA.addEventListener("input", refreshStats);
+// recherche
+elSearchF.addEventListener("input", renderTablesAndCharts);
+elSearchA.addEventListener("input", renderTablesAndCharts);
 
-// INIT
-setToday();
-refreshStats();
+/* ---------- Init ---------- */
+(function init() {
+  const today = todayYMD();
+  inputFrom.value = today;
+  inputTo.value = today;
+  loadAndRender();
+})();
