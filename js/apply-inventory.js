@@ -1,4 +1,4 @@
-// applyInventory.js
+// applyInventory.js (modifié pour enrichir stock_movements)
 import { db } from './firebase-init.js';
 import {
   collection,
@@ -6,6 +6,7 @@ import {
   where,
   orderBy,
   getDocs,
+  getDoc,
   writeBatch,
   doc,
   serverTimestamp,
@@ -21,14 +22,38 @@ export async function applyInventory(plu, poidsReel, user) {
   let poidsTheorique = 0;
   const lots = [];
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
     poidsTheorique += data.poidsRestant || 0;
-    lots.push({ id: doc.id, ...data });
+    lots.push({ id: docSnap.id, ...data });
   });
 
   const ecart = poidsTheorique - poidsReel;
   if (ecart <= 0) return console.log(`✅ Aucune correction nécessaire pour PLU ${plu}`);
+
+  // --- Calcul PMA (moyenne pondérée sur les lots ouverts) ---
+  let totalKgForPma = 0;
+  let totalAchatForPma = 0;
+  for (const l of lots) {
+    const kg = Number(l.poidsRestant || 0);
+    const prix = Number(l.prixAchatKg || 0);
+    totalKgForPma += kg;
+    totalAchatForPma += (kg * prix);
+  }
+  const pma = totalKgForPma > 0 ? (totalAchatForPma / totalKgForPma) : (lots[0] ? Number(lots[0].prixAchatKg || 0) : 0);
+
+  // --- Lecture PV réel (pvTTCreel) depuis stock_articles (fallback) ---
+  let pvTTCreel = null;
+  try {
+    const saId = "PLU_" + String(plu);
+    const saSnap = await getDoc(doc(db, "stock_articles", saId));
+    if (saSnap.exists()) {
+      pvTTCreel = saSnap.data().pvTTCreel || saSnap.data().pvTTCconseille || null;
+    }
+  } catch (e) {
+    console.warn("Erreur lecture stock_articles pour pvTTCreel", e);
+    pvTTCreel = null;
+  }
 
   let resteADecremente = ecart;
   const batch = writeBatch(db);
@@ -48,6 +73,10 @@ export async function applyInventory(plu, poidsReel, user) {
 
     const mouvementId = `${lot.id}__inv__${Date.now()}`;
     const mouvementRef = doc(db, 'stock_movements', mouvementId);
+
+    // enrichissements: prixAchatKg depuis le lot, pma calculé, salePriceTTC depuis stock_articles (pvTTCreel)
+    const prixAchatKg = Number(lot.prixAchatKg || 0);
+
     batch.set(mouvementRef, {
       type: 'inventory',
       sens: 'sortie',
@@ -55,7 +84,12 @@ export async function applyInventory(plu, poidsReel, user) {
       lotId: lot.id,
       plu,
       user,
-      createdAt: now
+      createdAt: now,
+      prixAchatKg: prixAchatKg,
+      pma: Number(pma || 0),
+      salePriceTTC: pvTTCreel != null ? Number(pvTTCreel) : null,
+      saleId: `INV_${mouvementId}`,
+      origin: 'inventaire'
     });
 
     resteADecremente -= reduction;
