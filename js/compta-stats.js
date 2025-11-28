@@ -40,17 +40,20 @@ async function loadMouvements(from, to) {
 
   const list = [];
   const fromD = new Date(from + "T00:00:00");
-  const toD = new Date(to + "T23:59:59");
+  const toD   = new Date(to   + "T23:59:59");
 
   snap.forEach(doc => {
     const d = doc.data();
 
-    // garder uniquement les vraies ventes FIFO
+    // gardons uniquement les vraies VENTES FIFO
     if (d.sens !== "sortie") return;
     if (d.type === "inventory") return;
     if (d.type === "transformation") return;
     if (d.type === "correction") return;
     if (d.poids <= 0) return;
+
+    // ici = VENTE REELLE
+    // (type undefined → OK)
 
     let dt = null;
     if (d.createdAt?.toDate) dt = d.createdAt.toDate();
