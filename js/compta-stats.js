@@ -130,115 +130,167 @@ async function loadAchats() {
    CALCUL STATISTIQUES (fournisseurs + articles)
 -------------------------------------------------------------------*/
 async function calculStats(from, to) {
-  console.log("🚀 DÉBUT CALCUL STATS", from, to);
+  console.log("🚀 DÉBUT CALCUL STATS (précis par article/fournisseur)", from, to);
 
-  const [ca, ventesObj, mouvements, lots, achats] = await Promise.all([
+  // charger tout
+  const [
+    ca,
+    ventesObj,   // { totalVentes, ventesEAN }
+    mouvements,  // list des mouvements "vente-like"
+    lots,
+    achats,
+    articlesSnap,
+    stockArticlesSnap
+  ] = await Promise.all([
     loadCA(from, to),
-    loadVentesReelles(from, to),
+    loadVentesReelles(from, to),   // retourne { totalVentes, ventesEAN }
     loadMouvements(from, to),
     loadLots(),
-    loadAchats()
+    loadAchats(),
+    getDocs(collection(db, "articles")),
+    getDocs(collection(db, "stock_articles"))
   ]);
 
-  const ventesTotal = ventesObj.totalVentes || 0;
   const ventesEAN = ventesObj.ventesEAN || {};
+  const ventesTotal = ventesObj.totalVentes || 0;
 
-  // achats consommés calculés depuis mouvements retenus (sorties)
-  let achatsConso = 0;
-  const statsFournisseurs = {}; // fournisseurNom -> { achats, ca, marge, margePct }
-  const statsArticles = {};     // plu -> { designation, achats, ca, marge, margePct }
+  // maps utiles
+  const eanToPlu = {};
+  articlesSnap.forEach(d => {
+    const A = d.data();
+    if (A.ean) eanToPlu[String(A.ean)] = d.id; // id = PLU
+  });
 
+  // stock_articles map : document id -> data (ids sont PLU_xxxx)
+  const stockArticles = {};
+  stockArticlesSnap.forEach(d => stockArticles[d.id] = d.data());
+
+  // 1) Aggrégation mouvements -> per PLU / par movement
+  const perPlu = {}; // plu -> { kgSold, cost }
+  const movementsData = []; // store m + computed fields
   for (const m of mouvements) {
     const lot = lots[m.lotId];
     if (!lot) continue;
-    // ne pas compter si mouvement de transformation (déjà exclu), mais garder traçabilité
+    const plu = lot.plu || lot.PLU || "UNKNOWN";
     const prixKg = Number(lot.prixAchatKg || 0);
-    const po = Number(m.poids || 0);
-    const achatHT = prixKg * po;
-    achatsConso += achatHT;
+    const poids = Number(m.poids || 0);
+    const cost = prixKg * poids;
+
+    if (!perPlu[plu]) perPlu[plu] = { kgSold: 0, cost: 0, movements: [] , designation: lot.designation || "" };
+    perPlu[plu].kgSold += poids;
+    perPlu[plu].cost += cost;
 
     const achat = achats[lot.achatId] || {};
     const fournisseur = achat.fournisseurNom || achat.fournisseur || "INCONNU";
-    const plu = lot.plu || lot.PLU || "UNKNOWN";
-    const designation = lot.designation || "";
 
-    if (!statsFournisseurs[fournisseur]) statsFournisseurs[fournisseur] = { achats:0, ca:0, marge:0, margePct:0 };
-    statsFournisseurs[fournisseur].achats += achatHT;
-
-    if (!statsArticles[plu]) statsArticles[plu] = { designation, achats:0, ca:0, marge:0, margePct:0 };
-    statsArticles[plu].achats += achatHT;
+    const md = { m, lot, plu, poids, cost, fournisseur };
+    perPlu[plu].movements.push(md);
+    movementsData.push(md);
   }
 
-  // Allocation du CA :
-  // si on a un détail ventes par EAN, on essaye de mapper EAN -> PLU via /articles (coûteux mais précis).
-  // Sinon on répartit proportionnellement aux achats consommés.
-  if (achatsConso > 0) {
-    // si detail ventes par EAN existe, essayer d'utiliser
-    const eans = Object.keys(ventesEAN);
-    if (eans.length > 0) {
-      // build article map ean -> plu (lecture articles collection)
-      const artSnap = await getDocs(collection(db, "articles"));
-      const eanToPlu = {};
-      artSnap.forEach(d => {
-        const A = d.data();
-        if (A.ean) eanToPlu[String(A.ean)] = d.id; // d.id is usually PLU
-      });
-
-      // distribute ventesEAN to PLU when possible
-      let allocatedCA = 0;
-      for (const e of eans) {
-        const caE = toNum(ventesEAN[e]);
-        const mappedPlu = eanToPlu[e];
-        if (mappedPlu) {
-          if (!statsArticles[mappedPlu]) statsArticles[mappedPlu] = { designation:"", achats:0, ca:0, marge:0, margePct:0 };
-          statsArticles[mappedPlu].ca = (statsArticles[mappedPlu].ca || 0) + caE;
-        }
-        allocatedCA += caE;
+  // 2) Calcul CA par PLU
+  const caParPlu = {}; // plu -> ca
+  // si ventesEAN existantes -> utiliser (map ean->plu)
+  const eanKeys = Object.keys(ventesEAN);
+  if (eanKeys.length > 0) {
+    for (const e of eanKeys) {
+      const plu = eanToPlu[e];
+      const caE = toNum(ventesEAN[e]);
+      if (plu) {
+        caParPlu[plu] = (caParPlu[plu] || 0) + caE;
+      } else {
+        console.warn("EAN sans mapping PLU :", e, "CA:", caE);
       }
+    }
+  }
 
-      // Si ventesEAN total < CA compta_journal, complétion proportionnelle
-      const remainingCA = ca - allocatedCA;
-      if (remainingCA > 0) {
-        // répartir proportionnellement aux achats consommés
-        for (const p in statsArticles) {
-          const ach = statsArticles[p].achats || 0;
-          const add = remainingCA * (ach / achatsConso);
-          statsArticles[p].ca = (statsArticles[p].ca || 0) + add;
-        }
+  // pour les PLU sans CA (ou si pas de ventesEAN), fallback via pvTTCreel * kgSold
+  for (const plu in perPlu) {
+    if (!caParPlu[plu]) {
+      // chercher pvTTCreel dans stock_articles : document id = "PLU_"+plu (ou parfois id plutot que prefix)
+      const id1 = "PLU_" + String(plu);
+      const sa = stockArticles[id1] || stockArticles[plu] || {};
+      let pv = toNum(sa.pvTTCreel || sa.pvTTCconseille || sa.pvTTC || 0);
+      // pv est TTC dans l'app (pvTTCreel), si besoin convertir HT -> ici on garde TTC pour cohérence du CA compta_journal
+      if (!pv) {
+        console.warn("pvTTCreel manquant pour PLU", plu, "-> CA estimée 0");
+        pv = 0;
+      }
+      caParPlu[plu] = pv * perPlu[plu].kgSold; // CA approximé
+    }
+  }
+
+  // 3) Allouer CA aux mouvements (par coût)
+  const perSupplier = {}; // fournisseur -> { cost, revenue }
+  for (const plu in perPlu) {
+    const bucket = perPlu[plu];
+    const totalCost = bucket.cost;
+    const totalKg = bucket.kgSold;
+    const caPlu = toNum(caParPlu[plu] || 0);
+
+    if (totalCost > 0) {
+      // allocation proportionnelle au coût
+      for (const md of bucket.movements) {
+        const rev = caPlu * (md.cost / totalCost);
+        md.revenue = rev;
+        // supplier aggregation
+        if (!perSupplier[md.fournisseur]) perSupplier[md.fournisseur] = { cost:0, revenue:0 };
+        perSupplier[md.fournisseur].cost += md.cost;
+        perSupplier[md.fournisseur].revenue += rev;
+      }
+    } else if (totalKg > 0) {
+      // si cost=0, répartir par kilos
+      for (const md of bucket.movements) {
+        const rev = caPlu * (md.poids / totalKg);
+        md.revenue = rev;
+        if (!perSupplier[md.fournisseur]) perSupplier[md.fournisseur] = { cost:0, revenue:0 };
+        perSupplier[md.fournisseur].cost += md.cost;
+        perSupplier[md.fournisseur].revenue += rev;
       }
     } else {
-      // pas de détail ventes, répartition proportionnelle
-      for (const f in statsFournisseurs) {
-        const ach = statsFournisseurs[f].achats;
-        const caAlloc = ca * (ach / achatsConso);
-        statsFournisseurs[f].ca = caAlloc;
-        statsFournisseurs[f].marge = caAlloc - ach;
-        statsFournisseurs[f].margePct = caAlloc > 0 ? (statsFournisseurs[f].marge / caAlloc * 100) : 0;
+      // rien à allouer
+      for (const md of bucket.movements) {
+        md.revenue = 0;
+        if (!perSupplier[md.fournisseur]) perSupplier[md.fournisseur] = { cost:0, revenue:0 };
+        perSupplier[md.fournisseur].cost += md.cost;
       }
-      for (const p in statsArticles) {
-        const ach = statsArticles[p].achats;
-        const caAlloc = ca * (ach / achatsConso);
-        statsArticles[p].ca = caAlloc;
-        statsArticles[p].marge = caAlloc - ach;
-        statsArticles[p].margePct = caAlloc > 0 ? (statsArticles[p].marge / caAlloc * 100) : 0;
-      }
-    }
-  } else {
-    // aucun achat consommé -> tout à zéro (ou marge négative si achats existent mais pas consommés)
-    for (const f in statsFournisseurs) {
-      statsFournisseurs[f].ca = 0;
-      statsFournisseurs[f].marge = -statsFournisseurs[f].achats;
-      statsFournisseurs[f].margePct = 0;
-    }
-    for (const p in statsArticles) {
-      statsArticles[p].ca = 0;
-      statsArticles[p].marge = -statsArticles[p].achats;
-      statsArticles[p].margePct = 0;
     }
   }
 
-  // Calcul marge globale
+  // 4) Calculs finaux par PLU & fournisseur
+  const statsArticles = {};
+  for (const plu in perPlu) {
+    const bucket = perPlu[plu];
+    const caP = toNum(caParPlu[plu] || 0);
+    const costP = toNum(bucket.cost || 0);
+    const marge = caP - costP;
+    const margePct = caP > 0 ? (marge / caP * 100) : 0;
+    statsArticles[plu] = {
+      designation: bucket.designation || "",
+      kgSold: bucket.kgSold,
+      cost: costP,
+      ca: caP,
+      marge,
+      margePct
+    };
+  }
+
+  const statsFournisseurs = {};
+  for (const f in perSupplier) {
+    const s = perSupplier[f];
+    const m = toNum(s.revenue) - toNum(s.cost);
+    statsFournisseurs[f] = {
+      achats: toNum(s.cost),
+      ca: toNum(s.revenue),
+      marge: m,
+      margePct: toNum(s.revenue) > 0 ? (m / toNum(s.revenue) * 100) : 0
+    };
+  }
+
+  // Totaux
+  const achatsConso = Object.values(perPlu).reduce((s,b)=>s + toNum(b.cost), 0);
   const margeTotale = ca - achatsConso;
+
   const final = {
     ca,
     ventesTotal,
@@ -247,9 +299,11 @@ async function calculStats(from, to) {
     fournisseurs: statsFournisseurs,
     articles: statsArticles
   };
-  console.log("📊 STATS FINALES :", final);
+
+  console.log("📊 STATS PRECIS :", final);
   return final;
 }
+
 
 /* ------------------------------------------------------------------
    RENDU HTML (mêmes fonctions que précédemment)
