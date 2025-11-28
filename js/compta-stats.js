@@ -1,4 +1,5 @@
-// js/compta-stats.js (adapté : achats=lots, ventes réelles + compta_journal, transformation exclue)
+// js/compta-stats.js (VERSION COMPLÈTE)
+// Stats précises : CA réel par article (ventes_reelles/compta_journal) + coût réel depuis lots consommés
 import { db } from "./firebase-init.js";
 import {
   collection, getDocs, query, where, orderBy, doc, getDoc
@@ -12,7 +13,7 @@ const d2 = d => d.toISOString().split("T")[0];
 function toNum(v){ const n = Number(v||0); return isFinite(n)? n: 0; }
 
 /* ------------------------------------------------------------------
-   LOAD CA RÉEL (compta_journal)
+   1) LOAD CA RÉEL (compta_journal)
 -------------------------------------------------------------------*/
 async function loadCA(from, to) {
   const col = collection(db, "compta_journal");
@@ -28,35 +29,36 @@ async function loadCA(from, to) {
 }
 
 /* ------------------------------------------------------------------
-   LOAD ventes_reelles (optionnel, détail par jour)
-   --> On tente de récupérer CA détaillé par EAN/PLU si présent
+   2) LOAD ventes_reelles (détail par jour)
+   - retourne { totalVentes, ventesEAN }
 -------------------------------------------------------------------*/
 async function loadVentesReelles(from, to) {
-  // parcourt chaque jour entre from/to et lit ventes_reelles/{YYYY-MM-DD}
   const start = new Date(from + "T00:00:00");
   const end = new Date(to + "T23:59:59");
   const oneDay = 24*3600*1000;
 
   let totalVentes = 0;
-  const ventesEAN = {}; // ean -> caTTC or caHT depending on doc shape
+  const ventesEAN = {}; // ean -> ca (TTC ou valeur utilisée)
+
   for(let t = start.getTime(); t <= end.getTime(); t += oneDay){
     const dateStr = new Date(t).toISOString().slice(0,10);
-    const snap = await getDoc(doc(db, "ventes_reelles", dateStr));
-    if(!snap.exists()) continue;
-    const o = snap.data();
-    // Prefer field caHT if present, else try a mapping "ventes" or "ventesEAN"
-    if(o.caHT) {
-      totalVentes += toNum(o.caHT);
-    } else if(o.ventes && typeof o.ventes === "object") {
-      // ventes: { ean: ca }
-      for(const e in o.ventes){ ventesEAN[e] = (ventesEAN[e]||0) + toNum(o.ventes[e]); totalVentes += toNum(o.ventes[e]); }
-    } else if(o.ventesEAN && typeof o.ventesEAN === "object"){
-      for(const e in o.ventesEAN){ ventesEAN[e] = (ventesEAN[e]||0) + toNum(o.ventesEAN[e]); totalVentes += toNum(o.ventesEAN[e]); }
-    } else if(o.totalCA) {
-      totalVentes += toNum(o.totalCA);
-    } else {
-      // fallback: maybe field caTTC
-      if(o.caTTC) totalVentes += toNum(o.caTTC);
+    try {
+      const snap = await getDoc(doc(db, "ventes_reelles", dateStr));
+      if(!snap.exists()) continue;
+      const o = snap.data();
+      if(o.caHT) {
+        totalVentes += toNum(o.caHT);
+      } else if(o.ventes && typeof o.ventes === "object") {
+        for(const e in o.ventes){ ventesEAN[e] = (ventesEAN[e]||0) + toNum(o.ventes[e]); totalVentes += toNum(o.ventes[e]); }
+      } else if(o.ventesEAN && typeof o.ventesEAN === "object"){
+        for(const e in o.ventesEAN){ ventesEAN[e] = (ventesEAN[e]||0) + toNum(o.ventesEAN[e]); totalVentes += toNum(o.ventesEAN[e]); }
+      } else if(o.totalCA) {
+        totalVentes += toNum(o.totalCA);
+      } else if(o.caTTC) {
+        totalVentes += toNum(o.caTTC);
+      }
+    } catch(e){
+      console.warn("Erreur loadVentesReelles pour", dateStr, e);
     }
   }
   console.log("📈 ventes_reelles total:", totalVentes, "EAN entries:", Object.keys(ventesEAN).length);
@@ -64,22 +66,24 @@ async function loadVentesReelles(from, to) {
 }
 
 /* ------------------------------------------------------------------
-   LOAD MOUVEMENTS (stock_movements)
-   - on considère consommations = sorties EXCLUANT transformations & corrections
-   - on INCLUT inventory si les ventes sont générées via inventaire (cas de ton projet)
+   3) LOAD MOUVEMENTS (stock_movements) : sorties utiles
+   - Exclut transformations & corrections (internes)
+   - Inclut inventory si tu génères les ventes via inventaire
 -------------------------------------------------------------------*/
 async function loadMouvements(from, to) {
-  console.log("📥 Load MOVEMENTS from stock_movements (filtered for sales)...");
+  console.log("📥 Load MOVEMENTS from stock_movements (filtered for sales-like)...");
 
   const start = new Date(from + "T00:00:00");
   const end   = new Date(to   + "T23:59:59");
 
-  // requête par createdAt
   const col = collection(db, "stock_movements");
-  const q = query(col,
-    where("createdAt", ">=", start),
-    where("createdAt", "<=", end)
-  );
+  let q;
+  try {
+    q = query(col, where("createdAt", ">=", start), where("createdAt", "<=", end));
+  } catch(e) {
+    // si createdAt non indexable, on récupère tout (fallback)
+    q = collection(db, "stock_movements");
+  }
 
   const snap = await getDocs(q);
   const list = [];
@@ -91,10 +95,7 @@ async function loadMouvements(from, to) {
     if (sens !== "sortie") return;
     // Exclure transformations (internes) et corrections
     if (type === "transformation" || type === "correction") return;
-    // Exclure inventory only if you really want to ignore inventory corrections.
-    // But since in your projet les ventes sont *générées via inventaire*, on accepte inventory as sale-like.
-    // If you want to exclude inventory, comment the next two lines.
-    // if (type === "inventory") return;
+    // NOTE: on inclut "inventory" car tu as indiqué que les ventes peuvent être générées via inventaire.
     if (!m.poids || Number(m.poids) <= 0) return;
     list.push(m);
     const key = `${sens}|${type||"undefined"}`;
@@ -106,7 +107,7 @@ async function loadMouvements(from, to) {
 }
 
 /* ------------------------------------------------------------------
-   LOAD LOTS & ACHATS helpers
+   4) LOAD LOTS & ACHATS
 -------------------------------------------------------------------*/
 async function loadLots() {
   const col = collection(db, "lots");
@@ -127,23 +128,26 @@ async function loadAchats() {
 }
 
 /* ------------------------------------------------------------------
-   CALCUL STATISTIQUES (fournisseurs + articles)
+   5) CALCUL STATISTIQUES (PRÉCIS)
+   - coût = somme poids * prixAchatKg par lot consommé
+   - CA par PLU : prioritaire ventes_reelles (EAN -> PLU), sinon pvTTCreel * kgSold
+   - allocation CA aux mouvements selon coût, puis agrégation fournisseur
 -------------------------------------------------------------------*/
 async function calculStats(from, to) {
   console.log("🚀 DÉBUT CALCUL STATS (précis par article/fournisseur)", from, to);
 
-  // charger tout
+  // charger data nécessaires (articles & stock_articles inclus)
   const [
     ca,
-    ventesObj,   // { totalVentes, ventesEAN }
-    mouvements,  // list des mouvements "vente-like"
+    ventesObj,
+    mouvements,
     lots,
     achats,
     articlesSnap,
     stockArticlesSnap
   ] = await Promise.all([
     loadCA(from, to),
-    loadVentesReelles(from, to),   // retourne { totalVentes, ventesEAN }
+    loadVentesReelles(from, to),
     loadMouvements(from, to),
     loadLots(),
     loadAchats(),
@@ -154,20 +158,19 @@ async function calculStats(from, to) {
   const ventesEAN = ventesObj.ventesEAN || {};
   const ventesTotal = ventesObj.totalVentes || 0;
 
-  // maps utiles
+  // map EAN -> PLU
   const eanToPlu = {};
   articlesSnap.forEach(d => {
     const A = d.data();
-    if (A.ean) eanToPlu[String(A.ean)] = d.id; // id = PLU
+    if (A.ean) eanToPlu[String(A.ean)] = d.id; // d.id est généralement le PLU
   });
 
-  // stock_articles map : document id -> data (ids sont PLU_xxxx)
+  // stock_articles map
   const stockArticles = {};
   stockArticlesSnap.forEach(d => stockArticles[d.id] = d.data());
 
-  // 1) Aggrégation mouvements -> per PLU / par movement
-  const perPlu = {}; // plu -> { kgSold, cost }
-  const movementsData = []; // store m + computed fields
+  // 1) Agrégation mouvements -> per PLU
+  const perPlu = {}; // plu -> { kgSold, cost, movements:[], designation }
   for (const m of mouvements) {
     const lot = lots[m.lotId];
     if (!lot) continue;
@@ -176,7 +179,7 @@ async function calculStats(from, to) {
     const poids = Number(m.poids || 0);
     const cost = prixKg * poids;
 
-    if (!perPlu[plu]) perPlu[plu] = { kgSold: 0, cost: 0, movements: [] , designation: lot.designation || "" };
+    if (!perPlu[plu]) perPlu[plu] = { kgSold: 0, cost: 0, movements: [], designation: lot.designation || "" };
     perPlu[plu].kgSold += poids;
     perPlu[plu].cost += cost;
 
@@ -185,12 +188,10 @@ async function calculStats(from, to) {
 
     const md = { m, lot, plu, poids, cost, fournisseur };
     perPlu[plu].movements.push(md);
-    movementsData.push(md);
   }
 
-  // 2) Calcul CA par PLU
+  // 2) CA par PLU
   const caParPlu = {}; // plu -> ca
-  // si ventesEAN existantes -> utiliser (map ean->plu)
   const eanKeys = Object.keys(ventesEAN);
   if (eanKeys.length > 0) {
     for (const e of eanKeys) {
@@ -199,24 +200,24 @@ async function calculStats(from, to) {
       if (plu) {
         caParPlu[plu] = (caParPlu[plu] || 0) + caE;
       } else {
+        // EAN sans mapping PLU: on logue (manuel possible)
         console.warn("EAN sans mapping PLU :", e, "CA:", caE);
       }
     }
   }
 
-  // pour les PLU sans CA (ou si pas de ventesEAN), fallback via pvTTCreel * kgSold
+  // fallback : pvTTCreel * kgSold
   for (const plu in perPlu) {
     if (!caParPlu[plu]) {
-      // chercher pvTTCreel dans stock_articles : document id = "PLU_"+plu (ou parfois id plutot que prefix)
       const id1 = "PLU_" + String(plu);
       const sa = stockArticles[id1] || stockArticles[plu] || {};
       let pv = toNum(sa.pvTTCreel || sa.pvTTCconseille || sa.pvTTC || 0);
-      // pv est TTC dans l'app (pvTTCreel), si besoin convertir HT -> ici on garde TTC pour cohérence du CA compta_journal
       if (!pv) {
-        console.warn("pvTTCreel manquant pour PLU", plu, "-> CA estimée 0");
+        // try recommended pv from perPlu or set 0
+        console.warn("pvTTCreel manquant pour PLU", plu, "-> CA estimée 0 (si tu veux autre fallback, dis-moi)");
         pv = 0;
       }
-      caParPlu[plu] = pv * perPlu[plu].kgSold; // CA approximé
+      caParPlu[plu] = pv * perPlu[plu].kgSold;
     }
   }
 
@@ -229,17 +230,14 @@ async function calculStats(from, to) {
     const caPlu = toNum(caParPlu[plu] || 0);
 
     if (totalCost > 0) {
-      // allocation proportionnelle au coût
       for (const md of bucket.movements) {
         const rev = caPlu * (md.cost / totalCost);
         md.revenue = rev;
-        // supplier aggregation
         if (!perSupplier[md.fournisseur]) perSupplier[md.fournisseur] = { cost:0, revenue:0 };
         perSupplier[md.fournisseur].cost += md.cost;
         perSupplier[md.fournisseur].revenue += rev;
       }
     } else if (totalKg > 0) {
-      // si cost=0, répartir par kilos
       for (const md of bucket.movements) {
         const rev = caPlu * (md.poids / totalKg);
         md.revenue = rev;
@@ -248,7 +246,6 @@ async function calculStats(from, to) {
         perSupplier[md.fournisseur].revenue += rev;
       }
     } else {
-      // rien à allouer
       for (const md of bucket.movements) {
         md.revenue = 0;
         if (!perSupplier[md.fournisseur]) perSupplier[md.fournisseur] = { cost:0, revenue:0 };
@@ -257,7 +254,7 @@ async function calculStats(from, to) {
     }
   }
 
-  // 4) Calculs finaux par PLU & fournisseur
+  // 4) Calculs finaux
   const statsArticles = {};
   for (const plu in perPlu) {
     const bucket = perPlu[plu];
@@ -287,7 +284,6 @@ async function calculStats(from, to) {
     };
   }
 
-  // Totaux
   const achatsConso = Object.values(perPlu).reduce((s,b)=>s + toNum(b.cost), 0);
   const margeTotale = ca - achatsConso;
 
@@ -304,9 +300,8 @@ async function calculStats(from, to) {
   return final;
 }
 
-
 /* ------------------------------------------------------------------
-   RENDU HTML (mêmes fonctions que précédemment)
+   RENDU HTML
 -------------------------------------------------------------------*/
 function renderStats(stats) {
   document.querySelector("#resume-ca").textContent = fmt(stats.ca);
@@ -338,14 +333,14 @@ function renderStats(stats) {
         <td>${plu}</td>
         <td>${a.designation || ""}</td>
         <td>${fmt(a.ca)}</td>
-        <td>${fmt(a.achats)}</td>
+        <td>${fmt(a.cost)}</td>
         <td>${fmt(a.marge)}</td>
         <td>${pct}%</td>
       </tr>`;
   });
 }
 
-/* Charts (Chart.js) */
+/* Charts */
 function renderChartFournisseurs(fournisseurs) {
   const ctx = document.getElementById('chartFournisseurs').getContext('2d');
   const labels = Object.keys(fournisseurs);
@@ -369,13 +364,18 @@ document.querySelector("#btnLoad").addEventListener("click", async () => {
   const to = document.querySelector("#dateTo").value;
   if (!from || !to) { alert("Choisis une période valide (Du / Au)."); return; }
   document.querySelector("#resume-ca").textContent = "Calcul en cours…";
-  const stats = await calculStats(from, to);
-  renderStats(stats);
-  renderChartFournisseurs(stats.fournisseurs);
-  renderChartArticles(stats.articles);
+  try {
+    const stats = await calculStats(from, to);
+    renderStats(stats);
+    renderChartFournisseurs(stats.fournisseurs);
+    renderChartArticles(stats.articles);
+  } catch (e) {
+    console.error("Erreur calculStats:", e);
+    alert("Erreur lors du calcul des stats (voir console).");
+  }
 });
 
-/* Raccourcis */
+/* Raccourcis (jour/semaine/mois/année) */
 document.querySelectorAll("[data-period]").forEach(btn => {
   btn.addEventListener("click", () => {
     const p = btn.dataset.period; const now = new Date();
