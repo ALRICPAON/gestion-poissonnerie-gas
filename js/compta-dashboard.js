@@ -394,6 +394,19 @@ function computeAggregationsFromMovements(moves){
   return { totalCA, totalCost, achats_consommes, consommation_par_article, ventes_par_article };
 }
 
+/* ---------------- helper: valeur stock courante (lots) ---------------- */
+async function computeCurrentStockValueFromLots(){
+  const snap = await getDocs(collection(db, "lots"));
+  let total = 0;
+  snap.forEach(d => {
+    const l = d.data();
+    const kg = toNum(l.poidsRestant || l.poids || 0);
+    const prix = toNum(l.prixAchatKg || 0);
+    total += kg * prix;
+  });
+  return total;
+}
+
 /* ---------------- Z et journaux ---------------- */
 async function loadZForDate(dateStr){
   const snap = await getDoc(doc(db,"ventes_reelles",dateStr));
@@ -430,8 +443,8 @@ async function calculateLiveDay(dateStr){
   const end = new Date(d); end.setHours(23,59,59,999);
 
   const invs = await loadInventaires();
-  const { stockDebut, stockFin } = pickStocks(invs, start, end);
-  const varStock = stockDebut - stockFin;
+  let { stockDebut, stockFin } = pickStocks(invs, start, end);
+  let varStock = stockDebut - stockFin;
 
   const achatsPeriodeHT = await loadAchatsAndFactures(start, end);
   const caTheo = loadCaTheorique(start, end);
@@ -448,11 +461,25 @@ async function calculateLiveDay(dateStr){
   // achats consommés = somme des coûts des sorties (fallback achatsPeriodeHT + varStock)
   const achatsConsoHT = (aggs.totalCost && aggs.totalCost > 0) ? aggs.totalCost : (achatsPeriodeHT + varStock);
 
+  // Si les journaux d'inventaire ne donnent rien de différent mais il y a des mouvements,
+  // on estime stockFin depuis les lots courants et on calcule stockDebut par la formule :
+  // stockDebut = stockFin - achatsPeriodeHT + achatsConsoHT
+  if ((toNum(stockDebut) === 0 && toNum(stockFin) === 0) || (toNum(stockDebut) === toNum(stockFin) && moves.length>0)) {
+    const currentStockVal = await computeCurrentStockValueFromLots();
+    stockFin = currentStockVal;
+    stockDebut = stockFin - achatsPeriodeHT + achatsConsoHT;
+    varStock = stockDebut - stockFin;
+  } else {
+    varStock = stockDebut - stockFin;
+  }
+
   // ventes par article : on préfère les valeurs saisies dans ventes_reelles si présentes
   const ventes_par_article = { ...aggs.ventes_par_article };
   Object.keys(ventesArticlesFromZ).forEach(plu => {
     ventes_par_article[plu] = toNum(ventesArticlesFromZ[plu]);
   });
+
+  const venteTheoriqueHT = toNum(aggs.totalCA || 0);
 
   const marge = caReel - achatsConsoHT;
   const margePct = caReel>0 ? (marge/caReel*100) : 0;
@@ -462,6 +489,7 @@ async function calculateLiveDay(dateStr){
     stockDebut, stockFin, varStock,
     achatsPeriodeHT, achatsConsoHT,
     caTheo, caReel,
+    venteTheoriqueHT,             // <-- ajout : vente théorique calculée depuis mouvements
     marge, margePct,
     noteZ: note,
 
@@ -474,6 +502,25 @@ async function calculateLiveDay(dateStr){
 
 /* ---------------- UI helpers ---------------- */
 
+function ensureVenteTheoriqueRow(){
+  try {
+    if(document.getElementById("venteTheorique")) return;
+    const caTheoCell = document.getElementById("caTheo");
+    const tbody = caTheoCell ? caTheoCell.closest("tbody") : document.querySelector("table tbody");
+    if(!tbody) return;
+
+    const row = document.createElement("tr");
+    row.id = "venteTheoriqueRow";
+    row.innerHTML = `<th>Vente théorique HT</th><td id="venteTheorique">0.00 €</td>`;
+    // insérer avant la ligne CA théorique si possible
+    const caTheoRow = caTheoCell ? caTheoCell.closest("tr") : null;
+    if(caTheoRow) caTheoRow.parentNode.insertBefore(row, caTheoRow);
+    else tbody.appendChild(row);
+  } catch(e) {
+    console.warn("Erreur ensureVenteTheoriqueRow:", e);
+  }
+}
+
 function setDayInputsDisabled(disabled){
   el.zCaHT.disabled = disabled;
   el.zNote.disabled = disabled;
@@ -482,6 +529,8 @@ function setDayInputsDisabled(disabled){
 }
 
 function afficherDonnees(d){
+  ensureVenteTheoriqueRow();
+
   el.sumCaReel.textContent = n2(d.caReel||0);
   el.sumAchatsConso.textContent = n2(d.achatsConsoHT||0);
   el.sumVarStock.textContent = n2(d.varStock||0);
@@ -494,6 +543,10 @@ function afficherDonnees(d){
   el.tdAchatsConso.textContent = `${n2(d.achatsConsoHT||0)} €`;
   el.tdCaTheo.textContent = `${n2(d.caTheo||0)} €`;
   el.tdCaReel.textContent = `${n2(d.caReel||0)} €`;
+
+  // vente théorique HT (depuis mouvements)
+  const venteTheoCell = document.getElementById("venteTheorique");
+  if(venteTheoCell) venteTheoCell.textContent = `${n2(d.venteTheoriqueHT||0)} €`;
 }
 
 /* ---------------- Save Z (jour) ---------------- */
@@ -737,3 +790,4 @@ el.btnUnvalidateJournee.addEventListener("click", unvalidateJournee);
 /* ---------------- Init ---------------- */
 renderInputs();
 auth.onAuthStateChanged(()=> refreshDashboard());
+
