@@ -52,6 +52,47 @@ window.currentInventorySessionId = null; // exposé pour debugging
 
 function n2(v) { return Number(v || 0).toFixed(2); }
 
+/* ---------- Helpers EAN / CA robustes ---------- */
+// Normalise un ean stocké (supprime non-chiffres, pad 13)
+function normalizeEan(eanRaw) {
+  if (eanRaw == null) return null;
+  const s = String(eanRaw).trim().replace(/\D/g, "");
+  if (!s) return null;
+  return s.length === 13 ? s : s.padStart(13, "0");
+}
+
+// retourne un caTTC depuis ventesEANNet en essayant plusieurs variantes
+function getCaForEan(artEanRaw, ventesEANNet) {
+  if (!ventesEANNet || Object.keys(ventesEANNet).length === 0) return 0;
+  if (!artEanRaw) return 0;
+
+  const normalized = normalizeEan(artEanRaw);
+  // 1) exact match normalized (13 digits)
+  if (normalized && ventesEANNet[normalized] != null) return Number(ventesEANNet[normalized] || 0);
+
+  // 2) exact match using raw string (in case ventes keys have different padding)
+  const rawStr = String(artEanRaw).trim();
+  if (ventesEANNet[rawStr] != null) return Number(ventesEANNet[rawStr] || 0);
+
+  // 3) try match by suffix (some imports may have lost leading zeroes): find a ventes key that endsWith raw digits
+  const keys = Object.keys(ventesEANNet);
+  for (const k of keys) {
+    if (!k) continue;
+    // compare last minLen digits
+    const minLen = Math.min(k.length, rawStr.length);
+    if (minLen > 3 && k.slice(-minLen) === rawStr.slice(-minLen)) {
+      return Number(ventesEANNet[k] || 0);
+    }
+    // also try normalized suffix
+    if (normalized && k.endsWith(normalized.slice(-minLen))) {
+      return Number(ventesEANNet[k] || 0);
+    }
+  }
+
+  // nothing found
+  return 0;
+}
+
 /* ---------- Expand plateaux from CA (copié / inchangé) ---------- */
 async function expandPlateauxFromCA(ventesEAN) {
   const user = auth.currentUser;
@@ -368,7 +409,16 @@ async function chargerInventaire() {
     return;
   }
 
-  const ventesRaw = JSON.parse(localStorage.getItem("inventaireCA") || "{}");
+  // Lire CA stocké (date-aware)
+  const dateKey = "inventaireCA_" + dateInv;
+  let ventesRaw = {};
+  try {
+    ventesRaw = JSON.parse(localStorage.getItem(dateKey) || localStorage.getItem("inventaireCA") || "{}");
+  } catch (e) {
+    console.warn("Erreur parse inventaireCA localStorage", e);
+    ventesRaw = {};
+  }
+
   const { ventesEANNet, extraPoidsByPlu } = await expandPlateauxFromCA(ventesRaw);
 
   tbody.innerHTML = "<tr><td colspan='9'>⏳ Chargement…</td></tr>";
@@ -398,9 +448,11 @@ async function chargerInventaire() {
     const stockTheo = regroup[plu].stockTheo;
     const designation = regroup[plu].designation;
     const artSnap = await getDoc(doc(db, "articles", plu));
-    const ean = artSnap.exists() ? artSnap.data().ean : null;
+    const artEanRaw = artSnap.exists() ? (artSnap.data().ean || artSnap.data().EAN || null) : null;
 
-    const caTTC = ean && ventesEANNet[ean] ? ventesEANNet[ean] : 0;
+    // UTILISER getCaForEan pour tolérer formats différents
+    const caTTC = artEanRaw ? getCaForEan(artEanRaw, ventesEANNet) : 0;
+
     const prixKg = prixVente[plu] || 0;
     let poidsVendu = prixKg > 0 ? caTTC / prixKg : 0;
     const extraPoids = extraPoidsByPlu[plu] || 0;
@@ -428,10 +480,63 @@ async function chargerInventaire() {
   const sessionId = session.id;
   let sessionData = session.data;
 
-  // if no lines, set them from rowsForSession (newly created session)
-  if (!Array.isArray(sessionData.lines) || sessionData.lines.length === 0) {
+  // --- NOUVEAU : si la session existe déjà et contient des lines,
+  // on met à jour/merge ces lines avec les valeurs recalculées depuis rowsForSession
+  // (cela permet à l'import CA récent de mettre à jour poidsVendu / ecart)
+  const rowsMap = {};
+  for (const r of rowsForSession) rowsMap[String(r.plu)] = r;
+
+  let changed = false;
+  if (Array.isArray(sessionData.lines) && sessionData.lines.length) {
+    // mettre à jour chaque ligne existante avec les valeurs recalculées si trouvées
+    for (let i = 0; i < sessionData.lines.length; i++) {
+      const line = sessionData.lines[i] || {};
+      const pluKey = String(line.plu);
+      const newRow = rowsMap[pluKey];
+      if (newRow) {
+        // champs recalculés depuis lots + CA : stockTheo, prixKg, caTTC, poidsVendu, stockReel, ecart
+        // on garde unitCost si l'utilisateur l'avait saisi
+        const merged = {
+          ...line,
+          stockTheo: newRow.stockTheo,
+          prixKg: newRow.prixKg,
+          caTTC: newRow.caTTC,
+          poidsVendu: newRow.poidsVendu,
+          stockReel: Number((newRow.stockReel).toFixed(2)),
+          ecart: Number(((newRow.stockReel) - newRow.stockTheo).toFixed(2)),
+          unitCost: (line.unitCost != null && line.unitCost !== "") ? line.unitCost : (newRow.unitCost || null)
+        };
+        if (JSON.stringify(merged) !== JSON.stringify(line)) {
+          sessionData.lines[i] = merged;
+          changed = true;
+        }
+        delete rowsMap[pluKey];
+      } else {
+        // pas de nouveau calcul pour ce PLU → on conserve la ligne existante
+      }
+    }
+    // pour les PLU présents dans rowsForSession mais absents de sessionData.lines → on les ajoute
+    for (const remainingPlu of Object.keys(rowsMap)) {
+      sessionData.lines.push(rowsMap[remainingPlu]);
+      changed = true;
+    }
+  } else {
+    // pas de lines dans la session (neuve) → écrire rowsForSession comme avant
     sessionData.lines = rowsForSession;
-    await updateDoc(doc(db, "inventories", sessionId), { lines: sessionData.lines, updatedAt: serverTimestamp() });
+    changed = true;
+  }
+
+  // si on a modifié la session côté client, on la persiste pour que la UI et la DB soient cohérentes
+  if (changed) {
+    try {
+      await updateDoc(doc(db, "inventories", sessionId), {
+        lines: sessionData.lines,
+        updatedAt: serverTimestamp()
+      });
+      console.log("Session inventaire mise à jour avec données CA :", sessionId);
+    } catch (e) {
+      console.warn("Erreur mise à jour session après merge CA :", e);
+    }
   }
 
   // load into dataInventaire
