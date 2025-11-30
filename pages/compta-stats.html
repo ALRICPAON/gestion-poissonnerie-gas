@@ -1,11 +1,23 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <title>📈 Statistiques</title>
   <link rel="stylesheet" href="../css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* petits ajustements locaux */
+    .header-box { margin-bottom:1.2em; }
+    .margin-settings { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+    .search-input { margin-bottom:8px; width:100%; padding:6px; border-radius:6px; border:1px solid #ddd; }
+    .totaux { margin:12px 0 18px 0; }
+    table { width:100%; border-collapse:collapse; margin-bottom:18px; }
+    table th, table td { text-align:left; padding:8px; border-bottom:1px solid #eee; }
+    .btn-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .small-muted { font-size:13px; color:#666; margin-top:6px; }
+    .chart-wrap { max-width:100%; margin-bottom:12px; }
+    .top-actions { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  </style>
 </head>
 
 <body>
@@ -13,13 +25,11 @@
 <div class="top-bar">
   <h1>📈 Statistiques</h1>
   <button class="btn btn-muted" onclick="window.location.href='/pages/home.html'">← Retour accueil</button>
-
 </div>
 
-<div class="header-box">
+<div class="header-box box">
   <h2>Filtrer la période</h2>
 
-  <!-- Boutons rapides -->
   <div style="display:flex; gap:10px; margin-bottom:10px;">
     <button class="btn btn-muted" data-period="day">Jour</button>
     <button class="btn btn-muted" data-period="week">Semaine</button>
@@ -28,18 +38,25 @@
   </div>
 
   <div class="margin-settings">
-    <label>
-      Du :
+    <label>Du :
       <input type="date" id="dateFrom">
     </label>
 
-    <label>
-      Au :
+    <label>Au :
       <input type="date" id="dateTo">
     </label>
 
-    <button class="btn btn-accent" id="btnLoad">🔍 Charger</button>
+    <label>Top N :
+      <input type="number" id="topN" value="10" min="1" style="width:80px; margin-left:6px">
+    </label>
+
+    <div style="margin-left:auto">
+      <button class="btn btn-accent" id="btnLoad">🔍 Charger</button>
+      <button class="btn btn-muted" id="btnExportCSV">⬇ Export top CA</button>
+    </div>
   </div>
+
+  <div id="status" class="small-muted">Prêt</div>
 </div>
 
 <!-- Résumés -->
@@ -60,52 +77,46 @@
   </div>
 </div>
 
-
 <!-- FOURNISSEURS -->
-<h2>Top 10 Fournisseurs (marge)</h2>
-<input class="search-input" id="searchF" placeholder="🔍 Rechercher fournisseur...">
+<section>
+  <h2>Top Fournisseurs (marge)</h2>
+  <div class="top-actions">
+    <input class="search-input" id="searchF" placeholder="🔍 Rechercher fournisseur...">
+    <button class="btn btn-muted" id="btnExportFournisseurs">⬇ Export fournisseurs</button>
+  </div>
 
-<div class="totaux">
-  <canvas id="chartFournisseurs" height="110"></canvas>
-</div>
+  <div class="chart-wrap">
+    <canvas id="chartFournisseurs" height="120"></canvas>
+  </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Fournisseur</th>
-      <th>CA</th>
-      <th>Achats</th>
-      <th>Marge €</th>
-      <th>Marge %</th>
-    </tr>
-  </thead>
-  <tbody id="table-fournisseurs"></tbody>
-</table>
-
+  <table>
+    <thead>
+      <tr><th>Fournisseur</th><th>CA</th><th>Achats</th><th>Marge €</th><th>Marge %</th></tr>
+    </thead>
+    <tbody id="table-fournisseurs"></tbody>
+  </table>
+</section>
 
 <!-- ARTICLES -->
-<h2>Top 10 Articles (marge)</h2>
-<input class="search-input" id="searchA" placeholder="🔍 Rechercher PLU ou désignation...">
+<section>
+  <h2>Top Articles (marge)</h2>
+  <div class="top-actions">
+    <input class="search-input" id="searchA" placeholder="🔍 Rechercher PLU ou désignation...">
+    <button class="btn btn-muted" id="btnExportArticles">⬇ Export articles</button>
+  </div>
 
-<div class="totaux">
-  <canvas id="chartArticles" height="110"></canvas>
-</div>
+  <div class="chart-wrap">
+    <canvas id="chartArticles" height="120"></canvas>
+  </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>PLU</th>
-      <th>Désignation</th>
-      <th>CA</th>
-      <th>Achats</th>
-      <th>Marge €</th>
-      <th>Marge %</th>
-    </tr>
-  </thead>
-  <tbody id="table-articles"></tbody>
-</table>
+  <table>
+    <thead>
+      <tr><th>PLU</th><th>Désignation</th><th>CA</th><th>Achats</th><th>Marge €</th><th>Marge %</th></tr>
+    </thead>
+    <tbody id="table-articles"></tbody>
+  </table>
+</section>
 
 <script type="module" src="../js/compta-stats.js"></script>
-
 </body>
 </html>
