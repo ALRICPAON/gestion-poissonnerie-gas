@@ -403,6 +403,171 @@ function initMarginUI() {
     });
   }
 }
+/* ---------- PRINT STOCK REPORT (PLU / GENCODE / DESIGNATION / STOCK / PMA / PVTTC / REEL / DLC) ---------- */
+async function fetchStockDataForReport() {
+  // charge données
+  const [articlesSnap, stockArticlesSnap, lotsSnap] = await Promise.all([
+    getDocs(collection(db, "articles")),
+    getDocs(collection(db, "stock_articles")),
+    getDocs(collection(db, "lots"))
+  ]);
+
+  // maps
+  const articles = {};
+  articlesSnap.forEach(d => { const data = d.data(); articles[d.id] = data; });
+
+  const stockArticles = {};
+  stockArticlesSnap.forEach(d => { stockArticles[d.id] = d.data(); });
+
+  // agréger lots par PLU
+  const perPlu = {};
+  lotsSnap.forEach(d => {
+    const lot = d.data();
+    // identifie le PLU
+    const plu = lot.plu || lot.PLU || lot.articleId || "UNKNOWN";
+    // poids restant (fichiers peuvent utiliser différents noms)
+    const poidsRestant = Number(lot.poidsRestant ?? lot.poids ?? lot.remainingQuantity ?? 0);
+    if (poidsRestant <= 0) return;
+    if (!perPlu[plu]) perPlu[plu] = { kg:0, lots:[], designation: lot.designation || "" };
+    perPlu[plu].kg += poidsRestant;
+    perPlu[plu].lots.push({
+      poidsRestant,
+      pma: Number(lot.pma ?? lot.prixAchatKg ?? 0),
+      pvTTC: Number(lot.pvTTC ?? lot.pvTTCreel ?? 0),
+      dlc: lot.dlc ?? lot.datePeremption ?? lot.DLC ?? null
+    });
+  });
+
+  // construire lignes finales
+  const rows = [];
+  for (const plu in perPlu) {
+    const art = articles[plu] || {};
+    const sa = stockArticles[plu] || stockArticles["PLU_" + plu] || {};
+
+    // GENCODE
+    const gencode = art.ean || sa.gencode || sa.gencodeEAN || "";
+
+    // DESIGNATION
+    const designation = art.designation || art.label || perPlu[plu].designation || "";
+
+    // STOCK (kg)
+    const stockKg = perPlu[plu].kg || 0;
+
+    // PMA
+    let pma = Number(sa.pma ?? sa.pmaKg ?? 0);
+    if (!pma) {
+      const lots = perPlu[plu].lots || [];
+      let sumKg = 0, sumCost = 0;
+      lots.forEach(l => { sumKg += l.poidsRestant; sumCost += l.poidsRestant * (l.pma || 0); });
+      pma = sumKg > 0 ? (sumCost / sumKg) : 0;
+    }
+
+    // PVTTC
+    let pvttc = Number(sa.pvTTCreel ?? sa.pvTTC ?? sa.pvTTCconseille ?? 0);
+    if (!pvttc && perPlu[plu].lots && perPlu[plu].lots.length) {
+      pvttc = Number(perPlu[plu].lots[0].pvTTC || 0);
+    }
+
+    // REEL = pvTTCreel si dispo
+    const reel = Number(sa.pvTTCreel ?? 0);
+
+    // DLC = earliest lot.dlc
+    const dlcs = (perPlu[plu].lots || [])
+      .map(l => l.dlc)
+      .filter(Boolean)
+      .map(x => {
+        const d = (x && typeof x === "object" && x.toDate) ? x.toDate() : new Date(x);
+        return isNaN(d) ? null : d;
+      })
+      .filter(Boolean);
+    const dlc = dlcs.length ? dlcs.sort((a,b)=>a-b)[0].toISOString().slice(0,10) : "";
+
+    rows.push({
+      plu,
+      gencode,
+      designation,
+      stockKg: Number(stockKg.toFixed(3)),
+      pma: pma ? Number(pma.toFixed(3)) : "",
+      pvttc: pvttc ? Number(pvttc.toFixed(2)) : "",
+      reel: reel ? Number(reel.toFixed(2)) : "",
+      dlc
+    });
+  }
+
+  // trier par stock descendant
+  rows.sort((a,b) => b.stockKg - a.stockKg);
+  return rows;
+}
+
+function buildPrintHtml(rows, title = "Stock - Rapport") {
+  const css = `
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:18px;}
+      table{width:100%;border-collapse:collapse;font-size:12px;}
+      th,td{border:1px solid #ddd;padding:6px;text-align:left;}
+      th{background:#f4f4f4;}
+      caption{font-size:16px;font-weight:700;margin-bottom:8px;text-align:left;}
+      @media print {
+        body{margin:0;}
+        @page{size: A4 portrait; margin:10mm;}
+      }
+    </style>
+  `;
+  const trHtml = rows.map(r => `
+    <tr>
+      <td>${escapeHtml(String(r.plu))}</td>
+      <td>${escapeHtml(String(r.gencode||""))}</td>
+      <td>${escapeHtml(String(r.designation||""))}</td>
+      <td style="text-align:right">${Number(r.stockKg||0).toFixed(3)}</td>
+      <td style="text-align:right">${r.pma !== "" ? Number(r.pma).toFixed(3) : ""}</td>
+      <td style="text-align:right">${r.pvttc !== "" ? Number(r.pvttc).toFixed(2) : ""}</td>
+      <td style="text-align:right">${r.reel !== "" ? Number(r.reel).toFixed(2) : ""}</td>
+      <td style="text-align:center">${r.dlc || ""}</td>
+    </tr>`).join("\n");
+
+  const html = `
+    <!doctype html>
+    <html>
+      <head><meta charset="utf-8"><title>${escapeHtml(title)}</title>${css}</head>
+      <body>
+        <h1>${escapeHtml(title)}</h1>
+        <table>
+          <caption>PLU / GENCODE / DESIGNATION / STOCK (kg) / PMA / PVTTC / REEL / DLC</caption>
+          <thead>
+            <tr>
+              <th>PLU</th><th>GENCODE</th><th>DESIGNATION</th><th>STOCK (kg)</th><th>PMA</th><th>PVTTC</th><th>REEL</th><th>DLC</th>
+            </tr>
+          </thead>
+          <tbody>${trHtml}</tbody>
+        </table>
+      </body>
+    </html>
+  `;
+  return html;
+}
+
+async function printStockReport() {
+  try {
+    const rows = await fetchStockDataForReport();
+    if (!rows || !rows.length) { alert("Aucun stock trouvé."); return; }
+    const html = buildPrintHtml(rows, "Rapport de stock");
+    const w = window.open("", "_blank", "toolbar=0,location=0,menubar=0");
+    if (!w) { alert("Popup bloquée. Autorise les popups pour imprimer."); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    setTimeout(()=>{ w.focus(); w.print(); }, 600);
+  } catch(e) {
+    console.error("Erreur printStockReport:", e);
+    alert("Erreur lors de la préparation du PDF: " + (e && e.message ? e.message : e));
+  }
+}
+
+// helper escape
+function escapeHtml(s){ if(s==null) return ""; return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+// hook bouton si existe
+try { document.getElementById('btnPrintStock')?.addEventListener('click', printStockReport); } catch(e){}
+
+window.printStockReport = printStockReport;
 
 /************************************************************
  * 🔟 Lancement
