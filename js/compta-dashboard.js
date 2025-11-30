@@ -1,3 +1,4 @@
+// js/compta-dashboard.js
 import { db, auth } from "./firebase-init.js";
 import {
   collection, doc, getDoc, getDocs, query, where,
@@ -93,6 +94,9 @@ let mode = "day";
 let chart = null;
 let editingDay = false;          // si on est en mode modification après recalcul
 let savedDayData = null;         // cache doc journal du jour si existant
+
+/* TVA (conversion TTC -> HT) */
+const TVA_RATE = 0.055; // 5.5% -> HT = TTC / (1 + TVA_RATE)
 
 /* ---------------- Inputs dynamiques selon mode ---------------- */
 function renderInputs(){
@@ -306,12 +310,97 @@ function loadCaTheorique(start, end){
   return total;
 }
 
-/** 4) CA réel HT (Z saisis) */
+/* ---------------- Helpers: lire & agréger stock_movements ---------------- */
+
+/** Lire les mouvements dans la plage et ne garder que les sorties pertinentes */
+async function loadStockMovementsInRange(start, end){
+  // tentative de requête par createdAt (optimisable)
+  let snap;
+  try {
+    snap = await getDocs(query(collection(db, "stock_movements"), where("createdAt", ">=", start), where("createdAt", "<=", end)));
+  } catch(e) {
+    // fallback : récupérer tout et filtrer client-side si index manquant
+    snap = await getDocs(collection(db, "stock_movements"));
+  }
+
+  const moves = [];
+  snap.forEach(d => {
+    const r = d.data();
+    const docDate = toDateAny(r.createdAt ?? r.date);
+    if(!docDate) return;
+    if(!inRange(docDate, start, end)) return;
+
+    const sens = (r.sens || "").toString().toLowerCase();
+    const type = (r.type || "").toString().toLowerCase();
+    const qty = toNum(r.poids ?? r.quantity ?? 0);
+
+    // Considérer comme sortie si sens === 'sortie' OR qty < 0 OR type semble être une consommation
+    const isSortie = sens === "sortie" || qty < 0 || type.includes("consume") || type.includes("consumpt") || (type === "inventory" && sens === "sortie");
+
+    if(!isSortie) return;
+    moves.push({ id: d.id, ...r, _date: docDate });
+  });
+  return moves;
+}
+
+/** Agrège CA + coût + maps par fournisseur / article  */
+function computeAggregationsFromMovements(moves){
+  let totalCA = 0;
+  let totalCost = 0;
+  const achats_consommes = {};
+  const consommation_par_article = {};
+  const ventes_par_article = {};
+
+  moves.forEach(r => {
+    const qty = toNum(r.poids ?? r.quantity ?? 0);
+
+    // coût : préférence costValue -> montantHT -> prixAchatKg * qty -> pma * qty -> 0
+    let cost = 0;
+    if(r.costValue !== undefined && r.costValue !== null) {
+      cost = toNum(r.costValue);
+    } else if(r.montantHT !== undefined && r.montantHT !== null) {
+      cost = toNum(r.montantHT);
+    } else {
+      const prixAchatKg = toNum(r.prixAchatKg ?? r.pma ?? r.unitCost ?? 0);
+      cost = prixAchatKg * qty;
+    }
+
+    // CA : priorité salePriceHT -> salePriceTTC converti en HT -> 0
+    let priceHT = 0;
+    if (r.salePriceHT !== undefined && r.salePriceHT !== null && r.salePriceHT !== "") {
+      priceHT = toNum(r.salePriceHT);
+    } else if (r.salePriceTTC !== undefined && r.salePriceTTC !== null && r.salePriceTTC !== "") {
+      // TTC -> HT avec TVA 5.5%
+      priceHT = toNum(r.salePriceTTC) / (1 + TVA_RATE);
+    } else {
+      priceHT = 0;
+    }
+
+    const ca = priceHT * qty;
+
+    totalCost += cost;
+    totalCA += ca;
+
+    // fournisseur (fallbacks)
+    const four = r.fournisseurCode || r.fournisseur || r.fournisseurId || "INCONNU";
+    achats_consommes[four] = (achats_consommes[four] || 0) + cost;
+
+    // article / PLU
+    const plu = r.plu || r.articleId || (r.lotId ? r.lotId : "INCONNU");
+    consommation_par_article[plu] = (consommation_par_article[plu] || 0) + cost;
+    ventes_par_article[plu] = (ventes_par_article[plu] || 0) + ca;
+  });
+
+  return { totalCA, totalCost, achats_consommes, consommation_par_article, ventes_par_article };
+}
+
+/* ---------------- Z et journaux ---------------- */
 async function loadZForDate(dateStr){
   const snap = await getDoc(doc(db,"ventes_reelles",dateStr));
-  if(!snap.exists()) return { caHT:0, note:"" };
+  if(!snap.exists()) return { caHT:0, note:"", articles: {} };
   const r = snap.data();
-  return { caHT: toNum(r.caHT||0), note: r.note || "" };
+  // On accepte différentes clefs utilisées : articles, ventes, ventesEAN
+  return { caHT: toNum(r.caHT||0), note: r.note || "", articles: (r.articles || r.ventes || r.ventesEAN || {}) };
 }
 
 /* ---------------- Journaux VALIDÉS ---------------- */
@@ -350,8 +439,21 @@ async function calculateLiveDay(dateStr){
   const z = await loadZForDate(dateStr);
   const caReel = toNum(z.caHT);
   const note = z.note || "";
+  const ventesArticlesFromZ = z.articles || {};
 
-  const achatsConsoHT = achatsPeriodeHT + varStock;
+  // --- mouvements (sorties) : consommation réelle / CA réelle par mouvements ---
+  const moves = await loadStockMovementsInRange(start, end);
+  const aggs = computeAggregationsFromMovements(moves);
+
+  // achats consommés = somme des coûts des sorties (fallback achatsPeriodeHT + varStock)
+  const achatsConsoHT = (aggs.totalCost && aggs.totalCost > 0) ? aggs.totalCost : (achatsPeriodeHT + varStock);
+
+  // ventes par article : on préfère les valeurs saisies dans ventes_reelles si présentes
+  const ventes_par_article = { ...aggs.ventes_par_article };
+  Object.keys(ventesArticlesFromZ).forEach(plu => {
+    ventes_par_article[plu] = toNum(ventesArticlesFromZ[plu]);
+  });
+
   const marge = caReel - achatsConsoHT;
   const margePct = caReel>0 ? (marge/caReel*100) : 0;
 
@@ -361,7 +463,12 @@ async function calculateLiveDay(dateStr){
     achatsPeriodeHT, achatsConsoHT,
     caTheo, caReel,
     marge, margePct,
-    noteZ: note
+    noteZ: note,
+
+    // Ajouts : maps utiles pour la validation
+    achats_consommes: aggs.achats_consommes,
+    consommation_par_article: aggs.consommation_par_article,
+    ventes_par_article
   };
 }
 
@@ -415,7 +522,6 @@ async function saveZ(){
 }
 
 /* ---------------- Valider journée ---------------- */
-/* ---------------- Valider journée ---------------- */
 async function validerJournee(){
   const user = auth.currentUser;
   if(!user) return alert("Non connecté.");
@@ -426,45 +532,10 @@ async function validerJournee(){
   // ------------------ 1) Calcul live ------------------
   const live = await calculateLiveDay(dateStr);
 
-  // ------------------ 2) Construire achats_consommes ------------------
-  const movesSnap = await getDocs(collection(db, "stock_movements"));
-  let achats_consommes = {};
-
-  movesSnap.forEach(d => {
-    const r = d.data();
-    if (r.type !== "consume") return;        // uniquement les consommations FIFO
-    if (r.date !== dateStr) return;          // uniquement cette journée
-
-    const four = r.fournisseurCode || "INCONNU";
-    const montant = Number(r.montantHT || 0);
-
-    achats_consommes[four] = (achats_consommes[four] || 0) + montant;
-  });
-
-  // ------------------ 3) Construire consommation_par_article ------------------
-  let consommation_par_article = {};
-
-  movesSnap.forEach(d => {
-    const r = d.data();
-    if (r.type !== "consume") return;
-    if (r.date !== dateStr) return;
-
-    const plu = r.plu || "INCONNU";
-    const montant = Number(r.montantHT || 0);
-
-    consommation_par_article[plu] =
-      (consommation_par_article[plu] || 0) + montant;
-  });
-
-  // ------------------ 4) Construire ventes_par_article ------------------
-  let ventes_par_article = {};
-  const ventesSnap = await getDoc(doc(db, "ventes_reelles", dateStr));
-
-  if (ventesSnap.exists()) {
-    const v = ventesSnap.data();
-    // structure : ventes_reelles/{date}/articles = { PLU : montantHT }
-    if (v.articles) ventes_par_article = { ...v.articles };
-  }
+  // ------------------ 2/3/4) Récupérer agrégats depuis calculateLiveDay (qui lit stock_movements) --
+  const achats_consommes = live.achats_consommes || {};
+  const consommation_par_article = live.consommation_par_article || {};
+  const ventes_par_article = live.ventes_par_article || {};
 
   // ------------------ 5) Save journal complet ------------------
   await setDoc(doc(db,"compta_journal",dateStr),{
