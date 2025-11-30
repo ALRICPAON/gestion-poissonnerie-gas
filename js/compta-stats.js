@@ -296,96 +296,173 @@ async function calculStats(from, to) {
     articles: statsArticles
   };
 
-  console.log("📊 STATS PRECIS :", final);
+  console.log("✅ calculStats terminé :", { ca: final.ca, achats: final.achats, marge: final.marge });
   return final;
 }
 
-/* ------------------------------------------------------------------
-   RENDU HTML
--------------------------------------------------------------------*/
-function renderStats(stats) {
-  document.querySelector("#resume-ca").textContent = fmt(stats.ca);
-  document.querySelector("#resume-achats").textContent = fmt(stats.achats);
-  document.querySelector("#resume-marge").textContent = fmt(stats.marge);
+/* ---------------- Advanced stats wrapper ---------------- */
 
-  // FOURNISSEURS
-  const tf = document.querySelector("#table-fournisseurs");
-  tf.innerHTML = "";
-  Object.entries(stats.fournisseurs).forEach(([name, s]) => {
-    const pct = s.ca > 0 ? (s.marge / s.ca * 100).toFixed(1) : "0.0";
-    tf.innerHTML += `
-      <tr>
-        <td>${name}</td>
-        <td>${fmt(s.ca)}</td>
-        <td>${fmt(s.achats)}</td>
-        <td>${fmt(s.marge)}</td>
-        <td>${pct}%</td>
-      </tr>`;
+/**
+ * buildAdvancedStats(from, to, opts)
+ * from,to : 'YYYY-MM-DD' strings
+ * opts: { topN: number }
+ */
+async function buildAdvancedStats(from, to, opts = {}) {
+  const topN = opts.topN || 10;
+
+  // 1) calcul de base (tu as déjà calculStats)
+  const base = await calculStats(from, to); // retourne { ca, ventesTotal, achats, marge, fournisseurs, articles, ... }
+  // base.articles[plu] = { designation, kgSold, cost, ca, marge, margePct }
+  // base.fournisseurs[f] = { achats, ca, marge, margePct }
+
+  // 2) top lists
+  const articlesArr = Object.keys(base.articles || {}).map(plu => {
+    const a = base.articles[plu];
+    return {
+      plu,
+      designation: a.designation || "",
+      kgSold: toNum(a.kgSold || 0),
+      cost: toNum(a.cost || 0),
+      ca: toNum(a.ca || 0),
+      marge: toNum(a.marge || 0),
+      margePct: toNum(a.margePct || 0)
+    };
   });
 
-  // ARTICLES
-  const ta = document.querySelector("#table-articles");
-  ta.innerHTML = "";
-  Object.entries(stats.articles).forEach(([plu, a]) => {
-    const pct = a.ca > 0 ? (a.marge / a.ca * 100).toFixed(1) : "0.0";
-    ta.innerHTML += `
-      <tr>
-        <td>${plu}</td>
-        <td>${a.designation || ""}</td>
-        <td>${fmt(a.ca)}</td>
-        <td>${fmt(a.cost)}</td>
-        <td>${fmt(a.marge)}</td>
-        <td>${pct}%</td>
-      </tr>`;
-  });
-}
+  const topByCA = articlesArr.slice().sort((a,b)=>b.ca - a.ca).slice(0, topN);
+  const topByMarge = articlesArr.slice().sort((a,b)=>b.marge - a.marge).slice(0, topN);
+  const topByMargePct = articlesArr.slice().sort((a,b)=>b.margePct - a.margePct).slice(0, topN);
+  const topByKg = articlesArr.slice().sort((a,b)=>b.kgSold - a.kgSold).slice(0, topN);
 
-/* Charts */
-function renderChartFournisseurs(fournisseurs) {
-  const ctx = document.getElementById('chartFournisseurs').getContext('2d');
-  const labels = Object.keys(fournisseurs);
-  const data = Object.values(fournisseurs).map(f => Number(f.marge || 0));
-  if (window._chartF) window._chartF.destroy();
-  window._chartF = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: "Marge (€)", data }] } });
-}
-function renderChartArticles(articles) {
-  const ctx = document.getElementById('chartArticles').getContext('2d');
-  const labels = Object.keys(articles);
-  const data = Object.values(articles).map(a => Number(a.marge || 0));
-  if (window._chartA) window._chartA.destroy();
-  window._chartA = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: "Marge (€)", data }] } });
-}
+  // 3) fournisseurs
+  const fournisseursArr = Object.keys(base.fournisseurs || {}).map(f => {
+    const v = base.fournisseurs[f];
+    return {
+      fournisseur: f,
+      achats: toNum(v.achats || 0),
+      ca: toNum(v.ca || 0),
+      marge: toNum(v.marge || 0),
+      margePct: toNum(v.margePct || 0)
+    };
+  }).sort((a,b)=>b.ca - a.ca);
 
-/* ------------------------------------------------------------------
-   BOUTONS / CHARGEMENT
--------------------------------------------------------------------*/
-document.querySelector("#btnLoad").addEventListener("click", async () => {
-  const from = document.querySelector("#dateFrom").value;
-  const to = document.querySelector("#dateTo").value;
-  if (!from || !to) { alert("Choisis une période valide (Du / Au)."); return; }
-  document.querySelector("#resume-ca").textContent = "Calcul en cours…";
-  try {
-    const stats = await calculStats(from, to);
-    renderStats(stats);
-    renderChartFournisseurs(stats.fournisseurs);
-    renderChartArticles(stats.articles);
-  } catch (e) {
-    console.error("Erreur calculStats:", e);
-    alert("Erreur lors du calcul des stats (voir console).");
+  // 4) rotation / stock moyen
+  async function loadJournalInventaires(){
+    const s = [];
+    const snap = await getDocs(collection(db, "journal_inventaires"));
+    snap.forEach(d => {
+      const r = d.data();
+      const dateStr = r.date || d.id;
+      const dt = new Date(dateStr);
+      if(isFinite(dt)) s.push({ date: dt, valeur: toNum(r.valeurStockHT||0) });
+    });
+    s.sort((a,b)=>a.date-b.date);
+    return s;
   }
-});
 
-/* Raccourcis (jour/semaine/mois/année) */
-document.querySelectorAll("[data-period]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const p = btn.dataset.period; const now = new Date();
-    let from, to;
-    if (p === "day") { from = to = d2(now); }
-    else if (p === "week") { const d = new Date(); const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); from = d2(d); to = d2(new Date()); }
-    else if (p === "month") { from = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-01"; to = d2(now); }
-    else if (p === "year") { from = now.getFullYear() + "-01-01"; to = d2(now); }
-    document.querySelector("#dateFrom").value = from;
-    document.querySelector("#dateTo").value = to;
-    document.querySelector("#btnLoad").click();
+  function pickStocksFromJournal(invs, startDate, endDate) {
+    let stockDebut = 0, stockFin = 0;
+    const beforeStart = invs.filter(x=>x.date < startDate);
+    if (beforeStart.length) stockDebut = beforeStart[beforeStart.length-1].valeur;
+    const beforeEnd = invs.filter(x=>x.date <= endDate);
+    if (beforeEnd.length) stockFin = beforeEnd[beforeEnd.length-1].valeur;
+    return { stockDebut, stockFin };
+  }
+
+  const invs = await loadJournalInventaires();
+  const startDate = new Date(from + "T00:00:00");
+  const endDate = new Date(to + "T23:59:59");
+  let { stockDebut, stockFin } = pickStocksFromJournal(invs, startDate, endDate);
+
+  // fallback -> compute from lots if journal missing or zero
+  if ((toNum(stockDebut) === 0 && toNum(stockFin) === 0)) {
+    const lotsSnap = await getDocs(collection(db, "lots"));
+    let stockVal = 0;
+    lotsSnap.forEach(d => {
+      const l = d.data();
+      const kg = toNum(l.poidsRestant || l.poids || 0);
+      const prix = toNum(l.prixAchatKg || 0);
+      stockVal += kg * prix;
+    });
+    stockFin = stockVal;
+    // estimate stockDebut by using relation: stockFin = stockDebut + achatsPeriodeHT - achatsConso
+    // we don't have achatsPeriodeHT here exactly; use base.achats if available
+    const achatsPeriode = toNum(base.achats || 0);
+    const achatsConso = toNum(base.achats || 0);
+    stockDebut = stockFin - achatsPeriode + achatsConso;
+  }
+
+  const stockMoyen = (toNum(stockDebut) + toNum(stockFin)) / 2;
+  const cogs = toNum(base.achats || 0);
+
+  const nbDays = Math.max(1, Math.round((endDate - startDate) / (24*3600*1000)) + 1);
+  const rotation = stockMoyen > 0 ? (cogs / stockMoyen) : 0;
+  const daysToTurn = (cogs > 0 && rotation>0) ? (nbDays / rotation) : 0;
+
+  // 5) pertes / écarts : somme inventory_adjustment / correction dans period
+  let losses = 0;
+  try {
+    const movSnap = await getDocs(query(collection(db, "stock_movements"), where("createdAt", ">=", startDate), where("createdAt", "<=", endDate)));
+    movSnap.forEach(d=>{
+      const m = d.data();
+      const t = (m.type || "").toString().toLowerCase();
+      if (t.includes("inventory") || t.includes("adjust") || t.includes("correction")) {
+        const qty = Math.abs(toNum(m.poids ?? m.quantity ?? 0));
+        let cost = 0;
+        if (m.costValue) cost = toNum(m.costValue);
+        else if (m.montantHT) cost = toNum(m.montantHT);
+        else cost = toNum(m.prixAchatKg || m.pma || 0) * qty;
+        losses += cost;
+      }
+    });
+  } catch(e) {
+    console.warn("Erreur calcul pertes:", e);
+  }
+
+  // 6) joursSeries depuis compta_journal
+  const joursSeries = [];
+  try {
+    const journalSnap = await getDocs(collection(db, "compta_journal"));
+    journalSnap.forEach(d=>{
+      const r = d.data();
+      const dt = new Date(r.date || d.id);
+      if (dt >= startDate && dt <= endDate) {
+        joursSeries.push({ date: r.date || d.id, ca: toNum(r.caReel||0), achatsConso: toNum(r.achatsConsoHT||0), marge: toNum(r.marge||0) });
+      }
+    });
+  } catch(e){ /* ignore */ }
+
+  const report = {
+    period: { from, to, nbDays },
+    summary: {
+      ca: toNum(base.ca || 0),
+      ventesTotal: toNum(base.ventesTotal || 0),
+      achatsConso: cogs,
+      marge: toNum(base.marge || 0),
+      margePct: (toNum(base.ca)||0) > 0 ? (toNum(base.marge) / toNum(base.ca) * 100) : 0
+    },
+    stock: { stockDebut: toNum(stockDebut), stockFin: toNum(stockFin), stockMoyen: toNum(stockMoyen), rotation, daysToTurn },
+    losses: toNum(losses),
+    top: { topByCA, topByMarge, topByMargePct, topByKg },
+    articles: articlesArr,
+    fournisseurs: fournisseursArr,
+    joursSeries
+  };
+
+  return report;
+}
+
+/* ---------------- Export util ---------------- */
+function exportToCSV(rows, filename = "export.csv") {
+  if (!rows || !rows.length) return;
+  const cols = Object.keys(rows[0]);
+  const lines = [cols.join(",")];
+  rows.forEach(r => {
+    lines.push(cols.map(c => `"${String(r[c]===undefined ? "" : r[c]).replace(/"/g,'""')}"`).join(","));
   });
-});
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
