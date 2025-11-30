@@ -1,5 +1,5 @@
-// js/compta-stats.js (VERSION UI + POIDS)
-// Calculs + UI : CA, marges, top articles, et top articles par poids (kg).
+// js/compta-stats.js (VERSION UI + POIDS + CA→HT)
+ // Calculs + UI : CA, marges, top articles, et top articles par poids (kg).
 
 import { db } from "./firebase-init.js";
 import {
@@ -10,6 +10,9 @@ import {
 const fmt = n => Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + " €";
 const toNum = v => { const n = Number(v||0); return isFinite(n)? n : 0; };
 const d2 = d => (d instanceof Date ? d.toISOString().slice(0,10) : String(d||""));
+
+// TVA utilisée pour convertir TTC -> HT (5.5%)
+const TVA_RATE = 0.055;
 
 /* ---------------- DATA LOADERS ---------------- */
 async function loadCA(from, to) {
@@ -153,6 +156,16 @@ async function calculStats(from, to) {
     }
   }
 
+  // ----- IMPORTANT -----
+  // Les valeurs dans caParPlu proviennent soit :
+  // - de l'import ventesEAN (CA TTC) ; soit
+  // - du fallback pvTTCreel * kgSold (pvTTCreel = prix de vente TTC)
+  // Pour calculer la marge par PLU / fournisseur, il faut travailler en HT :
+  // on convertit donc le CA (qui est en TTC pour ces sources) en HT ici.
+  for (const plu in caParPlu) {
+    caParPlu[plu] = toNum(caParPlu[plu]) / (1 + TVA_RATE);
+  }
+
   // allocate CA to movements, aggregate per supplier
   const perSupplier = {};
   for (const plu in perPlu) {
@@ -285,201 +298,23 @@ function renderArticlesTable(list) {
   clearElement(tbody);
   list.forEach(row => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${escapeHtml(row.plu)}</td>
-      <td>${escapeHtml(row.designation||"")}</td>
-      <td>${fmt(row.ca)}</td><td>${fmt(row.cost)}</td><td>${fmt(row.marge)}</td><td>${Number(row.margePct||0).toFixed(1)}%</td>`;
+    tr.innerHTML = `<td>${row.plu}</td>
+      <td>${escapeHtml(row.designation || "")}</td>
+      <td class="right">${(row.kgSold||0).toFixed(3)}</td>
+      <td class="right">${fmt(row.ca)}</td>
+      <td class="right">${fmt(row.cost)}</td>
+      <td class="right">${fmt(row.marge)}</td>
+      <td class="right">${Number(row.margePct||0).toFixed(1)}%</td>`;
     tbody.appendChild(tr);
   });
 }
 
-function renderArticlesWeightTable(list) {
-  const tbody = document.getElementById('table-articles-weight');
-  clearElement(tbody);
-  list.forEach(row => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${escapeHtml(row.plu)}</td>
-      <td>${escapeHtml(row.designation||"")}</td>
-      <td>${Number(row.kgSold||0).toFixed(2)} kg</td>
-      <td>${fmt(row.ca)}</td><td>${fmt(row.cost)}</td>`;
-    tbody.appendChild(tr);
-  });
+/* ---- simple escape html ---- */
+function escapeHtml(s){
+  if(!s) return "";
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]));
 }
 
-function renderCharts(topByCA, fournisseurs) {
-  // Fournisseurs chart: use fournisseurs (marge)
-  try {
-    const ctxF = document.getElementById('chartFournisseurs').getContext('2d');
-    if (chartF) chartF.destroy();
-    chartF = new Chart(ctxF, {
-      type: 'bar',
-      data: {
-        labels: fournisseurs.map(r => r.fournisseur),
-        datasets: [{ label: 'Marge €', data: fournisseurs.map(r => r.marge), backgroundColor: '#3b82f6' }]
-      },
-      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
-    });
-  } catch(e){ console.warn(e); }
-
-  // Articles chart: CA
-  try {
-    const ctxA = document.getElementById('chartArticles').getContext('2d');
-    if (chartA) chartA.destroy();
-    chartA = new Chart(ctxA, {
-      type: 'bar',
-      data: {
-        labels: topByCA.map(r => String(r.plu) + " " + (r.designation||"")),
-        datasets: [{ label: 'CA', data: topByCA.map(r => r.ca), backgroundColor: '#10b981' }]
-      },
-      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
-    });
-  } catch(e){ console.warn(e); }
-}
-
-function renderArticlesWeightChart(topByKg) {
-  try {
-    const ctx = document.getElementById('chartArticlesWeight').getContext('2d');
-    if (chartAW) chartAW.destroy();
-    chartAW = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: topByKg.map(r => String(r.plu) + (r.designation ? " " + r.designation : "")),
-        datasets: [{ label: 'Kg vendus', data: topByKg.map(r => Number(r.kgSold||0)), backgroundColor: '#f59e0b' }]
-      },
-      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
-    });
-  } catch(e){ console.warn(e); }
-}
-
-function escapeHtml(s){ if(s==null) return ""; return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
-
-/* ---------------- EXPORT util ---------------- */
-function exportToCSV(rows, filename="export.csv") {
-  if (!rows || !rows.length) return alert("Rien à exporter");
-  const cols = Object.keys(rows[0]);
-  const lines = [cols.join(",")];
-  rows.forEach(r => lines.push(cols.map(c => `"${String(r[c]===undefined ? "" : r[c]).replace(/"/g,'""')}"`).join(",")));
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
-}
-
-/* ---------------- UI Wiring ---------------- */
-function setDefaultDates() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth()+1, 0);
-  document.getElementById('dateFrom').value = d2(start);
-  document.getElementById('dateTo').value = d2(end);
-}
-
-function setPeriod(mode) {
-  const now = new Date();
-  let start, end;
-  if (mode === "day") { start = new Date(now); start.setHours(0,0,0,0); end = new Date(start); }
-  else if (mode === "week") {
-    const day = (now.getDay()+6)%7;
-    start = new Date(now); start.setDate(now.getDate()-day); start.setHours(0,0,0,0);
-    end = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
-  } else if (mode === "month") {
-    start = new Date(now.getFullYear(), now.getMonth(), 1);
-    end = new Date(now.getFullYear(), now.getMonth()+1, 0);
-  } else if (mode === "year") {
-    start = new Date(now.getFullYear(), 0, 1);
-    end = new Date(now.getFullYear(), 11, 31);
-  }
-  document.getElementById('dateFrom').value = d2(start);
-  document.getElementById('dateTo').value = d2(end);
-}
-
-async function loadAndRender() {
-  const status = document.getElementById('status');
-  try {
-    const from = document.getElementById('dateFrom').value;
-    const to = document.getElementById('dateTo').value;
-    const topN = Number(document.getElementById('topN').value) || 10;
-    status.textContent = `Chargement ${from} → ${to} ...`;
-    const report = await buildAdvancedStats(from, to, { topN });
-    renderSummary(report.summary);
-    renderFournisseursTable(report.fournisseurs);
-    renderArticlesTable(report.top.topByCA);
-    renderArticlesWeightTable(report.top.topByKg);
-    renderCharts(report.top.topByCA, report.fournisseurs);
-    renderArticlesWeightChart(report.top.topByKg);
-    window.__LAST_STATS_REPORT = report;
-    status.textContent = `OK — données chargées (${from} → ${to})`;
-  } catch(e) {
-    console.error(e);
-    status.textContent = `Erreur : ${e && e.message ? e.message : String(e)}`;
-  }
-}
-
-/* ---------------- Attach events ---------------- */
-function attachEvents() {
-  document.querySelectorAll('[data-period]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      document.querySelectorAll('[data-period]').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      setPeriod(btn.dataset.period);
-    });
-  });
-
-  document.getElementById('btnLoad').addEventListener('click', loadAndRender);
-
-  document.getElementById('btnExportCSV').addEventListener('click', ()=>{
-    const r = window.__LAST_STATS_REPORT;
-    if (!r) return alert("Charge d'abord les stats.");
-    exportToCSV(r.top.topByCA, `topByCA_${r.period.from}_${r.period.to}.csv`);
-  });
-
-  document.getElementById('searchF').addEventListener('input', (e)=>{
-    const q = (e.target.value || "").toLowerCase().trim();
-    const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.fournisseurs) || [];
-    const filtered = data.filter(x => x.fournisseur.toLowerCase().includes(q));
-    renderFournisseursTable(filtered);
-  });
-
-  document.getElementById('searchA').addEventListener('input', (e)=>{
-    const q = (e.target.value || "").toLowerCase().trim();
-    const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.articles) || [];
-    const filtered = data.filter(x => (String(x.plu) + " " + (x.designation||"")).toLowerCase().includes(q));
-    const sorted = filtered.sort((a,b)=>b.ca - a.ca).slice(0, Number(document.getElementById('topN').value || 10));
-    renderArticlesTable(sorted);
-    renderCharts(sorted, (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.fournisseurs) || []);
-  });
-
-  // search & export for weight view
-  document.getElementById('searchAWeight').addEventListener('input', (e)=>{
-    const q = (e.target.value || "").toLowerCase().trim();
-    const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.articles) || [];
-    const filtered = data.filter(x => (String(x.plu) + " " + (x.designation||"")).toLowerCase().includes(q));
-    const sorted = filtered.sort((a,b)=>b.kgSold - a.kgSold).slice(0, Number(document.getElementById('topN').value || 10));
-    renderArticlesWeightTable(sorted);
-    renderArticlesWeightChart(sorted);
-  });
-
-  document.getElementById('btnExportFournisseurs').addEventListener('click', ()=>{
-    const r = window.__LAST_STATS_REPORT;
-    if (!r) return alert("Charge d'abord les stats.");
-    exportToCSV(r.fournisseurs, `fournisseurs_${r.period.from}_${r.period.to}.csv`);
-  });
-
-  document.getElementById('btnExportArticles').addEventListener('click', ()=>{
-    const r = window.__LAST_STATS_REPORT;
-    if (!r) return alert("Charge d'abord les stats.");
-    exportToCSV(r.top.topByCA, `articles_CA_${r.period.from}_${r.period.to}.csv`);
-  });
-
-  document.getElementById('btnExportArticlesWeight').addEventListener('click', ()=>{
-    const r = window.__LAST_STATS_REPORT;
-    if (!r) return alert("Charge d'abord les stats.");
-    exportToCSV(r.top.topByKg, `articles_kg_${r.period.from}_${r.period.to}.csv`);
-  });
-}
-
-/* ---------------- Init ---------------- */
-(function init(){
-  setDefaultDates();
-  attachEvents();
-  try { window.buildAdvancedStats = buildAdvancedStats; window.calculStats = calculStats; window.exportToCSV = exportToCSV; } catch(e){}
-})();
-
-export { buildAdvancedStats, calculStats, exportToCSV };
+/* ---------------- Exports for debug/UI ---------------- */
+export { calculStats, buildAdvancedStats };
+export default { calculStats, buildAdvancedStats };
