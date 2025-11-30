@@ -1,4 +1,7 @@
-// applyInventory.js (modifié pour enrichir stock_movements)
+// js/apply-inventory.js
+// applyInventory (modifié pour accepter date/sessionId et marquer les mouvements)
+// Usage: await applyInventory(plu, poidsReel, user, { date: "2025-11-30", sessionId: "r3Th..." });
+
 import { db } from './firebase-init.js';
 import {
   collection,
@@ -14,7 +17,49 @@ import {
   updateDoc
 } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
-export async function applyInventory(plu, poidsReel, user) {
+/**
+ * normalizeDateToYMD
+ * accepte string "YYYY-MM-DD" ou Date, renvoie "YYYY-MM-DD" ou null
+ */
+function normalizeDateToYMD(d) {
+  if (!d) return null;
+  if (typeof d === 'string') {
+    // vérifie format YYYY-MM-DD rapide
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    // essaye de parser
+    const dd = new Date(d);
+    if (isFinite(dd)) {
+      return dd.toISOString().slice(0,10);
+    }
+    return null;
+  }
+  if (d instanceof Date) {
+    if (!isFinite(d)) return null;
+    return d.toISOString().slice(0,10);
+  }
+  try {
+    const dd = new Date(d);
+    if (isFinite(dd)) return dd.toISOString().slice(0,10);
+  } catch(e){}
+  return null;
+}
+
+/**
+ * applyInventory
+ * - plu: identifiant produit
+ * - poidsReel: poids compté (kg)
+ * - user: string
+ * - opts: { date: "YYYY-MM-DD" | Date, sessionId: string }
+ *
+ * Comportement :
+ * - lit lots ouverts FIFO (orderBy createdAt)
+ * - calcule écart = poidsTheorique - poidsReel
+ * - si ecart <= 0 => rien à faire (log)
+ * - sinon : décrémente les lots FIFO, met à jour lots (poidsRestant, closed, updatedAt)
+ *   et crée des documents stock_movements de type 'inventory' / sens 'sortie'
+ * - les mouvements incluent désormais : origin, sessionId, date (YYYY-MM-DD)
+ */
+export async function applyInventory(plu, poidsReel, user, opts = {}) {
   const lotsRef = collection(db, 'lots');
   const q = query(lotsRef, where('plu', '==', plu), where('closed', '==', false), orderBy('createdAt'));
   const snapshot = await getDocs(q);
@@ -24,12 +69,15 @@ export async function applyInventory(plu, poidsReel, user) {
 
   snapshot.forEach(docSnap => {
     const data = docSnap.data();
-    poidsTheorique += data.poidsRestant || 0;
+    poidsTheorique += Number(data.poidsRestant || 0);
     lots.push({ id: docSnap.id, ...data });
   });
 
-  const ecart = poidsTheorique - poidsReel;
-  if (ecart <= 0) return console.log(`✅ Aucune correction nécessaire pour PLU ${plu}`);
+  const ecart = Number(poidsTheorique) - Number(poidsReel || 0);
+  if (ecart <= 0) {
+    console.log(`✅ Aucune correction nécessaire pour PLU ${plu} (écart=${ecart})`);
+    return { applied: false, ecart: ecart };
+  }
 
   // --- Calcul PMA (moyenne pondérée sur les lots ouverts) ---
   let totalKgForPma = 0;
@@ -55,29 +103,39 @@ export async function applyInventory(plu, poidsReel, user) {
     pvTTCreel = null;
   }
 
+  // opts handling
+  const sessionId = opts && opts.sessionId ? String(opts.sessionId) : null;
+  const inventoryDate = normalizeDateToYMD(opts && opts.date ? opts.date : null);
+  // origin: 'inventaire_session' si sessionId fourni, sinon 'inventaire' (compatibilité)
+  const originValue = sessionId ? 'inventaire_session' : 'inventaire';
+
   let resteADecremente = ecart;
+  // On utilise des batches. Attention aux limites Firestore - pour des gros volumes il faudrait chunker.
   const batch = writeBatch(db);
   const now = serverTimestamp();
 
   for (const lot of lots) {
     if (resteADecremente <= 0) break;
+    const lotPoids = Number(lot.poidsRestant || 0);
+    if (lotPoids <= 0) continue;
 
-    const reduction = Math.min(lot.poidsRestant, resteADecremente);
-    const newPoids = lot.poidsRestant - reduction;
+    const reduction = Math.min(lotPoids, resteADecremente);
+    const newPoids = lotPoids - reduction;
 
+    // mise à jour lot
     batch.update(doc(db, 'lots', lot.id), {
       poidsRestant: newPoids,
-      closed: newPoids <= 0 ? true : lot.closed,
+      closed: newPoids <= 0 ? true : (lot.closed || false),
       updatedAt: now
     });
 
-    const mouvementId = `${lot.id}__inv__${Date.now()}`;
+    // mouvement
+    const mouvementId = `${lot.id}__inv__${Date.now()}_${Math.floor(Math.random()*1000)}`;
     const mouvementRef = doc(db, 'stock_movements', mouvementId);
 
-    // enrichissements: prixAchatKg depuis le lot, pma calculé, salePriceTTC depuis stock_articles (pvTTCreel)
     const prixAchatKg = Number(lot.prixAchatKg || 0);
 
-    batch.set(mouvementRef, {
+    const mvObj = {
       type: 'inventory',
       sens: 'sortie',
       poids: reduction,
@@ -89,12 +147,25 @@ export async function applyInventory(plu, poidsReel, user) {
       pma: Number(pma || 0),
       salePriceTTC: pvTTCreel != null ? Number(pvTTCreel) : null,
       saleId: `INV_${mouvementId}`,
-      origin: 'inventaire'
-    });
+      origin: originValue,
+      sessionId: sessionId || null
+    };
+
+    // si on a une date d'inventaire on l'ajoute (format YYYY-MM-DD) pour que le dashboard puisse l'agréger par date
+    if (inventoryDate) {
+      mvObj.date = inventoryDate;
+    }
+
+    batch.set(mouvementRef, mvObj);
 
     resteADecremente -= reduction;
   }
 
   await batch.commit();
-  console.log(`📝 Inventaire appliqué pour PLU ${plu} (écart: ${ecart} kg)`);
+
+  console.log(`📝 Inventaire appliqué pour PLU ${plu} (écart: ${ecart} kg) - origin=${originValue} date=${inventoryDate || 'n/a'} sessionId=${sessionId || 'n/a'}`);
+
+  return { applied: true, ecart: ecart, origin: originValue, date: inventoryDate, sessionId };
 }
+
+export default { applyInventory };
