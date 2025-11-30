@@ -541,7 +541,12 @@ function afficherDonnees(d){
   el.tdStockFin.textContent = `${n2(d.stockFin||0)} €`;
   el.tdAchatsPeriode.textContent = `${n2(d.achatsPeriodeHT||0)} €`;
   el.tdAchatsConso.textContent = `${n2(d.achatsConsoHT||0)} €`;
-  el.tdCaTheo.textContent = `${n2(d.caTheo||0)} €`;
+  // on cache la ligne "CA théorique" (elle créait le doublon)
+  const caTheoCell = document.getElementById("caTheo");
+  if (caTheoCell && caTheoCell.closest && caTheoCell.closest("tr")) {
+    caTheoCell.closest("tr").style.display = "none";
+  }
+
   el.tdCaReel.textContent = `${n2(d.caReel||0)} €`;
 
   // vente théorique HT (depuis mouvements)
