@@ -209,7 +209,7 @@ async function createAddLotAndMovement(plu, qty, unitCost, sessionId, opts = {})
   await setDoc(doc(db, "lots", id), lotObj);
 
   const mvId = `${id}__add__${Date.now()}`;
-  await setDoc(doc(db, "stock_movements", mvId), {
+  const mvObj = {
     type: "inventory",
     sens: "entree",
     poids: qty,
@@ -223,7 +223,15 @@ async function createAddLotAndMovement(plu, qty, unitCost, sessionId, opts = {})
     saleId: `INV_${mvId}`,
     origin: "inventaire_session",
     sessionId
-  });
+  };
+
+  // ajouter date si fournie (format YYYY-MM-DD)
+  if (opts.date) {
+    const d = (typeof opts.date === 'string') ? opts.date : (new Date(opts.date)).toISOString().slice(0,10);
+    mvObj.date = d;
+  }
+
+  await setDoc(doc(db, "stock_movements", mvId), mvObj);
 
   await recomputeStockArticleFromLots(plu);
   return id;
@@ -475,12 +483,13 @@ btnValider.addEventListener("click", async () => {
       counted,
       ecart: counted - currentKg,
       user,
+      // use client ISO timestamp (serverTimestamp not allowed inside arrays)
       ts: new Date().toISOString()
     };
 
     if (counted < currentKg) {
-      // applyInventory expects (plu, poidsReel, user); it will create sorties FIFO
-      await applyInventory(item.plu, counted, user);
+      // applyInventory expects (plu, poidsReel, user, opts); pass date & sessionId so movements carry date/sessionId
+      await applyInventory(item.plu, counted, user, { date: dateInv, sessionId: window.currentInventorySessionId });
     } else if (counted > currentKg) {
       const diff = counted - currentKg;
       let unitCost = item.unitCost;
@@ -490,7 +499,7 @@ btnValider.addEventListener("click", async () => {
         lots.forEach(l => { totalKg += Number(l.poidsRestant || 0); totalAchat += Number(l.prixAchatKg || 0) * Number(l.poidsRestant || 0); });
         unitCost = totalKg > 0 ? (totalAchat / totalKg) : 0;
       }
-      await createAddLotAndMovement(item.plu, diff, unitCost, window.currentInventorySessionId, { user });
+      await createAddLotAndMovement(item.plu, diff, unitCost, window.currentInventorySessionId, { user, date: dateInv });
     } else {
       // equal -> nothing
     }
