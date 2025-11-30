@@ -475,7 +475,7 @@ btnValider.addEventListener("click", async () => {
       counted,
       ecart: counted - currentKg,
       user,
-      ts: serverTimestamp()
+      ts: new Date().toISOString()
     };
 
     if (counted < currentKg) {
