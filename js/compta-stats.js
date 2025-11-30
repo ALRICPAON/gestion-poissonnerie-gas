@@ -1,157 +1,95 @@
-// js/compta-stats.js (VERSION FINALE — prêt à coller)
-// Génère des stats avancées : CA / coûts / marges par article & fournisseur,
-// top lists, rotation de stock, pertes, séries journalières, export CSV.
-
+// js/compta-stats.js (VERSION UI + CALCUL) - coller entièrement
 import { db } from "./firebase-init.js";
 import {
   collection, getDocs, query, where, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/* ------------------------------------------------------------------
-   UTILS
--------------------------------------------------------------------*/
-const fmt = n => Number(n || 0).toFixed(2) + " €";
-function toNum(v){ const n = Number(v||0); return isFinite(n)? n: 0; }
+/* ---------------- UTILS ---------------- */
+const fmt = n => Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + " €";
+const toNum = v => { const n = Number(v||0); return isFinite(n)? n : 0; };
 const d2 = d => (d instanceof Date ? d.toISOString().slice(0,10) : String(d||""));
 
-/* ------------------------------------------------------------------
-   1) LOAD CA RÉEL (compta_journal)
--------------------------------------------------------------------*/
+/* ---------------- DATA LOADERS (recyclés) ---------------- */
 async function loadCA(from, to) {
+  const col = collection(db, "compta_journal");
   try {
-    const col = collection(db, "compta_journal");
-    const qy = query(col, where("date", ">=", from), where("date", "<=", to));
-    const snap = await getDocs(qy);
-    let totalCA = 0;
-    snap.forEach(d => { totalCA += toNum(d.data().caReel || 0); });
-    console.log("💰 Total CA (compta_journal) =", totalCA);
-    return totalCA;
+    const q = query(col, where("date", ">=", from), where("date", "<=", to));
+    const snap = await getDocs(q);
+    let total = 0;
+    snap.forEach(d => total += toNum(d.data().caReel || 0));
+    return total;
   } catch(e) {
-    console.warn("Erreur loadCA:", e);
+    console.warn("loadCA error", e);
     return 0;
   }
 }
 
-/* ------------------------------------------------------------------
-   2) LOAD ventes_reelles (détail par jour)
-   - retourne { totalVentes, ventesEAN }
--------------------------------------------------------------------*/
 async function loadVentesReelles(from, to) {
   const start = new Date(from + "T00:00:00");
   const end = new Date(to + "T23:59:59");
   const oneDay = 24*3600*1000;
-
   let totalVentes = 0;
   const ventesEAN = {};
-
   for(let t = start.getTime(); t <= end.getTime(); t += oneDay){
     const dateStr = new Date(t).toISOString().slice(0,10);
     try {
       const snap = await getDoc(doc(db, "ventes_reelles", dateStr));
       if(!snap.exists()) continue;
       const o = snap.data();
-      if(o.caHT) {
-        totalVentes += toNum(o.caHT);
-      } else if(o.ventes && typeof o.ventes === "object") {
+      if(o.caHT) totalVentes += toNum(o.caHT);
+      else if(o.ventes && typeof o.ventes === "object") {
         for(const e in o.ventes){ ventesEAN[e] = (ventesEAN[e]||0) + toNum(o.ventes[e]); totalVentes += toNum(o.ventes[e]); }
       } else if(o.ventesEAN && typeof o.ventesEAN === "object"){
         for(const e in o.ventesEAN){ ventesEAN[e] = (ventesEAN[e]||0) + toNum(o.ventesEAN[e]); totalVentes += toNum(o.ventesEAN[e]); }
-      } else if(o.totalCA) {
-        totalVentes += toNum(o.totalCA);
-      } else if(o.caTTC) {
-        totalVentes += toNum(o.caTTC);
-      }
-    } catch(e){
-      console.warn("Erreur loadVentesReelles pour", dateStr, e);
-    }
+      } else if(o.totalCA) totalVentes += toNum(o.totalCA);
+      else if(o.caTTC) totalVentes += toNum(o.caTTC);
+    } catch(e){ console.warn("loadVentesReelles err", e); }
   }
-  console.log("📈 ventes_reelles total:", totalVentes, "EAN entries:", Object.keys(ventesEAN).length);
   return { totalVentes, ventesEAN };
 }
 
-/* ------------------------------------------------------------------
-   3) LOAD MOUVEMENTS (stock_movements) : sorties utiles
-   - Exclut transformations & corrections (internes)
-   - Inclut inventory/inventaire si nécessaire
--------------------------------------------------------------------*/
 async function loadMouvements(from, to) {
-  console.log("📥 Load MOVEMENTS from stock_movements (filtered for sales-like)...");
   const start = new Date(from + "T00:00:00");
-  const end   = new Date(to   + "T23:59:59");
-
+  const end = new Date(to + "T23:59:59");
   const col = collection(db, "stock_movements");
   let q;
-  try {
-    q = query(col, where("createdAt", ">=", start), where("createdAt", "<=", end));
-  } catch(e) {
-    // fallback : récupérer tout et filtrer client-side si index manquant
-    q = collection(db, "stock_movements");
-  }
-
+  try { q = query(col, where("createdAt", ">=", start), where("createdAt", "<=", end)); }
+  catch(e){ q = collection(db, "stock_movements"); }
   const snap = await getDocs(q);
   const list = [];
-  const stats = {};
   snap.forEach(d => {
     const m = d.data();
     const sens = (m.sens || "").toString().toLowerCase();
     let type = (m.type || "").toString().toLowerCase();
-    // accepter "inventaire" ou "inventory"
     if (!type && m.origin) type = (m.origin || "").toString().toLowerCase();
     if (sens !== "sortie") return;
-
-    // Exclure transformations (internes) et corrections
     if (type === "transformation" || type === "correction") return;
-
-    // on inclut inventory/inventaire
     if (!m.poids && !m.quantity) return;
     const poids = Number(m.poids ?? m.quantity ?? 0);
     if (poids === 0) return;
-
     list.push(m);
-    const key = `${sens}|${type||"undefined"}`;
-    stats[key] = (stats[key]||0) + 1;
   });
-
-  console.log("📦 mouvements retenus (sortie, exclu transformation/correction) :", stats, "→ total:", list.length);
   return list;
 }
 
-/* ------------------------------------------------------------------
-   4) LOAD LOTS & ACHATS
--------------------------------------------------------------------*/
 async function loadLots() {
-  const col = collection(db, "lots");
-  const snap = await getDocs(col);
-  const lots = {};
-  snap.forEach(d => lots[d.id] = d.data());
-  console.log("📥 LOTS chargés :", Object.keys(lots).length);
-  return lots;
+  const snap = await getDocs(collection(db, "lots"));
+  const out = {};
+  snap.forEach(d => out[d.id] = d.data());
+  return out;
 }
 
 async function loadAchats() {
-  const col = collection(db, "achats");
-  const snap = await getDocs(col);
-  const achats = {};
-  snap.forEach(d => achats[d.id] = d.data());
-  console.log("📥 ACHATS chargés :", Object.keys(achats).length);
-  return achats;
+  const snap = await getDocs(collection(db, "achats"));
+  const out = {};
+  snap.forEach(d => out[d.id] = d.data());
+  return out;
 }
 
-/* ------------------------------------------------------------------
-   5) CALCUL STATISTIQUES (PRÉCIS)
--------------------------------------------------------------------*/
+/* ---------------- CORE STATS (copié et simplifié) ---------------- */
 async function calculStats(from, to) {
-  console.log("🚀 DÉBUT CALCUL STATS (précis par article/fournisseur)", from, to);
-
-  const [
-    ca,
-    ventesObj,
-    mouvements,
-    lots,
-    achats,
-    articlesSnap,
-    stockArticlesSnap
-  ] = await Promise.all([
+  // charge tout
+  const [ca, ventesObj, mouvements, lots, achats, articlesSnap, stockArticlesSnap] = await Promise.all([
     loadCA(from, to),
     loadVentesReelles(from, to),
     loadMouvements(from, to),
@@ -164,18 +102,17 @@ async function calculStats(from, to) {
   const ventesEAN = ventesObj.ventesEAN || {};
   const ventesTotal = ventesObj.totalVentes || 0;
 
-  // map EAN -> PLU
+  // ean -> plu map
   const eanToPlu = {};
   articlesSnap.forEach(d => {
     const A = d.data();
-    if (A.ean) eanToPlu[String(A.ean)] = d.id;
+    if (A && A.ean) eanToPlu[String(A.ean)] = d.id;
   });
-
   // stock_articles map
   const stockArticles = {};
   stockArticlesSnap.forEach(d => stockArticles[d.id] = d.data());
 
-  // 1) Agrégation mouvements -> per PLU
+  // per PLU
   const perPlu = {};
   for (const m of mouvements) {
     const lot = lots[m.lotId];
@@ -185,48 +122,40 @@ async function calculStats(from, to) {
     const poids = toNum(m.poids ?? m.quantity ?? 0);
     const cost = prixKg * poids;
 
-    if (!perPlu[plu]) perPlu[plu] = { kgSold: 0, cost: 0, movements: [], designation: lot.designation || "" };
+    if (!perPlu[plu]) perPlu[plu] = { kgSold:0, cost:0, movements:[], designation: lot.designation || "" };
     perPlu[plu].kgSold += poids;
     perPlu[plu].cost += cost;
 
     const achat = achats[lot.achatId] || {};
     const fournisseur = achat.fournisseurNom || achat.fournisseur || "INCONNU";
-
-    const md = { m, lot, plu, poids, cost, fournisseur };
-    perPlu[plu].movements.push(md);
+    perPlu[plu].movements.push({ m, lot, plu, poids, cost, fournisseur });
   }
 
-  // 2) CA par PLU (priorise ventes_reelles)
+  // CA per PLU
   const caParPlu = {};
   const eanKeys = Object.keys(ventesEAN);
-  if (eanKeys.length > 0) {
+  if (eanKeys.length) {
     for (const e of eanKeys) {
       const plu = eanToPlu[e];
       const caE = toNum(ventesEAN[e]);
-      if (plu) {
-        caParPlu[plu] = (caParPlu[plu] || 0) + caE;
-      } else {
-        console.warn("EAN sans mapping PLU :", e, "CA:", caE);
-      }
+      if (plu) caParPlu[plu] = (caParPlu[plu]||0) + caE;
+      else console.warn("EAN sans mapping PLU:", e, caE);
     }
   }
 
   // fallback pvTTCreel * kgSold
   for (const plu in perPlu) {
     if (!caParPlu[plu]) {
-      const id1 = "PLU_" + String(plu);
+      const id1 = "PLU_"+String(plu);
       const sa = stockArticles[id1] || stockArticles[plu] || {};
       let pv = toNum(sa.pvTTCreel || sa.pvTTCconseille || sa.pvTTC || 0);
-      if (!pv) {
-        console.warn("pvTTCreel manquant pour PLU", plu, "-> CA estimée 0");
-        pv = 0;
-      }
+      if (!pv) { console.warn("pvTTCreel manquant pour PLU", plu); pv = 0; }
       caParPlu[plu] = pv * perPlu[plu].kgSold;
     }
   }
 
-  // 3) Allouer CA aux mouvements (par coût)
-  const perSupplier = {}; // fournisseur -> { cost, revenue }
+  // allocate CA to movements, aggregate per supplier
+  const perSupplier = {};
   for (const plu in perPlu) {
     const bucket = perPlu[plu];
     const totalCost = bucket.cost;
@@ -258,7 +187,7 @@ async function calculStats(from, to) {
     }
   }
 
-  // 4) Calculs finaux
+  // final objects
   const statsArticles = {};
   for (const plu in perPlu) {
     const bucket = perPlu[plu];
@@ -291,7 +220,7 @@ async function calculStats(from, to) {
   const achatsConso = Object.values(perPlu).reduce((s,b)=>s + toNum(b.cost), 0);
   const margeTotale = ca - achatsConso;
 
-  const final = {
+  return {
     ca,
     ventesTotal,
     achats: achatsConso,
@@ -299,178 +228,230 @@ async function calculStats(from, to) {
     fournisseurs: statsFournisseurs,
     articles: statsArticles
   };
-
-  console.log("✅ calculStats terminé :", { ca: final.ca, achats: final.achats, marge: final.marge });
-  return final;
 }
 
-/* ---------------- Advanced stats wrapper ---------------- */
-/**
- * buildAdvancedStats(from, to, opts)
- * from,to : 'YYYY-MM-DD' strings
- * opts: { topN: number }
- */
+/* ---------------- Advanced wrapper + UI render ---------------- */
 async function buildAdvancedStats(from, to, opts = {}) {
   const topN = opts.topN || 10;
-
-  // 1) base
   const base = await calculStats(from, to);
-
-  // 2) top lists
+  // derive lists
   const articlesArr = Object.keys(base.articles || {}).map(plu => {
     const a = base.articles[plu];
-    return {
-      plu,
-      designation: a.designation || "",
-      kgSold: toNum(a.kgSold || 0),
-      cost: toNum(a.cost || 0),
-      ca: toNum(a.ca || 0),
-      marge: toNum(a.marge || 0),
-      margePct: toNum(a.margePct || 0)
-    };
+    return { plu, designation: a.designation, kgSold: a.kgSold, cost: a.cost, ca: a.ca, marge: a.marge, margePct: a.margePct };
   });
-
   const topByCA = articlesArr.slice().sort((a,b)=>b.ca - a.ca).slice(0, topN);
   const topByMarge = articlesArr.slice().sort((a,b)=>b.marge - a.marge).slice(0, topN);
   const topByMargePct = articlesArr.slice().sort((a,b)=>b.margePct - a.margePct).slice(0, topN);
   const topByKg = articlesArr.slice().sort((a,b)=>b.kgSold - a.kgSold).slice(0, topN);
 
-  // 3) fournisseurs
   const fournisseursArr = Object.keys(base.fournisseurs || {}).map(f => {
     const v = base.fournisseurs[f];
-    return {
-      fournisseur: f,
-      achats: toNum(v.achats || 0),
-      ca: toNum(v.ca || 0),
-      marge: toNum(v.marge || 0),
-      margePct: toNum(v.margePct || 0)
-    };
-  }).sort((a,b)=>b.ca - a.ca);
+    return { fournisseur: f, achats: v.achats, ca: v.ca, marge: v.marge, margePct: v.margePct };
+  }).sort((a,b)=>b.ca - a.ca).slice(0, topN);
 
-  // 4) rotation / stock moyen
-  async function loadJournalInventaires(){
-    const s = [];
-    const snap = await getDocs(collection(db, "journal_inventaires"));
-    snap.forEach(d => {
-      const r = d.data();
-      const dateStr = r.date || d.id;
-      const dt = new Date(dateStr);
-      if(isFinite(dt)) s.push({ date: dt, valeur: toNum(r.valeurStockHT||0) });
-    });
-    s.sort((a,b)=>a.date-b.date);
-    return s;
-  }
-
-  function pickStocksFromJournal(invs, startDate, endDate) {
-    let stockDebut = 0, stockFin = 0;
-    const beforeStart = invs.filter(x=>x.date < startDate);
-    if (beforeStart.length) stockDebut = beforeStart[beforeStart.length-1].valeur;
-    const beforeEnd = invs.filter(x=>x.date <= endDate);
-    if (beforeEnd.length) stockFin = beforeEnd[beforeEnd.length-1].valeur;
-    return { stockDebut, stockFin };
-  }
-
-  const invs = await loadJournalInventaires();
-  const startDate = new Date(from + "T00:00:00");
-  const endDate = new Date(to + "T23:59:59");
-  let { stockDebut, stockFin } = pickStocksFromJournal(invs, startDate, endDate);
-
-  // fallback from lots
-  if ((toNum(stockDebut) === 0 && toNum(stockFin) === 0)) {
-    const lotsSnap = await getDocs(collection(db, "lots"));
-    let stockVal = 0;
-    lotsSnap.forEach(d => {
-      const l = d.data();
-      const kg = toNum(l.poidsRestant || l.poids || 0);
-      const prix = toNum(l.prixAchatKg || 0);
-      stockVal += kg * prix;
-    });
-    stockFin = stockVal;
-    const achatsPeriode = toNum(base.achats || 0);
-    const achatsConso = toNum(base.achats || 0);
-    stockDebut = stockFin - achatsPeriode + achatsConso;
-  }
-
-  const stockMoyen = (toNum(stockDebut) + toNum(stockFin)) / 2;
-  const cogs = toNum(base.achats || 0);
-  const nbDays = Math.max(1, Math.round((endDate - startDate) / (24*3600*1000)) + 1);
-  const rotation = stockMoyen > 0 ? (cogs / stockMoyen) : 0;
-  const daysToTurn = (cogs > 0 && rotation>0) ? (nbDays / rotation) : 0;
-
-  // 5) pertes / écarts
-  let losses = 0;
-  try {
-    const movSnap = await getDocs(query(collection(db, "stock_movements"), where("createdAt", ">=", startDate), where("createdAt", "<=", endDate)));
-    movSnap.forEach(d=>{
-      const m = d.data();
-      const t = (m.type || "").toString().toLowerCase();
-      if (t.includes("inventory") || t.includes("adjust") || t.includes("correction")) {
-        const qty = Math.abs(toNum(m.poids ?? m.quantity ?? 0));
-        let cost = 0;
-        if (m.costValue) cost = toNum(m.costValue);
-        else if (m.montantHT) cost = toNum(m.montantHT);
-        else cost = toNum(m.prixAchatKg || m.pma || 0) * qty;
-        losses += cost;
-      }
-    });
-  } catch(e) {
-    console.warn("Erreur calcul pertes:", e);
-  }
-
-  // 6) joursSeries depuis compta_journal
-  const joursSeries = [];
-  try {
-    const journalSnap = await getDocs(collection(db, "compta_journal"));
-    journalSnap.forEach(d=>{
-      const r = d.data();
-      const dt = new Date(r.date || d.id);
-      if (dt >= startDate && dt <= endDate) {
-        joursSeries.push({ date: r.date || d.id, ca: toNum(r.caReel||0), achatsConso: toNum(r.achatsConsoHT||0), marge: toNum(r.marge||0) });
-      }
-    });
-  } catch(e){ /* ignore */ }
-
-  const report = {
-    period: { from, to, nbDays },
-    summary: {
-      ca: toNum(base.ca || 0),
-      ventesTotal: toNum(base.ventesTotal || 0),
-      achatsConso: cogs,
-      marge: toNum(base.marge || 0),
-      margePct: (toNum(base.ca)||0) > 0 ? (toNum(base.marge) / toNum(base.ca) * 100) : 0
-    },
-    stock: { stockDebut: toNum(stockDebut), stockFin: toNum(stockFin), stockMoyen: toNum(stockMoyen), rotation, daysToTurn },
-    losses: toNum(losses),
+  return {
+    period: { from, to },
+    summary: { ca: toNum(base.ca), achats: toNum(base.achats), marge: toNum(base.marge) },
     top: { topByCA, topByMarge, topByMargePct, topByKg },
     articles: articlesArr,
-    fournisseurs: fournisseursArr,
-    joursSeries
+    fournisseurs: fournisseursArr
   };
-
-  return report;
 }
 
-/* ---------------- Export util ---------------- */
-function exportToCSV(rows, filename = "export.csv") {
-  if (!rows || !rows.length) return;
+/* ---------------- UI helpers ---------------- */
+let chartF = null, chartA = null;
+
+function clearElement(el) { while(el.firstChild) el.removeChild(el.firstChild); }
+
+function renderSummary(summary) {
+  document.getElementById('resume-ca').textContent = fmt(summary.ca);
+  document.getElementById('resume-achats').textContent = fmt(summary.achats);
+  document.getElementById('resume-marge').textContent = fmt(summary.marge);
+}
+
+function renderFournisseursTable(list) {
+  const tbody = document.getElementById('table-fournisseurs');
+  clearElement(tbody);
+  list.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(row.fournisseur)}</td>
+      <td>${fmt(row.ca)}</td><td>${fmt(row.achats)}</td><td>${fmt(row.marge)}</td><td>${Number(row.margePct||0).toFixed(1)}%</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderArticlesTable(list) {
+  const tbody = document.getElementById('table-articles');
+  clearElement(tbody);
+  list.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(row.plu)}</td>
+      <td>${escapeHtml(row.designation||"")}</td>
+      <td>${fmt(row.ca)}</td><td>${fmt(row.cost)}</td><td>${fmt(row.marge)}</td><td>${Number(row.margePct||0).toFixed(1)}%</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCharts(topByCA, topByMarge) {
+  // Fournisseurs chart: topByMarge
+  try {
+    const ctxF = document.getElementById('chartFournisseurs').getContext('2d');
+    if (chartF) chartF.destroy();
+    chartF = new Chart(ctxF, {
+      type: 'bar',
+      data: {
+        labels: topByMarge.map(r => r.fournisseur),
+        datasets: [{
+          label: 'Marge €',
+          data: topByMarge.map(r => r.marge),
+          backgroundColor: '#3b82f6'
+        }]
+      },
+      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
+    });
+  } catch(e){ console.warn(e); }
+
+  // Articles chart: topByCA
+  try {
+    const ctxA = document.getElementById('chartArticles').getContext('2d');
+    if (chartA) chartA.destroy();
+    chartA = new Chart(ctxA, {
+      type: 'bar',
+      data: {
+        labels: topByCA.map(r => r.plu + " " + (r.designation||"")),
+        datasets: [{
+          label: 'CA',
+          data: topByCA.map(r => r.ca),
+          backgroundColor: '#10b981'
+        }]
+      },
+      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
+    });
+  } catch(e){ console.warn(e); }
+}
+
+function escapeHtml(s){ if(s==null) return ""; return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+/* ---------------- EXPORT util ---------------- */
+function exportToCSV(rows, filename="export.csv") {
+  if (!rows || !rows.length) return alert("Rien à exporter");
   const cols = Object.keys(rows[0]);
   const lines = [cols.join(",")];
-  rows.forEach(r => {
-    lines.push(cols.map(c => `"${String(r[c]===undefined ? "" : r[c]).replace(/"/g,'""')}"`).join(","));
-  });
+  rows.forEach(r => lines.push(cols.map(c => `"${String(r[c]===undefined ? "" : r[c]).replace(/"/g,'""')}"`).join(",")));
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
 }
 
-/* ---------------- Expose functions for console / UI ---------------- */
-try {
-  window.calculStats = calculStats;
-  window.buildAdvancedStats = buildAdvancedStats;
-  window.exportToCSV = exportToCSV;
-  console.log("compta-stats: functions exposed on window (calculStats / buildAdvancedStats / exportToCSV)");
-} catch(e) {
-  console.warn("compta-stats: unable to expose globals:", e);
+/* ---------------- UI Wiring ---------------- */
+function setDefaultDates() {
+  const now = new Date();
+  const fromEl = document.getElementById('dateFrom');
+  const toEl = document.getElementById('dateTo');
+  // default to current month
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  fromEl.value = d2(start);
+  toEl.value = d2(end);
 }
+
+function setPeriod(mode) {
+  const now = new Date();
+  let start, end;
+  if (mode === "day") { start = new Date(now); start.setHours(0,0,0,0); end = new Date(start); }
+  else if (mode === "week") {
+    const day = (now.getDay()+6)%7; // 0 = Monday
+    start = new Date(now); start.setDate(now.getDate()-day); start.setHours(0,0,0,0);
+    end = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
+  } else if (mode === "month") {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    end = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  } else if (mode === "year") {
+    start = new Date(now.getFullYear(), 0, 1);
+    end = new Date(now.getFullYear(), 11, 31);
+  }
+  document.getElementById('dateFrom').value = d2(start);
+  document.getElementById('dateTo').value = d2(end);
+}
+
+async function loadAndRender() {
+  const status = document.getElementById('status');
+  try {
+    const from = document.getElementById('dateFrom').value;
+    const to = document.getElementById('dateTo').value;
+    const topN = Number(document.getElementById('topN').value) || 10;
+    status.textContent = `Chargement ${from} → ${to} ...`;
+    const report = await buildAdvancedStats(from, to, { topN });
+    // render
+    renderSummary(report.summary);
+    renderFournisseursTable(report.fournisseurs);
+    renderArticlesTable(report.top.topByCA); // show topByCA by default in articles table
+    renderCharts(report.top.topByCA, report.fournisseurs);
+    // store last
+    window.__LAST_STATS_REPORT = report;
+    status.textContent = `OK — données chargées (${from} → ${to})`;
+  } catch(e) {
+    console.error(e);
+    status.textContent = `Erreur : ${e && e.message ? e.message : String(e)}`;
+  }
+}
+
+/* ---------------- Attach events ---------------- */
+function attachEvents() {
+  // period buttons
+  document.querySelectorAll('[data-period]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      document.querySelectorAll('[data-period]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      setPeriod(btn.dataset.period);
+    });
+  });
+
+  document.getElementById('btnLoad').addEventListener('click', loadAndRender);
+  document.getElementById('btnExportCSV').addEventListener('click', ()=>{
+    const r = window.__LAST_STATS_REPORT;
+    if (!r) return alert("Charge d'abord les stats.");
+    exportToCSV(r.top.topByCA, `topByCA_${r.period.from}_${r.period.to}.csv`);
+  });
+
+  // search fournisseur
+  document.getElementById('searchF').addEventListener('input', (e)=>{
+    const q = (e.target.value || "").toLowerCase().trim();
+    const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.fournisseurs) || [];
+    const filtered = data.filter(x => x.fournisseur.toLowerCase().includes(q));
+    renderFournisseursTable(filtered);
+  });
+
+  // search articles
+  document.getElementById('searchA').addEventListener('input', (e)=>{
+    const q = (e.target.value || "").toLowerCase().trim();
+    const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.articles) || [];
+    const filtered = data.filter(x => (String(x.plu) + " " + (x.designation||"")).toLowerCase().includes(q));
+    // show top filtered by CA
+    const sorted = filtered.sort((a,b)=>b.ca - a.ca).slice(0, Number(document.getElementById('topN').value || 10));
+    renderArticlesTable(sorted);
+    renderCharts(sorted, (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.fournisseurs) || []);
+  });
+
+  document.getElementById('btnExportFournisseurs').addEventListener('click', ()=>{
+    const r = window.__LAST_STATS_REPORT;
+    if (!r) return alert("Charge d'abord les stats.");
+    exportToCSV(r.fournisseurs, `fournisseurs_${r.period.from}_${r.period.to}.csv`);
+  });
+  document.getElementById('btnExportArticles').addEventListener('click', ()=>{
+    const r = window.__LAST_STATS_REPORT;
+    if (!r) return alert("Charge d'abord les stats.");
+    exportToCSV(r.top.topByCA, `articles_${r.period.from}_${r.period.to}.csv`);
+  });
+}
+
+/* ---------------- Init ---------------- */
+(function init(){
+  setDefaultDates();
+  attachEvents();
+  // try initial load quietly
+  // loadAndRender(); // disabled auto load to avoid heavy queries on page open
+  // expose for console
+  try { window.buildAdvancedStats = buildAdvancedStats; window.calculStats = calculStats; window.exportToCSV = exportToCSV; } catch(e){}
+})();
+
+export { buildAdvancedStats, calculStats, exportToCSV };
