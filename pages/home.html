@@ -84,5 +84,39 @@
   <script>
     window.addEventListener('DOMContentLoaded', () => { window.__requireAuth && window.__requireAuth(); });
   </script>
+  <script type="module">
+  // adapter le chemin selon l'emplacement du fichier (ici la page est dans /pages/)
+  import { auth, db } from '../js/firebase-init.js';
+  import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+  import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+  const adminCard = document.getElementById('admin-card');
+  // sécurité : si l'élément n'existe pas, on stoppe
+  if (!adminCard) {
+    console.warn('admin-card non trouvé dans la page');
+  } else {
+    // Écoute l'état d'auth
+    onAuthStateChanged(auth, async (user) => {
+      try {
+        if (!user) {
+          // non connecté → masquer
+          adminCard.style.display = 'none';
+          return;
+        }
+        // Récupère le doc app_users/{uid}
+        const snap = await getDoc(doc(db, 'app_users', user.uid));
+        if (snap.exists() && snap.data()?.role === 'admin') {
+          adminCard.style.display = 'block';
+        } else {
+          adminCard.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Erreur vérif admin:', err);
+        adminCard.style.display = 'none';
+      }
+    });
+  }
+</script>
+
 </body>
 </html>
