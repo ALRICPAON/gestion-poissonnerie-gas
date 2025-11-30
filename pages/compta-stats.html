@@ -14,7 +14,6 @@
     table { width:100%; border-collapse:collapse; margin-bottom:18px; }
     table th, table td { text-align:left; padding:8px; border-bottom:1px solid #eee; }
     .btn-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-    .small-muted { font-size:13px; color:#666; margin-top:6px; }
     .chart-wrap { max-width:100%; margin-bottom:12px; }
     .top-actions { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
   </style>
@@ -114,6 +113,26 @@
       <tr><th>PLU</th><th>Désignation</th><th>CA</th><th>Achats</th><th>Marge €</th><th>Marge %</th></tr>
     </thead>
     <tbody id="table-articles"></tbody>
+  </table>
+</section>
+
+<!-- ARTICLES PAR POIDS -->
+<section>
+  <h2>Top Articles (volume vendu — kg)</h2>
+  <div class="top-actions">
+    <input class="search-input" id="searchAWeight" placeholder="🔍 Rechercher PLU ou désignation...">
+    <button class="btn btn-muted" id="btnExportArticlesWeight">⬇ Export articles (kg)</button>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="chartArticlesWeight" height="120"></canvas>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>PLU</th><th>Désignation</th><th>Kg vendus</th><th>CA</th><th>Achats</th></tr>
+    </thead>
+    <tbody id="table-articles-weight"></tbody>
   </table>
 </section>
 
