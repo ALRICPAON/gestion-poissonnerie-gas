@@ -1,4 +1,6 @@
-// js/compta-stats.js (VERSION UI + CALCUL) - coller entièrement
+// js/compta-stats.js (VERSION UI + POIDS)
+// Calculs + UI : CA, marges, top articles, et top articles par poids (kg).
+
 import { db } from "./firebase-init.js";
 import {
   collection, getDocs, query, where, doc, getDoc
@@ -9,10 +11,10 @@ const fmt = n => Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits:
 const toNum = v => { const n = Number(v||0); return isFinite(n)? n : 0; };
 const d2 = d => (d instanceof Date ? d.toISOString().slice(0,10) : String(d||""));
 
-/* ---------------- DATA LOADERS (recyclés) ---------------- */
+/* ---------------- DATA LOADERS ---------------- */
 async function loadCA(from, to) {
-  const col = collection(db, "compta_journal");
   try {
+    const col = collection(db, "compta_journal");
     const q = query(col, where("date", ">=", from), where("date", "<=", to));
     const snap = await getDocs(q);
     let total = 0;
@@ -54,7 +56,7 @@ async function loadMouvements(from, to) {
   const col = collection(db, "stock_movements");
   let q;
   try { q = query(col, where("createdAt", ">=", start), where("createdAt", "<=", end)); }
-  catch(e){ q = collection(db, "stock_movements"); }
+  catch(e) { q = collection(db, "stock_movements"); }
   const snap = await getDocs(q);
   const list = [];
   snap.forEach(d => {
@@ -86,9 +88,8 @@ async function loadAchats() {
   return out;
 }
 
-/* ---------------- CORE STATS (copié et simplifié) ---------------- */
+/* ---------------- CORE STATS ---------------- */
 async function calculStats(from, to) {
-  // charge tout
   const [ca, ventesObj, mouvements, lots, achats, articlesSnap, stockArticlesSnap] = await Promise.all([
     loadCA(from, to),
     loadVentesReelles(from, to),
@@ -102,17 +103,15 @@ async function calculStats(from, to) {
   const ventesEAN = ventesObj.ventesEAN || {};
   const ventesTotal = ventesObj.totalVentes || 0;
 
-  // ean -> plu map
+  // ean -> plu
   const eanToPlu = {};
-  articlesSnap.forEach(d => {
-    const A = d.data();
-    if (A && A.ean) eanToPlu[String(A.ean)] = d.id;
-  });
+  articlesSnap.forEach(d => { const A = d.data(); if (A && A.ean) eanToPlu[String(A.ean)] = d.id; });
+
   // stock_articles map
   const stockArticles = {};
   stockArticlesSnap.forEach(d => stockArticles[d.id] = d.data());
 
-  // per PLU
+  // per PLU (kg, cost, movements)
   const perPlu = {};
   for (const m of mouvements) {
     const lot = lots[m.lotId];
@@ -230,15 +229,16 @@ async function calculStats(from, to) {
   };
 }
 
-/* ---------------- Advanced wrapper + UI render ---------------- */
+/* ---------------- Advanced wrapper + UI ---------------- */
 async function buildAdvancedStats(from, to, opts = {}) {
   const topN = opts.topN || 10;
   const base = await calculStats(from, to);
-  // derive lists
+
   const articlesArr = Object.keys(base.articles || {}).map(plu => {
     const a = base.articles[plu];
     return { plu, designation: a.designation, kgSold: a.kgSold, cost: a.cost, ca: a.ca, marge: a.marge, margePct: a.margePct };
   });
+
   const topByCA = articlesArr.slice().sort((a,b)=>b.ca - a.ca).slice(0, topN);
   const topByMarge = articlesArr.slice().sort((a,b)=>b.marge - a.marge).slice(0, topN);
   const topByMargePct = articlesArr.slice().sort((a,b)=>b.margePct - a.margePct).slice(0, topN);
@@ -259,7 +259,7 @@ async function buildAdvancedStats(from, to, opts = {}) {
 }
 
 /* ---------------- UI helpers ---------------- */
-let chartF = null, chartA = null;
+let chartF = null, chartA = null, chartAW = null;
 
 function clearElement(el) { while(el.firstChild) el.removeChild(el.firstChild); }
 
@@ -292,38 +292,58 @@ function renderArticlesTable(list) {
   });
 }
 
-function renderCharts(topByCA, topByMarge) {
-  // Fournisseurs chart: topByMarge
+function renderArticlesWeightTable(list) {
+  const tbody = document.getElementById('table-articles-weight');
+  clearElement(tbody);
+  list.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(row.plu)}</td>
+      <td>${escapeHtml(row.designation||"")}</td>
+      <td>${Number(row.kgSold||0).toFixed(2)} kg</td>
+      <td>${fmt(row.ca)}</td><td>${fmt(row.cost)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCharts(topByCA, fournisseurs) {
+  // Fournisseurs chart: use fournisseurs (marge)
   try {
     const ctxF = document.getElementById('chartFournisseurs').getContext('2d');
     if (chartF) chartF.destroy();
     chartF = new Chart(ctxF, {
       type: 'bar',
       data: {
-        labels: topByMarge.map(r => r.fournisseur),
-        datasets: [{
-          label: 'Marge €',
-          data: topByMarge.map(r => r.marge),
-          backgroundColor: '#3b82f6'
-        }]
+        labels: fournisseurs.map(r => r.fournisseur),
+        datasets: [{ label: 'Marge €', data: fournisseurs.map(r => r.marge), backgroundColor: '#3b82f6' }]
       },
       options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
     });
   } catch(e){ console.warn(e); }
 
-  // Articles chart: topByCA
+  // Articles chart: CA
   try {
     const ctxA = document.getElementById('chartArticles').getContext('2d');
     if (chartA) chartA.destroy();
     chartA = new Chart(ctxA, {
       type: 'bar',
       data: {
-        labels: topByCA.map(r => r.plu + " " + (r.designation||"")),
-        datasets: [{
-          label: 'CA',
-          data: topByCA.map(r => r.ca),
-          backgroundColor: '#10b981'
-        }]
+        labels: topByCA.map(r => String(r.plu) + " " + (r.designation||"")),
+        datasets: [{ label: 'CA', data: topByCA.map(r => r.ca), backgroundColor: '#10b981' }]
+      },
+      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
+    });
+  } catch(e){ console.warn(e); }
+}
+
+function renderArticlesWeightChart(topByKg) {
+  try {
+    const ctx = document.getElementById('chartArticlesWeight').getContext('2d');
+    if (chartAW) chartAW.destroy();
+    chartAW = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: topByKg.map(r => String(r.plu) + (r.designation ? " " + r.designation : "")),
+        datasets: [{ label: 'Kg vendus', data: topByKg.map(r => Number(r.kgSold||0)), backgroundColor: '#f59e0b' }]
       },
       options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{beginAtZero:true} } }
     });
@@ -345,13 +365,10 @@ function exportToCSV(rows, filename="export.csv") {
 /* ---------------- UI Wiring ---------------- */
 function setDefaultDates() {
   const now = new Date();
-  const fromEl = document.getElementById('dateFrom');
-  const toEl = document.getElementById('dateTo');
-  // default to current month
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const end = new Date(now.getFullYear(), now.getMonth()+1, 0);
-  fromEl.value = d2(start);
-  toEl.value = d2(end);
+  document.getElementById('dateFrom').value = d2(start);
+  document.getElementById('dateTo').value = d2(end);
 }
 
 function setPeriod(mode) {
@@ -359,7 +376,7 @@ function setPeriod(mode) {
   let start, end;
   if (mode === "day") { start = new Date(now); start.setHours(0,0,0,0); end = new Date(start); }
   else if (mode === "week") {
-    const day = (now.getDay()+6)%7; // 0 = Monday
+    const day = (now.getDay()+6)%7;
     start = new Date(now); start.setDate(now.getDate()-day); start.setHours(0,0,0,0);
     end = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
   } else if (mode === "month") {
@@ -381,12 +398,12 @@ async function loadAndRender() {
     const topN = Number(document.getElementById('topN').value) || 10;
     status.textContent = `Chargement ${from} → ${to} ...`;
     const report = await buildAdvancedStats(from, to, { topN });
-    // render
     renderSummary(report.summary);
     renderFournisseursTable(report.fournisseurs);
-    renderArticlesTable(report.top.topByCA); // show topByCA by default in articles table
+    renderArticlesTable(report.top.topByCA);
+    renderArticlesWeightTable(report.top.topByKg);
     renderCharts(report.top.topByCA, report.fournisseurs);
-    // store last
+    renderArticlesWeightChart(report.top.topByKg);
     window.__LAST_STATS_REPORT = report;
     status.textContent = `OK — données chargées (${from} → ${to})`;
   } catch(e) {
@@ -397,7 +414,6 @@ async function loadAndRender() {
 
 /* ---------------- Attach events ---------------- */
 function attachEvents() {
-  // period buttons
   document.querySelectorAll('[data-period]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       document.querySelectorAll('[data-period]').forEach(b=>b.classList.remove('active'));
@@ -407,13 +423,13 @@ function attachEvents() {
   });
 
   document.getElementById('btnLoad').addEventListener('click', loadAndRender);
+
   document.getElementById('btnExportCSV').addEventListener('click', ()=>{
     const r = window.__LAST_STATS_REPORT;
     if (!r) return alert("Charge d'abord les stats.");
     exportToCSV(r.top.topByCA, `topByCA_${r.period.from}_${r.period.to}.csv`);
   });
 
-  // search fournisseur
   document.getElementById('searchF').addEventListener('input', (e)=>{
     const q = (e.target.value || "").toLowerCase().trim();
     const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.fournisseurs) || [];
@@ -421,15 +437,23 @@ function attachEvents() {
     renderFournisseursTable(filtered);
   });
 
-  // search articles
   document.getElementById('searchA').addEventListener('input', (e)=>{
     const q = (e.target.value || "").toLowerCase().trim();
     const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.articles) || [];
     const filtered = data.filter(x => (String(x.plu) + " " + (x.designation||"")).toLowerCase().includes(q));
-    // show top filtered by CA
     const sorted = filtered.sort((a,b)=>b.ca - a.ca).slice(0, Number(document.getElementById('topN').value || 10));
     renderArticlesTable(sorted);
     renderCharts(sorted, (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.fournisseurs) || []);
+  });
+
+  // search & export for weight view
+  document.getElementById('searchAWeight').addEventListener('input', (e)=>{
+    const q = (e.target.value || "").toLowerCase().trim();
+    const data = (window.__LAST_STATS_REPORT && window.__LAST_STATS_REPORT.articles) || [];
+    const filtered = data.filter(x => (String(x.plu) + " " + (x.designation||"")).toLowerCase().includes(q));
+    const sorted = filtered.sort((a,b)=>b.kgSold - a.kgSold).slice(0, Number(document.getElementById('topN').value || 10));
+    renderArticlesWeightTable(sorted);
+    renderArticlesWeightChart(sorted);
   });
 
   document.getElementById('btnExportFournisseurs').addEventListener('click', ()=>{
@@ -437,10 +461,17 @@ function attachEvents() {
     if (!r) return alert("Charge d'abord les stats.");
     exportToCSV(r.fournisseurs, `fournisseurs_${r.period.from}_${r.period.to}.csv`);
   });
+
   document.getElementById('btnExportArticles').addEventListener('click', ()=>{
     const r = window.__LAST_STATS_REPORT;
     if (!r) return alert("Charge d'abord les stats.");
-    exportToCSV(r.top.topByCA, `articles_${r.period.from}_${r.period.to}.csv`);
+    exportToCSV(r.top.topByCA, `articles_CA_${r.period.from}_${r.period.to}.csv`);
+  });
+
+  document.getElementById('btnExportArticlesWeight').addEventListener('click', ()=>{
+    const r = window.__LAST_STATS_REPORT;
+    if (!r) return alert("Charge d'abord les stats.");
+    exportToCSV(r.top.topByKg, `articles_kg_${r.period.from}_${r.period.to}.csv`);
   });
 }
 
@@ -448,9 +479,6 @@ function attachEvents() {
 (function init(){
   setDefaultDates();
   attachEvents();
-  // try initial load quietly
-  // loadAndRender(); // disabled auto load to avoid heavy queries on page open
-  // expose for console
   try { window.buildAdvancedStats = buildAdvancedStats; window.calculStats = calculStats; window.exportToCSV = exportToCSV; } catch(e){}
 })();
 
