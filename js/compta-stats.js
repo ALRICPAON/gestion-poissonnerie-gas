@@ -1,31 +1,35 @@
-// js/compta-stats.js (VERSION COMPLÈTE)
-// Stats précises : CA réel par article (ventes_reelles/compta_journal) + coût réel depuis lots consommés
+// js/compta-stats.js (VERSION FINALE — prêt à coller)
+// Génère des stats avancées : CA / coûts / marges par article & fournisseur,
+// top lists, rotation de stock, pertes, séries journalières, export CSV.
+
 import { db } from "./firebase-init.js";
 import {
-  collection, getDocs, query, where, orderBy, doc, getDoc
+  collection, getDocs, query, where, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* ------------------------------------------------------------------
    UTILS
 -------------------------------------------------------------------*/
 const fmt = n => Number(n || 0).toFixed(2) + " €";
-const d2 = d => d.toISOString().split("T")[0];
 function toNum(v){ const n = Number(v||0); return isFinite(n)? n: 0; }
+const d2 = d => (d instanceof Date ? d.toISOString().slice(0,10) : String(d||""));
 
 /* ------------------------------------------------------------------
    1) LOAD CA RÉEL (compta_journal)
 -------------------------------------------------------------------*/
 async function loadCA(from, to) {
-  const col = collection(db, "compta_journal");
-  const qy = query(col,
-    where("date", ">=", from),
-    where("date", "<=", to)
-  );
-  const snap = await getDocs(qy);
-  let totalCA = 0;
-  snap.forEach(d => { totalCA += Number(d.data().caReel || 0); });
-  console.log("💰 Total CA (compta_journal) =", totalCA);
-  return totalCA;
+  try {
+    const col = collection(db, "compta_journal");
+    const qy = query(col, where("date", ">=", from), where("date", "<=", to));
+    const snap = await getDocs(qy);
+    let totalCA = 0;
+    snap.forEach(d => { totalCA += toNum(d.data().caReel || 0); });
+    console.log("💰 Total CA (compta_journal) =", totalCA);
+    return totalCA;
+  } catch(e) {
+    console.warn("Erreur loadCA:", e);
+    return 0;
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -38,7 +42,7 @@ async function loadVentesReelles(from, to) {
   const oneDay = 24*3600*1000;
 
   let totalVentes = 0;
-  const ventesEAN = {}; // ean -> ca (TTC ou valeur utilisée)
+  const ventesEAN = {};
 
   for(let t = start.getTime(); t <= end.getTime(); t += oneDay){
     const dateStr = new Date(t).toISOString().slice(0,10);
@@ -68,11 +72,10 @@ async function loadVentesReelles(from, to) {
 /* ------------------------------------------------------------------
    3) LOAD MOUVEMENTS (stock_movements) : sorties utiles
    - Exclut transformations & corrections (internes)
-   - Inclut inventory si tu génères les ventes via inventaire
+   - Inclut inventory/inventaire si nécessaire
 -------------------------------------------------------------------*/
 async function loadMouvements(from, to) {
   console.log("📥 Load MOVEMENTS from stock_movements (filtered for sales-like)...");
-
   const start = new Date(from + "T00:00:00");
   const end   = new Date(to   + "T23:59:59");
 
@@ -81,7 +84,7 @@ async function loadMouvements(from, to) {
   try {
     q = query(col, where("createdAt", ">=", start), where("createdAt", "<=", end));
   } catch(e) {
-    // si createdAt non indexable, on récupère tout (fallback)
+    // fallback : récupérer tout et filtrer client-side si index manquant
     q = collection(db, "stock_movements");
   }
 
@@ -91,12 +94,19 @@ async function loadMouvements(from, to) {
   snap.forEach(d => {
     const m = d.data();
     const sens = (m.sens || "").toString().toLowerCase();
-    const type = (m.type || "").toString().toLowerCase();
+    let type = (m.type || "").toString().toLowerCase();
+    // accepter "inventaire" ou "inventory"
+    if (!type && m.origin) type = (m.origin || "").toString().toLowerCase();
     if (sens !== "sortie") return;
+
     // Exclure transformations (internes) et corrections
     if (type === "transformation" || type === "correction") return;
-    // NOTE: on inclut "inventory" car tu as indiqué que les ventes peuvent être générées via inventaire.
-    if (!m.poids || Number(m.poids) <= 0) return;
+
+    // on inclut inventory/inventaire
+    if (!m.poids && !m.quantity) return;
+    const poids = Number(m.poids ?? m.quantity ?? 0);
+    if (poids === 0) return;
+
     list.push(m);
     const key = `${sens}|${type||"undefined"}`;
     stats[key] = (stats[key]||0) + 1;
@@ -129,14 +139,10 @@ async function loadAchats() {
 
 /* ------------------------------------------------------------------
    5) CALCUL STATISTIQUES (PRÉCIS)
-   - coût = somme poids * prixAchatKg par lot consommé
-   - CA par PLU : prioritaire ventes_reelles (EAN -> PLU), sinon pvTTCreel * kgSold
-   - allocation CA aux mouvements selon coût, puis agrégation fournisseur
 -------------------------------------------------------------------*/
 async function calculStats(from, to) {
   console.log("🚀 DÉBUT CALCUL STATS (précis par article/fournisseur)", from, to);
 
-  // charger data nécessaires (articles & stock_articles inclus)
   const [
     ca,
     ventesObj,
@@ -162,7 +168,7 @@ async function calculStats(from, to) {
   const eanToPlu = {};
   articlesSnap.forEach(d => {
     const A = d.data();
-    if (A.ean) eanToPlu[String(A.ean)] = d.id; // d.id est généralement le PLU
+    if (A.ean) eanToPlu[String(A.ean)] = d.id;
   });
 
   // stock_articles map
@@ -170,13 +176,13 @@ async function calculStats(from, to) {
   stockArticlesSnap.forEach(d => stockArticles[d.id] = d.data());
 
   // 1) Agrégation mouvements -> per PLU
-  const perPlu = {}; // plu -> { kgSold, cost, movements:[], designation }
+  const perPlu = {};
   for (const m of mouvements) {
     const lot = lots[m.lotId];
     if (!lot) continue;
     const plu = lot.plu || lot.PLU || "UNKNOWN";
-    const prixKg = Number(lot.prixAchatKg || 0);
-    const poids = Number(m.poids || 0);
+    const prixKg = toNum(lot.prixAchatKg || 0);
+    const poids = toNum(m.poids ?? m.quantity ?? 0);
     const cost = prixKg * poids;
 
     if (!perPlu[plu]) perPlu[plu] = { kgSold: 0, cost: 0, movements: [], designation: lot.designation || "" };
@@ -190,8 +196,8 @@ async function calculStats(from, to) {
     perPlu[plu].movements.push(md);
   }
 
-  // 2) CA par PLU
-  const caParPlu = {}; // plu -> ca
+  // 2) CA par PLU (priorise ventes_reelles)
+  const caParPlu = {};
   const eanKeys = Object.keys(ventesEAN);
   if (eanKeys.length > 0) {
     for (const e of eanKeys) {
@@ -200,21 +206,19 @@ async function calculStats(from, to) {
       if (plu) {
         caParPlu[plu] = (caParPlu[plu] || 0) + caE;
       } else {
-        // EAN sans mapping PLU: on logue (manuel possible)
         console.warn("EAN sans mapping PLU :", e, "CA:", caE);
       }
     }
   }
 
-  // fallback : pvTTCreel * kgSold
+  // fallback pvTTCreel * kgSold
   for (const plu in perPlu) {
     if (!caParPlu[plu]) {
       const id1 = "PLU_" + String(plu);
       const sa = stockArticles[id1] || stockArticles[plu] || {};
       let pv = toNum(sa.pvTTCreel || sa.pvTTCconseille || sa.pvTTC || 0);
       if (!pv) {
-        // try recommended pv from perPlu or set 0
-        console.warn("pvTTCreel manquant pour PLU", plu, "-> CA estimée 0 (si tu veux autre fallback, dis-moi)");
+        console.warn("pvTTCreel manquant pour PLU", plu, "-> CA estimée 0");
         pv = 0;
       }
       caParPlu[plu] = pv * perPlu[plu].kgSold;
@@ -301,7 +305,6 @@ async function calculStats(from, to) {
 }
 
 /* ---------------- Advanced stats wrapper ---------------- */
-
 /**
  * buildAdvancedStats(from, to, opts)
  * from,to : 'YYYY-MM-DD' strings
@@ -310,10 +313,8 @@ async function calculStats(from, to) {
 async function buildAdvancedStats(from, to, opts = {}) {
   const topN = opts.topN || 10;
 
-  // 1) calcul de base (tu as déjà calculStats)
-  const base = await calculStats(from, to); // retourne { ca, ventesTotal, achats, marge, fournisseurs, articles, ... }
-  // base.articles[plu] = { designation, kgSold, cost, ca, marge, margePct }
-  // base.fournisseurs[f] = { achats, ca, marge, margePct }
+  // 1) base
+  const base = await calculStats(from, to);
 
   // 2) top lists
   const articlesArr = Object.keys(base.articles || {}).map(plu => {
@@ -374,7 +375,7 @@ async function buildAdvancedStats(from, to, opts = {}) {
   const endDate = new Date(to + "T23:59:59");
   let { stockDebut, stockFin } = pickStocksFromJournal(invs, startDate, endDate);
 
-  // fallback -> compute from lots if journal missing or zero
+  // fallback from lots
   if ((toNum(stockDebut) === 0 && toNum(stockFin) === 0)) {
     const lotsSnap = await getDocs(collection(db, "lots"));
     let stockVal = 0;
@@ -385,8 +386,6 @@ async function buildAdvancedStats(from, to, opts = {}) {
       stockVal += kg * prix;
     });
     stockFin = stockVal;
-    // estimate stockDebut by using relation: stockFin = stockDebut + achatsPeriodeHT - achatsConso
-    // we don't have achatsPeriodeHT here exactly; use base.achats if available
     const achatsPeriode = toNum(base.achats || 0);
     const achatsConso = toNum(base.achats || 0);
     stockDebut = stockFin - achatsPeriode + achatsConso;
@@ -394,12 +393,11 @@ async function buildAdvancedStats(from, to, opts = {}) {
 
   const stockMoyen = (toNum(stockDebut) + toNum(stockFin)) / 2;
   const cogs = toNum(base.achats || 0);
-
   const nbDays = Math.max(1, Math.round((endDate - startDate) / (24*3600*1000)) + 1);
   const rotation = stockMoyen > 0 ? (cogs / stockMoyen) : 0;
   const daysToTurn = (cogs > 0 && rotation>0) ? (nbDays / rotation) : 0;
 
-  // 5) pertes / écarts : somme inventory_adjustment / correction dans period
+  // 5) pertes / écarts
   let losses = 0;
   try {
     const movSnap = await getDocs(query(collection(db, "stock_movements"), where("createdAt", ">=", startDate), where("createdAt", "<=", endDate)));
@@ -465,4 +463,14 @@ function exportToCSV(rows, filename = "export.csv") {
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();
+}
+
+/* ---------------- Expose functions for console / UI ---------------- */
+try {
+  window.calculStats = calculStats;
+  window.buildAdvancedStats = buildAdvancedStats;
+  window.exportToCSV = exportToCSV;
+  console.log("compta-stats: functions exposed on window (calculStats / buildAdvancedStats / exportToCSV)");
+} catch(e) {
+  console.warn("compta-stats: unable to expose globals:", e);
 }
