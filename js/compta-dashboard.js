@@ -4,6 +4,7 @@ import {
   collection, doc, getDoc, getDocs, query, where,
   setDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
 /* ---------------- Permissions helper ---------------- */
 // flag mémoire pour éviter de relire à chaque rafraîchissement
 let _currentUserHasCompta = false;
@@ -34,7 +35,6 @@ async function ensureCompta(user) {
   if (!ok) throw new Error('Accès refusé : vous n’avez pas le droit Comptabilité');
   return true;
 }
-
 
 /* ---------------- Utils ---------------- */
 const n2 = v => Number(v||0).toFixed(2);
@@ -184,7 +184,7 @@ function renderInputs(){
   });
 
   refreshHeaderButtons();
-  refreshDashboard();
+  // Important: do not call refreshDashboard() here - wait for auth verification
 }
 
 function refreshHeaderButtons(){
@@ -557,6 +557,8 @@ function setDayInputsDisabled(disabled){
   el.zNote.disabled = disabled;
   el.btnSaveZ.disabled = disabled;
   el.btnValiderJournee.disabled = disabled;
+  el.btnRecalcJournee.disabled = disabled;
+  el.btnUnvalidateJournee.disabled = disabled;
 }
 
 function afficherDonnees(d){
@@ -589,6 +591,12 @@ function afficherDonnees(d){
 async function saveZ(){
   const user = auth.currentUser;
   if(!user) return alert("Non connecté.");
+  try {
+    await ensureCompta(user);
+  } catch (e) {
+    alert(e.message || 'Accès refusé');
+    return;
+  }
 
   const { start } = getSelectedRange();
   const dateStr = ymd(start);
@@ -614,6 +622,12 @@ async function saveZ(){
 async function validerJournee(){
   const user = auth.currentUser;
   if(!user) return alert("Non connecté.");
+  try {
+    await ensureCompta(user);
+  } catch (e) {
+    alert(e.message || 'Accès refusé');
+    return;
+  }
 
   const { start } = getSelectedRange();
   const dateStr = ymd(start);
@@ -647,6 +661,15 @@ async function validerJournee(){
 
 /* ---------------- Recalculer / Modifier journée ---------------- */
 async function recalcJournee(){
+  const user = auth.currentUser;
+  if(!user) return alert("Non connecté.");
+  try {
+    await ensureCompta(user);
+  } catch (e) {
+    alert(e.message || 'Accès refusé');
+    return;
+  }
+
   const { start } = getSelectedRange();
   const dateStr = ymd(start);
 
@@ -679,6 +702,15 @@ async function recalcJournee(){
 
 /* ---------------- Supprimer validation ---------------- */
 async function unvalidateJournee(){
+  const user = auth.currentUser;
+  if(!user) return alert("Non connecté.");
+  try {
+    await ensureCompta(user);
+  } catch (e) {
+    alert(e.message || 'Accès refusé');
+    return;
+  }
+
   const { start } = getSelectedRange();
   const dateStr = ymd(start);
 
@@ -825,6 +857,8 @@ el.btnUnvalidateJournee.addEventListener("click", unvalidateJournee);
 
 /* ---------------- Init ---------------- */
 renderInputs();
+
+// Guarded auth watcher (vérification droits compta avant refresh)
 auth.onAuthStateChanged(async (user) => {
   try {
     if (!user) {
@@ -866,5 +900,3 @@ auth.onAuthStateChanged(async (user) => {
     el.status.textContent = 'Erreur lors de la vérification des droits.';
   }
 });
-
-
