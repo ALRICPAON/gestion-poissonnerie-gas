@@ -4,6 +4,37 @@ import {
   collection, doc, getDoc, getDocs, query, where,
   setDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+/* ---------------- Permissions helper ---------------- */
+// flag mémoire pour éviter de relire à chaque rafraîchissement
+let _currentUserHasCompta = false;
+
+/**
+ * Vérifie si user a accès au module 'compta' (ou est admin).
+ * Retourne boolean.
+ */
+async function hasComptaAccess(user) {
+  if (!user) return false;
+  try {
+    const snap = await getDoc(doc(db, 'app_users', user.uid));
+    if (!snap.exists()) return false;
+    const d = snap.data();
+    if (d.role === 'admin') return true;
+    return Array.isArray(d.modules) && d.modules.includes('compta');
+  } catch (e) {
+    console.error('Erreur hasComptaAccess:', e);
+    return false;
+  }
+}
+
+/**
+ * Assure l'accès ; lève une erreur si non autorisé (utilisé pour protéger actions).
+ */
+async function ensureCompta(user) {
+  const ok = await hasComptaAccess(user);
+  if (!ok) throw new Error('Accès refusé : vous n’avez pas le droit Comptabilité');
+  return true;
+}
+
 
 /* ---------------- Utils ---------------- */
 const n2 = v => Number(v||0).toFixed(2);
@@ -794,5 +825,46 @@ el.btnUnvalidateJournee.addEventListener("click", unvalidateJournee);
 
 /* ---------------- Init ---------------- */
 renderInputs();
-auth.onAuthStateChanged(()=> refreshDashboard());
+auth.onAuthStateChanged(async (user) => {
+  try {
+    if (!user) {
+      el.status.textContent = "Connecte-toi pour voir le tableau de bord.";
+      // s'assurer que tout est désactivé
+      setDayInputsDisabled(true);
+      el.btnSaveZ.disabled = true;
+      el.btnValiderJournee.disabled = true;
+      el.btnRecalcJournee.disabled = true;
+      el.btnUnvalidateJournee.disabled = true;
+      return;
+    }
+
+    // vérif droits compta
+    _currentUserHasCompta = await hasComptaAccess(user);
+
+    if (!_currentUserHasCompta) {
+      // pas le droit : message clair et désactiver actions
+      el.status.textContent = 'Accès refusé : vous n’avez pas le droit Comptabilité.';
+      setDayInputsDisabled(true);
+      el.btnSaveZ.disabled = true;
+      el.btnValiderJournee.disabled = true;
+      el.btnRecalcJournee.disabled = true;
+      el.btnUnvalidateJournee.disabled = true;
+      // ne pas appeler refreshDashboard
+      return;
+    }
+
+    // OK : l'utilisateur a le droit -> on active les boutons et on rafraîchit
+    el.btnSaveZ.disabled = false;
+    el.btnValiderJournee.disabled = false;
+    el.btnRecalcJournee.disabled = false;
+    el.btnUnvalidateJournee.disabled = false;
+
+    // lancer le rafraîchissement
+    refreshDashboard();
+  } catch (err) {
+    console.error('Erreur auth.onAuthStateChanged:', err);
+    el.status.textContent = 'Erreur lors de la vérification des droits.';
+  }
+});
+
 
