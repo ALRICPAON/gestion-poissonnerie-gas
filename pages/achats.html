@@ -96,6 +96,9 @@
         <option value="DISTRIMER">Distrimer</option>
         <option value="ROYALEMAREE">Royale Marée</option>
         <option value="SOGELMER">Sogelmer</option>
+        <!-- dans <select id="providerSelect"> -->
+<option value="PLU_PRESENT">Import (PLU déjà présent dans le fichier)</option>
+
       </select>
 
       <button id="btnProviderImport">Importer</button>
@@ -126,6 +129,7 @@
   </table>
 
   <!-- ✅ SCRIPT D’IMPORT -->
+<!-- remplace ton <script type="module"> existant par ceci -->
 <script type="module">
   import { requireAuth } from "../js/auth.js";
   import { importScapmaree } from "../js/import-scapmaree.js";
@@ -133,8 +137,7 @@
   import { importRoyaleMaree } from "../js/import-royalemaree.js";
   import { importSogelmer } from "../js/import-sogelmer.js";
   import { importDistrimer } from "../js/import-distrimer.js";
-
-
+  import { importFournisseurPlu } from "../js/import-fournisseur-plu.js";
 
   requireAuth();
 
@@ -165,10 +168,10 @@
         if (!format)   return alert("❗ Choisir un format (PLU Col A / B)");
 
         if (format === "COLA") {
-  await importCrieePLUcolA(file, supplier);
-} else if (format === "COLB") {
-  await importCrieePLUcolB(file, supplier);
-} else {
+          await importCrieePLUcolA(file, supplier);
+        } else if (format === "COLB") {
+          await importCrieePLUcolB(file, supplier);
+        } else {
           return alert("❌ Format non reconnu");
         }
 
@@ -180,36 +183,42 @@
       const provider = providerSelect.value;
       if (!provider) return alert("❗ Choisir un fournisseur ou un format CRIÉE");
 
-    if (provider === "SCAPMAREE") {
-  await importScapmaree(file);
-  status.textContent = "✅ Import Scapmarée terminé !";
+      if (provider === "SCAPMAREE") {
+        await importScapmaree(file);
+        status.textContent = "✅ Import Scapmarée terminé !";
 
       } else if (provider === "DISTRIMER") {
-        // 🎯 AJOUT ICI : Distrimer 10002
         await importDistrimer(file);
         status.textContent = "✅ Import Distrimer terminé !";
 
-} else if (provider === "ROYALEMAREE") {
-  await importRoyaleMaree(file);
-  status.textContent = "✅ Import Royale Marée terminé !";
+      } else if (provider === "ROYALEMAREE") {
+        await importRoyaleMaree(file);
+        status.textContent = "✅ Import Royale Marée terminé !";
 
-} else if (provider === "SOGELMER") {
-  await importSogelmer(file);
-  status.textContent = "✅ Import Sogelmer terminé !";
+      } else if (provider === "SOGELMER") {
+        await importSogelmer(file);
+        status.textContent = "✅ Import Sogelmer terminé !";
 
-} else {
-  alert("❌ Import non implémenté pour : " + provider);
-  return;
-}
+      } else if (provider === "PLU_PRESENT") {
+        // pour l'instant on demande le code fournisseur via prompt()
+        let supplierCode = prompt("Code fournisseur (ex: 10007) ?");
+        if (!supplierCode) return alert("❗ Fournisseur requis");
+        await importFournisseurPlu(file, supplierCode.trim());
+        status.textContent = "✅ Import PLU terminé !";
 
-    }
-    catch (e) {
+      } else {
+        alert("❌ Import non implémenté pour : " + provider);
+        return;
+      }
+
+    } catch (e) {
       console.error(e);
       alert("❌ Erreur import : " + e.message);
       status.textContent = "❌ Erreur";
     }
   });
 </script>
+
 
 </body>
 </html>
