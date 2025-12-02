@@ -282,12 +282,19 @@ async function loadAchatsAndFactures(start, end){
   const user = auth.currentUser;
   const achatsSnap = await getDocs(collection(db, "achats"));
   const achats = [];
+    // ne conserver QUE les achats "réels" :
+  // - BL (type === 'BL') ou statut reçu
+  // - ou s'il y a une facture liée (factureId) (on laisse la logique facture existante)
   achatsSnap.forEach(d=>{
     const r = d.data();
     if(r.userId && user && r.userId!==user.uid) return;
 
     const dt = toDateAny(r.date || r.dateAchat || r.createdAt);
     if(!dt || !inRange(dt, start, end)) return;
+
+    // Ignore les "commandes" non reçues
+    const isPurchase = (r.type === 'BL' || r.statut === 'received' || !!r.factureId);
+    if(!isPurchase) return;
 
     achats.push({
       id: d.id,
@@ -296,6 +303,7 @@ async function loadAchatsAndFactures(start, end){
       factureId: r.factureId || null,
     });
   });
+
 
   const factureIds = [...new Set(achats.map(a=>a.factureId).filter(Boolean))];
   const facturesMap = {};
