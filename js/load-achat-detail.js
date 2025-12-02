@@ -366,23 +366,36 @@ async function recomputeTotals(){
 
 // ---------- Header save ----------
 async function saveHeader(){
-  const dateISO = qs("#achat-date").value || fmtISO(new Date());
-  const type = qs("#achat-type").value;
-  const statut = qs("#achat-statut").value;
+  try {
+    const dateStr = qs("#achat-date").value || fmtISO(new Date());
+    const fournisseurCode = nz(qs("#achat-fourn-code").value);
+    const fournisseurNom  = nz(qs("#achat-fourn-nom").value);
+    const designation     = nz(qs("#achat-fourn-desig").value);
+    const type            = nz(qs("#achat-type").value) || "commande";
+    const statut          = nz(qs("#achat-statut").value) || "new";
 
-  await updateDoc(achatRef, {
-    date: Timestamp.fromDate(new Date(dateISO + "T12:00:00")),
-    fournisseurCode: nz(qs("#achat-fourn-code").value),
-    fournisseurNom: nz(qs("#achat-fourn-nom").value),
-    designationFournisseur: nz(qs("#achat-fourn-desig").value),
-    type, statut,
-    updatedAt: Timestamp.fromDate(new Date())
-  });
+    await updateDoc(achatRef, {
+      // on garde midi pour éviter souci fuseau, mais tu peux mettre "T00:00:00" si tu préfères
+      date: dateStr ? Timestamp.fromDate(new Date(dateStr + "T12:00:00")) : Timestamp.now(),
+      fournisseurCode,
+      fournisseurNom,
+      designationFournisseur: designation,
+      type,
+      statut,
+      updatedAt: Timestamp.now()
+    });
 
-  currentAchat.type = type;
-  currentAchat.statut = statut;
-  alert("✅ En-tête enregistré.");
+    // Met à jour l'objet en mémoire et recharge l'UI pour être sûr d'avoir les dernières valeurs
+    currentAchat.type = type;
+    currentAchat.statut = statut;
+    await loadAchat();
+    alert("✅ En-tête enregistré.");
+  } catch (err) {
+    console.error("Erreur saveHeader :", err);
+    alert("Erreur lors de l'enregistrement : " + (err.message || err));
+  }
 }
+
 
 // ---------- Convert Commande -> BL ----------
 async function convertToBL(){
