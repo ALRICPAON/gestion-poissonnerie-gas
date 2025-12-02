@@ -8,34 +8,36 @@ import {
 /* helpers */
 function toNum(x){
   if (x == null || x === "") return 0;
-  return parseFloat(String(x).replace(",", ".").replace(/\s/g,"")) || 0;
+  const s = String(x).replace(/\s/g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function normalizeUnit(u){
   if (!u) return "kg";
   const s = String(u).trim().toLowerCase();
-  if (s.startsWith("k")) return "kg";
-  if (s.startsWith("p") || s.includes("pi")) return "piece";
+  if (s.startsWith("k") || s.includes("kg") || s.includes("kil")) return "kg";
+  if (s.startsWith("p") || s.includes("piè") || s.includes("pi") || s.includes("pc") || s.includes("pcs")) return "piece";
   if (s === "pcs" || s === "pc") return "piece";
   return s;
 }
 
 /**
  * importFournisseurPlu(file, fournisseurCode)
- * - file: File (xlsx / csv)
- * - fournisseurCode: string (ex "10007" ou "81268")
- *
  * Format attendu (col index 0..):
  * 0: PLU
  * 1: designation
- * 2: nom latin
- * 3: methode de peche
- * 4: zone de peche
- * 5: engin de peche
- * 6: IGNORE
- * 7: allergene
- * 8: prix
- * 9: unite (kg|piece)
+ * 2: nbre colis
+ * 3: poids colis
+ * 4: total poids
+ * 5: prix
+ * 6: nom latin
+ * 7: methode
+ * 8: zone
+ * 9: engin
+ * 10: vide
+ * 11: allergens
+ * 12: unite (kg|piece)
  */
 export async function importFournisseurPlu(file, fournisseurCode){
   if (!file) throw new Error("Fichier manquant");
@@ -49,14 +51,12 @@ export async function importFournisseurPlu(file, fournisseurCode){
 
   if (!rows || rows.length === 0) throw new Error("Feuille vide");
 
-  // 2) détection si première ligne est un header "PLU" etc. -> skip si oui
+  // 2) détecte un header ligne 1 (si contient 'plu' ou 'designation' etc.)
   let startRow = 0;
-  const firstRow = (rows[0] || []).map(c => (c || "").toString().toLowerCase());
-  if (firstRow.some(c => /plu|designation|nom latin|prix|unite|allergene/.test(c))) {
-    startRow = 1;
-  }
+  const firstRow = (rows[0] || []).map(c => (c||"").toString().toLowerCase());
+  if (firstRow.some(c => /plu|designation|prix|unite|allerg/i.test(c))) startRow = 1;
 
-  // 3) préparer map articles si PLU correspond à fiche articles
+  // 3) charger map articles (plu -> article)
   const artSnap = await getDocs(collection(db, "articles"));
   const artMap = {};
   artSnap.forEach(d => {
@@ -64,8 +64,8 @@ export async function importFournisseurPlu(file, fournisseurCode){
     if (a?.plu) artMap[String(a.plu).trim()] = a;
   });
 
-  // 4) récupérer nom fournisseur si présent dans collection "fournisseurs"
-  let fournisseurNom = fournisseurCode;
+  // 4) chercher nom fournisseur si connu
+  let fournisseurNom = String(fournisseurCode);
   try {
     const fSnap = await getDocs(collection(db, "fournisseurs"));
     fSnap.forEach(d => {
@@ -92,49 +92,61 @@ export async function importFournisseurPlu(file, fournisseurCode){
   });
   const achatId = achatRef.id;
 
-  // 6) parcourir les lignes
+  // 6) parcourir lignes et sauver
   let totalHT = 0;
   let totalKg = 0;
   const missingPlu = [];
 
   for (let r = startRow; r < rows.length; r++){
     const row = rows[r] || [];
-    // ignore lines vide
+    // ignorer lignes vides
     if (row.every(c => c === undefined || c === null || String(c).trim() === "")) continue;
 
     const rawPlu = row[0];
-    if (rawPlu == null || String(rawPlu).trim() === "") continue; // on skip si pas de PLU
-
+    if (rawPlu == null || String(rawPlu).trim() === "") continue;
     const plu = String(rawPlu).trim().replace(/\.0$/, "");
     const designationF = (row[1] || "").toString().trim();
-    const nomLatinF = (row[2] || "").toString().trim();
-    const methode = (row[3] || "").toString().trim();
-    const zone = (row[4] || "").toString().trim();
-    const engin = (row[5] || "").toString().trim();
-    const allergene = (row[7] || "").toString().trim();
-    const prixRaw = row[8];
-    const uniteRaw = row[9];
+    const nbreColis = toNum(row[2]);
+    const poidsColis = toNum(row[3]);
+    let totalPoids = toNum(row[4]);
+    const prix = toNum(row[5]);
+    const nomLatinF = (row[6] || "").toString().trim();
+    const methode = (row[7] || "").toString().trim();
+    const zone = (row[8] || "").toString().trim();
+    const engin = (row[9] || "").toString().trim();
+    const allergenes = (row[11] || "").toString().trim();
+    const unite = normalizeUnit(row[12]);
 
-    const prix = toNum(prixRaw);
-    const unite = normalizeUnit(uniteRaw);
+    // si totalPoids absent, essayer nbreColis * poidsColis
+    if (!totalPoids && nbreColis && poidsColis) totalPoids = nbreColis * poidsColis;
 
-    // chercher la fiche article si existante
+    // fiche article si existante
     const art = artMap[plu];
     const designation = art ? (art.Designation || art.designation || art.designationInterne || designationF) : designationF;
     const nomLatin = art ? (art.NomLatin || art.nomLatin || nomLatinF) : nomLatinF;
 
-    // construire objet ligne
-    // NOTE: le fichier ne contient pas de quantité, on crée la ligne avec poids = 0,
-    // on met le prix dans prixHTKg si unite == 'kg', sinon dans prixUnite si 'piece'.
-    const poidsKg = 0;
-    const poidsTotalKg = 0;
+    // calculs selon unite
+    let prixHTKg = 0;
+    let prixUnite = 0;
+    let montantHT = 0;
 
-    const prixHTKg = (unite === "kg") ? prix : 0;
-    const prixUnite = (unite === "piece") ? prix : 0;
-
-    // montantHT : si unité piece -> on met le prix comme montant HT (équivalent quantité 1).
-    // si kg sans quantité, on laisse montantHT = 0 (prix par kg renseigné pour usage futur).
-    const montantHT = (unite === "piece") ? prix : 0;
+    if (unite === "kg") {
+      prixHTKg = prix;
+      montantHT = prix * (totalPoids || 0); // si totalPoids = 0, montantHT = 0
+    } else if (unite === "piece") {
+      prixUnite = prix;
+      // Hypothèse : nbreColis == nombre d'unités ; si tu veux autre chose dis-le
+      montantHT = prix * (nbreColis || 0);
+    } else {
+      // fallback: si nombre de colis > 0 on suppose piece sinon kg
+      if (nbreColis > 0) {
+        prixUnite = prix;
+        montantHT = prix * nbreColis;
+      } else {
+        prixHTKg = prix;
+        montantHT = prix * (totalPoids || 0);
+      }
+    }
 
     const lineObj = {
       refFournisseur: plu,
@@ -150,27 +162,27 @@ export async function importFournisseurPlu(file, fournisseurCode){
       sousZone: "",
 
       engin: engin || "",
-      allergenes: allergene || "",
+      allergenes: allergenes || "",
 
-      poidsKg,
-      poidsTotalKg,
+      poidsKg: totalPoids || 0,
+      poidsTotalKg: totalPoids || 0,
+      poidsColisKg: poidsColis || 0,
+      colis: nbreColis || 0,
+
       prixHTKg,
       prixKg: prixHTKg,
       prixUnite,
       unite,
 
-      montantHT,
-      montantTTC: montantHT,
-
-      colis: 0,
-      poidsColisKg: 0,
+      montantHT: montantHT || 0,
+      montantTTC: montantHT || 0,
 
       received: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
 
-    // Enrichir depuis fiche article si besoin (zone/engin, etc.)
+    // enrichir à partir de la fiche article existante
     if (art) {
       if (!lineObj.nomLatin) lineObj.nomLatin = art.NomLatin || art.nomLatin || "";
       if (!lineObj.zone && (art.Zone || art.zone)) lineObj.zone = art.Zone || art.zone;
@@ -178,10 +190,9 @@ export async function importFournisseurPlu(file, fournisseurCode){
       if (!lineObj.engin && (art.Engin || art.engin)) lineObj.engin = art.Engin || art.engin;
     }
 
-    // save ligne
-    const lineRef = await addDoc(collection(db, "achats", achatId, "lignes"), lineObj);
+    // sauvegarde
+    await addDoc(collection(db, "achats", achatId, "lignes"), lineObj);
 
-    // totals
     totalHT += Number(lineObj.montantHT || 0);
     totalKg += Number(lineObj.poidsTotalKg || 0);
 
@@ -196,10 +207,10 @@ export async function importFournisseurPlu(file, fournisseurCode){
     updatedAt: serverTimestamp()
   });
 
-  // 8) si PLU manquants -> log (on peut aussi déclencher AF_MAP si tu veux)
-  if (missingPlu.length > 0){
+  // 8) log PLU manquants (option : ouvrir AF_MAP si tu veux)
+  if (missingPlu.length > 0) {
     console.warn("PLU non trouvés dans articles:", [...new Set(missingPlu)].slice(0,50));
-    // option: ouvrir popup AF_MAP pour les PLU manquants
+    // option : ouvrir la popup AF_MAP pour ces PLU si tu veux
   }
 
   // reload pour voir le nouvel achat
