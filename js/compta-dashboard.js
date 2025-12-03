@@ -497,6 +497,15 @@ async function calculateLiveDay(dateStr){
   // --- mouvements (sorties) : consommation réelle / CA réelle par mouvements ---
   const moves = await loadStockMovementsInRange(start, end);
   const aggs = computeAggregationsFromMovements(moves);
+    // après : const aggs = computeAggregationsFromMovements(moves);
+  console.group(`DEBUG calculateLiveDay ${dateStr}`);
+  console.log("moves.length =", moves.length);
+  console.log("aggs.totalCost =", aggs.totalCost);
+  console.log("achatsPeriodeHT =", achatsPeriodeHT);
+  console.log("stockDebut =", stockDebut, "stockFin =", stockFin, "varStock =", varStock);
+  console.log("achatsPeriodeHT + varStock =", (achatsPeriodeHT + varStock));
+  console.groupEnd();
+
 
   // achats consommés = somme des coûts des sorties (fallback achatsPeriodeHT + varStock)
   const achatsConsoHT = (aggs.totalCost && aggs.totalCost > 0) ? aggs.totalCost : (achatsPeriodeHT + varStock);
