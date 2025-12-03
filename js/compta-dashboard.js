@@ -6,53 +6,51 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* =========================
-   Utils & Constantes
+   Utils & constantes
    ========================= */
+const TVA_RATE = 0.055; // 5.5%
+
 const n2 = v => Number(v || 0).toFixed(2);
-function toNum(v) {
-  if (v == null) return 0;
-  const s = String(v).trim().replace(/\s/g, "").replace(",", ".");
+function round2(n){ return Math.round((Number(n) + Number.EPSILON)*100)/100; }
+function toNum(v){
+  if (v === undefined || v === null || v === '') return 0;
+  const s = String(v).trim().replace(/\s/g,'').replace(',', '.');
   const x = parseFloat(s);
   return isFinite(x) ? x : 0;
 }
-function toDateAny(v) {
+function toDateAny(v){
   if (!v) return null;
-  if (v && typeof v.toDate === "function") return v.toDate();
+  if (v && typeof v.toDate === 'function') return v.toDate();
   if (v instanceof Date) return v;
   const d = new Date(v);
   return isFinite(d) ? d : null;
 }
-function ymd(d) {
+function ymd(d){
   const x = new Date(d);
-  const mm = String(x.getMonth() + 1).padStart(2, "0");
-  const dd = String(x.getDate()).padStart(2, "0");
+  const mm = String(x.getMonth()+1).padStart(2,'0');
+  const dd = String(x.getDate()).padStart(2,'0');
   return `${x.getFullYear()}-${mm}-${dd}`;
 }
-function round2(n) { return Math.round((Number(n) + Number.EPSILON) * 100) / 100; }
-
-/* TVA 5.5% pour conversion salePriceTTC -> HT */
-const TVA_RATE = 0.055;
 
 /* =========================
-   Date helpers / ranges (LOCAL dates)
+   Date helpers (LOCAL dates)
    ========================= */
-function previousDateString(dateStr) {
-  // dateStr = 'YYYY-MM-DD' local
-  const [y,m,d] = dateStr.split('-').map(Number);
-  const dt = new Date(y, m-1, d);
-  dt.setDate(dt.getDate() - 1);
-  return localDateISO(dt);
-}
-function localDateISO(d) {
+function localDateISO(d){
   if (!d || !(d instanceof Date)) return null;
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const m = String(d.getMonth() + 1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
-
-/** Normalize header date to 'YYYY-MM-DD' using LOCAL date */
-function headerDateToISO(headerDateRaw) {
+function previousDateString(dateISO){
+  // dateISO = 'YYYY-MM-DD'
+  const [y,m,d] = dateISO.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate()-1);
+  return localDateISO(dt);
+}
+// normalized header date -> local YYYY-MM-DD
+function headerDateToISO(headerDateRaw){
   if (!headerDateRaw) return null;
   if (typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
     const d = headerDateRaw.toDate();
@@ -60,6 +58,7 @@ function headerDateToISO(headerDateRaw) {
   }
   if (headerDateRaw instanceof Date) return localDateISO(headerDateRaw);
   if (typeof headerDateRaw === 'string') {
+    // if starts with YYYY-MM-DD keep that
     const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
     if (m) return m[1];
     const parsed = toDateAny(headerDateRaw);
@@ -70,33 +69,16 @@ function headerDateToISO(headerDateRaw) {
   return parsed ? localDateISO(parsed) : null;
 }
 
-function getISOWeekRangeFromMonday(date) {
-  const d = new Date(date);
-  const day = (d.getDay() + 6) % 7; // 0 = Monday
-  const start = new Date(d); start.setDate(d.getDate() - day); start.setHours(0,0,0,0);
-  const end = new Date(start); end.setDate(start.getDate() + 6); end.setHours(23,59,59,999);
-  return { start, end };
-}
-function getMonthRange(date){
-  const d = new Date(date);
-  const start = new Date(d.getFullYear(), d.getMonth(), 1); start.setHours(0,0,0,0);
-  const end = new Date(d.getFullYear(), d.getMonth()+1, 0); end.setHours(23,59,59,999);
-  return { start, end };
-}
-function getYearRange(year){
-  const start = new Date(year,0,1); start.setHours(0,0,0,0);
-  const end = new Date(year,11,31); end.setHours(23,59,59,999);
-  return { start, end };
-}
-
-/* util ISO week -> Monday */
-function isoWeekToDate(isoYear, isoWeek) {
-  // returns Monday of ISO week in local timezone
-  const simple = new Date(isoYear, 0, 1 + (isoWeek - 1) * 7);
-  const day = simple.getDay();
-  const diff = (day <= 4) ? (day - 1) : (day - 8); // adjust to Monday
-  const monday = new Date(simple);
-  monday.setDate(simple.getDate() - diff);
+/* ISO-week helper -> Monday local */
+function isoWeekToDate(isoYear, isoWeek){
+  // returns Monday of given iso week in local timezone
+  // algorithm: Jan 4th of isoYear is always in week 1
+  const jan4 = new Date(isoYear,0,4);
+  const dayOfWeek = (jan4.getDay() + 6) % 7; // 0 = Monday
+  const firstMonday = new Date(jan4);
+  firstMonday.setDate(jan4.getDate() - dayOfWeek);
+  const monday = new Date(firstMonday);
+  monday.setDate(firstMonday.getDate() + (isoWeek - 1) * 7);
   monday.setHours(0,0,0,0);
   return monday;
 }
@@ -104,10 +86,9 @@ function isoWeekToDate(isoYear, isoWeek) {
 /* =========================
    DOM bindings
    ========================= */
-const tabs = document.getElementById("modeTabs");
-const inputsRow = document.getElementById("inputsRow");
-
 const el = {
+  modeTabs: document.getElementById("modeTabs"),
+  inputsRow: document.getElementById("inputsRow"),
   zCaHT: document.getElementById("zCaHT"),
   zNote: document.getElementById("zNote"),
   btnSaveZ: document.getElementById("btnSaveZ"),
@@ -115,79 +96,26 @@ const el = {
   btnRecalcJournee: document.getElementById("btnRecalcJournee"),
   btnUnvalidateJournee: document.getElementById("btnUnvalidateJournee"),
   status: document.getElementById("status"),
-
   sumCaReel: document.getElementById("sumCaReel"),
   sumAchatsConso: document.getElementById("sumAchatsConso"),
   sumVarStock: document.getElementById("sumVarStock"),
   sumMarge: document.getElementById("sumMarge"),
   sumMargePct: document.getElementById("sumMargePct"),
-
   tdStockDebut: document.getElementById("stockDebut"),
   tdStockFin: document.getElementById("stockFin"),
   tdAchatsPeriode: document.getElementById("achatsPeriode"),
   tdAchatsConso: document.getElementById("achatsConso"),
   tdCaTheo: document.getElementById("caTheo"),
   tdCaReel: document.getElementById("caReel"),
-
-  chartMain: document.getElementById("chartMain"),
+  chartMain: document.getElementById("chartMain")
 };
 
 let mode = "day";
 let chart = null;
-let editingDay = false;
-let savedDayData = null;
 
 /* =========================
-   Render inputs by mode
+   Render inputs + events
    ========================= */
-function renderInputs(){
-  inputsRow.innerHTML = "";
-  const now = new Date();
-
-  if (mode === "day") {
-    inputsRow.innerHTML = `<label>Date
-      <input id="inpDay" type="date" value="${ymd(now)}">
-    </label>`;
-  } else if (mode === "week") {
-    inputsRow.innerHTML = `<label>Semaine
-      <input id="inpWeek" type="week">
-    </label>`;
-    const w = (function(d){ // ISO week number simple
-      const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const dayNum = (date.getDay() + 6) % 7;
-      date.setDate(date.getDate() + 4 - dayNum);
-      const yearStart = new Date(Date.UTC(date.getFullYear(),0,1));
-      return Math.ceil((((date - yearStart)/86400000)+1)/7);
-    })(now);
-    const elWeek = document.getElementById("inpWeek");
-    if (elWeek) elWeek.value = `${now.getFullYear()}-W${String(w).padStart(2,"0")}`;
-  } else if (mode === "month") {
-    inputsRow.innerHTML = `<label>Mois
-      <input id="inpMonth" type="month" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}">
-    </label>`;
-  } else if (mode === "year") {
-    inputsRow.innerHTML = `<label>Année
-      <input id="inpYear" type="number" min="2020" step="1" value="${now.getFullYear()}">
-    </label>`;
-  } else if (mode === "custom") {
-    inputsRow.innerHTML = `<label>Début
-      <input id="inpStart" type="date" value="${ymd(now)}">
-    </label>
-    <label>Fin
-      <input id="inpEnd" type="date" value="${ymd(now)}">
-    </label>`;
-  }
-
-  inputsRow.querySelectorAll("input").forEach(i => {
-    i.addEventListener("change", () => {
-      editingDay = false; savedDayData = null;
-      refreshDashboard();
-    });
-  });
-
-  refreshHeaderButtons();
-}
-
 function refreshHeaderButtons(){
   const dayMode = (mode === "day");
   if (el.btnSaveZ) el.btnSaveZ.style.display = dayMode ? "" : "none";
@@ -196,162 +124,147 @@ function refreshHeaderButtons(){
   if (el.btnUnvalidateJournee) el.btnUnvalidateJournee.style.display = dayMode ? "" : "none";
 }
 
-/* =========================
-   Range selection (parse inputs into LOCAL dates)
-   ========================= */
-function getSelectedRange(){
+function renderInputs(){
   const now = new Date();
-  if (mode === "day") {
-    const v = document.getElementById("inpDay")?.value || ymd(now);
-    const [Y, M, D] = v.split("-").map(Number);
-    const d = new Date(Y, M-1, D); // local midnight
-    const start = new Date(d); start.setHours(0,0,0,0);
-    const end = new Date(d); end.setHours(23,59,59,999);
-    return { start, end };
+  el.inputsRow.innerHTML = "";
+  if (mode === "day"){
+    el.inputsRow.innerHTML = `<label>Date
+      <input id="inpDay" type="date" value="${localDateISO(now)}">
+    </label>`;
+  } else if (mode === "week"){
+    el.inputsRow.innerHTML = `<label>Semaine
+      <input id="inpWeek" type="week">
+    </label>`;
+    const w = (function(d){
+      const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dayNum = (date.getDay()+6)%7;
+      date.setDate(date.getDate()+4-dayNum);
+      const yearStart = new Date(Date.UTC(date.getFullYear(),0,1));
+      return Math.ceil((((date - yearStart)/86400000)+1)/7);
+    })(now);
+    const elWeek = document.getElementById("inpWeek");
+    if (elWeek) elWeek.value = `${now.getFullYear()}-W${String(w).padStart(2,'0')}`;
+  } else if (mode === "month"){
+    el.inputsRow.innerHTML = `<label>Mois
+      <input id="inpMonth" type="month" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}">
+    </label>`;
+  } else if (mode === "year"){
+    el.inputsRow.innerHTML = `<label>Année
+      <input id="inpYear" type="number" min="2020" step="1" value="${now.getFullYear()}">
+    </label>`;
+  } else { // custom
+    el.inputsRow.innerHTML = `<label>Début
+      <input id="inpStart" type="date" value="${localDateISO(now)}">
+    </label>
+    <label>Fin
+      <input id="inpEnd" type="date" value="${localDateISO(now)}">
+    </label>`;
   }
 
-  if (mode === "week") {
+  el.inputsRow.querySelectorAll("input").forEach(i => {
+    i.addEventListener("change", () => { refreshDashboard(); });
+  });
+
+  refreshHeaderButtons();
+}
+
+function getSelectedRange(){
+  const now = new Date();
+  if (mode === "day"){
+    const v = document.getElementById("inpDay")?.value || localDateISO(now);
+    const [Y,M,D] = v.split('-').map(Number);
+    const start = new Date(Y, M-1, D); start.setHours(0,0,0,0);
+    const end = new Date(Y, M-1, D); end.setHours(23,59,59,999);
+    return { start, end };
+  }
+  if (mode === "week"){
     const v = document.getElementById("inpWeek")?.value;
-    if (v) {
+    if (v){
       const [y, wStr] = v.split("-W"); const w = Number(wStr);
       const monday = isoWeekToDate(Number(y), w);
       const start = new Date(monday); start.setHours(0,0,0,0);
-      const end = new Date(monday); end.setDate(monday.getDate() + 6); end.setHours(23,59,59,999);
+      const end = new Date(monday); end.setDate(monday.getDate()+6); end.setHours(23,59,59,999);
       return { start, end };
     }
     return getISOWeekRangeFromMonday(now);
   }
-
-  if (mode === "month") {
+  if (mode === "month"){
     const v = document.getElementById("inpMonth")?.value;
-    const [Y, M] = v ? v.split("-").map(Number) : [now.getFullYear(), now.getMonth()+1];
+    const [Y,M] = v ? v.split('-').map(Number) : [now.getFullYear(), now.getMonth()+1];
     const start = new Date(Y, M-1, 1); start.setHours(0,0,0,0);
     const end = new Date(Y, M, 0); end.setHours(23,59,59,999);
     return { start, end };
   }
-
-  if (mode === "year") {
+  if (mode === "year"){
     const y = Number(document.getElementById("inpYear")?.value || now.getFullYear());
-    return getYearRange(y);
-  }
-
-  if (mode === "custom") {
-    const s = document.getElementById("inpStart")?.value || ymd(now);
-    const e = document.getElementById("inpEnd")?.value || ymd(now);
-    const [Ys, Ms, Ds] = s.split("-").map(Number);
-    const [Ye, Me, De] = e.split("-").map(Number);
-    const start = new Date(Ys, Ms-1, Ds); start.setHours(0,0,0,0);
-    const end = new Date(Ye, Me-1, De); end.setHours(23,59,59,999);
+    const start = new Date(y,0,1); start.setHours(0,0,0,0);
+    const end = new Date(y,11,31); end.setHours(23,59,59,999);
     return { start, end };
   }
-
-  return { start: now, end: now };
+  // custom
+  const s = document.getElementById("inpStart")?.value || localDateISO(now);
+  const e = document.getElementById("inpEnd")?.value || localDateISO(now);
+  const [Ys,Ms,Ds] = s.split('-').map(Number);
+  const [Ye,Me,De] = e.split('-').map(Number);
+  const start = new Date(Ys, Ms-1, Ds); start.setHours(0,0,0,0);
+  const end = new Date(Ye, Me-1, De); end.setHours(23,59,59,999);
+  return { start, end };
 }
 
 /* =========================
-   Data loaders (generic)
+   Purchases (strict header date + montantHT)
    ========================= */
-async function loadInventaires() {
-  const snap = await getDocs(collection(db, "journal_inventaires"));
-  const invs = [];
-  snap.forEach(d => {
-    const r = d.data();
-    const dateStr = r.date || d.id;
-    const dt = toDateAny(dateStr) || new Date(dateStr);
-    if (isFinite(dt)) invs.push({ dateStr, date: dt, valeur: toNum(r.valeurStockHT || 0), raw: r });
-  });
-  invs.sort((a,b) => a.date - b.date);
-  return invs;
-}
-
-/* =========================
-   Purchases helpers (strict: header date + montantHT)
-   ========================= */
-async function getPurchasesForRange(fromISO, toISO) {
-  try {
+async function getPurchasesForRange(fromISO, toISO){
+  try{
     const snap = await getDocs(collection(db, "achats"));
-    const included = [];
+    const isSingle = (fromISO === toISO);
     let total = 0;
-
-    const isSingleDay = (fromISO === toISO);
-
-    snap.forEach(docSnap => {
-      const r = docSnap.data();
+    const included = [];
+    snap.forEach(ds => {
+      const r = ds.data();
       const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
-                    : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
-                    : null;
+                        : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
+                        : null;
       if (!headerRaw) return;
-
       const headerISO = headerDateToISO(headerRaw);
       if (!headerISO) return;
-
-      let matches = false;
-      if (isSingleDay) matches = (headerISO === fromISO);
-      else matches = (headerISO >= fromISO && headerISO <= toISO);
-
+      const matches = isSingle ? (headerISO === fromISO) : (headerISO >= fromISO && headerISO <= toISO);
       if (!matches) return;
-
       const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
       total += montant;
-      included.push({
-        id: docSnap.id,
-        headerRaw,
-        headerISO,
-        montantHT: round2(montant),
-        type: r.type || null,
-        statut: r.statut || null
-      });
+      included.push({ id: ds.id, headerISO, montantHT: round2(montant), type: r.type, statut: r.statut });
     });
-
-    console.debug(`getPurchasesForRange ${fromISO}..${toISO} → ${included.length} achats (total ${round2(total)} €)`);
-    if (included.length) console.table(included);
-
+    console.debug(`getPurchasesForRange ${fromISO}..${toISO} → ${included.length} achats`, included);
     return round2(total);
-  } catch (err) {
-    console.error("getPurchasesForRange error:", err);
+  }catch(err){
+    console.error("getPurchasesForRange err", err);
     return 0;
   }
 }
-async function getPurchasesForDate(dateISO) {
-  return await getPurchasesForRange(dateISO, dateISO);
-}
-async function debugListPurchasesForDate(dateISO) {
-  try {
-    const snap = await getDocs(collection(db, "achats"));
-    const out = [];
-    snap.forEach(docSnap => {
-      const r = docSnap.data();
-      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
-                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
-                      : null;
-      const headerISO = headerDateToISO(headerRaw);
-      const montant = round2(toNum(r.montantHT || r.totalHT || r.montant || 0));
-      if (headerISO === dateISO) {
-        out.push({
-          id: docSnap.id,
-          headerRaw,
-          headerISO,
-          type: r.type || null,
-          statut: r.statut || null,
-          montantHT: montant
-        });
-      }
-    });
-    console.table(out);
-    const sum = out.reduce((s,x)=> s + toNum(x.montantHT), 0);
-    console.log("DEBUG sum:", round2(sum));
-    return out;
-  } catch (e) {
-    console.error("debugListPurchasesForDate err:", e);
-    return [];
-  }
+async function getPurchasesForDate(dateISO){ return await getPurchasesForRange(dateISO, dateISO); }
+
+// debug helper
+async function debugListPurchasesForDate(dateISO){
+  const snap = await getDocs(collection(db, "achats"));
+  const out = [];
+  snap.forEach(ds => {
+    const r = ds.data();
+    const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
+                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat : null;
+    const headerISO = headerDateToISO(headerRaw);
+    const montant = round2(toNum(r.montantHT || r.totalHT || r.montant || 0));
+    if (headerISO === dateISO) out.push({ id: ds.id, headerRaw, headerISO, montantHT: montant, type: r.type, statut: r.statut });
+  });
+  console.table(out);
+  console.log("DEBUG sum:", round2(out.reduce((s,x)=> s + toNum(x.montantHT), 0)));
+  return out;
 }
 
 /* =========================
-   Inventory helper
+   Inventory read and normalization
    ========================= */
-async function getInventoryForDate(dateISO) {
-  try {
+async function getInventoryForDate(dateISO){
+  try{
     const ref = doc(db, "journal_inventaires", dateISO);
     const snap = await getDoc(ref);
     if (!snap.exists()) return null;
@@ -360,59 +273,51 @@ async function getInventoryForDate(dateISO) {
       if (Array.isArray(data.items)) data.changes = data.items;
       else data.changes = [];
     }
-    data.changes = data.changes.map(c => {
-      return {
-        plu: (c.plu || c.PLU || c.pluCode || c.code || (c.article && c.article.plu) || "").toString(),
-        counted: (c.counted !== undefined ? c.counted : (c.countedKg !== undefined ? c.countedKg : (c.stock_reel !== undefined ? c.stock_reel : 0))),
-        prevStock: (c.prevStock !== undefined ? c.prevStock : (c.prev_stock !== undefined ? c.prev_stock : null)),
-        ...c
-      };
-    });
+    data.changes = data.changes.map(c => ({
+      plu: String(c.plu || c.PLU || c.pluCode || c.code || (c.article && c.article.plu) || "").trim(),
+      counted: (c.counted !== undefined ? c.counted : (c.countedKg !== undefined ? c.countedKg : (c.stock_reel !== undefined ? c.stock_reel : 0))),
+      prevStock: (c.prevStock !== undefined ? c.prevStock : (c.prev_stock !== undefined ? c.prev_stock : null)),
+      ...c
+    }));
     return data;
-  } catch (e) {
+  }catch(e){
     console.warn("getInventoryForDate err", e);
     return null;
   }
 }
-
-/* =========================
-   Map changes -> PLU
-   ========================= */
-function mapChangesByPlu(changesArray) {
+function mapChangesByPlu(changesArray){
   const map = {};
   if (!Array.isArray(changesArray)) return map;
   changesArray.forEach(c => {
     if (!c) return;
     const plu = String(c.plu || c.PLU || c.pluCode || c.code || (c.article && c.article.plu) || "").trim();
     if (!plu) return;
-    const counted =
-      (c.counted !== undefined && c.counted !== null) ? c.counted
-      : (c.countedKg !== undefined && c.countedKg !== null) ? c.countedKg
-      : (c.stock_reel !== undefined && c.stock_reel !== null) ? c.stock_reel
-      : 0;
-    const prevStock =
-      (c.prevStock !== undefined && c.prevStock !== null) ? c.prevStock
-      : (c.prev_stock !== undefined && c.prev_stock !== null) ? c.prev_stock
-      : null;
+    const counted = (c.counted !== undefined && c.counted !== null) ? c.counted
+                  : (c.countedKg !== undefined && c.countedKg !== null) ? c.countedKg
+                  : (c.stock_reel !== undefined && c.stock_reel !== null) ? c.stock_reel
+                  : 0;
+    const prevStock = (c.prevStock !== undefined && c.prevStock !== null) ? c.prevStock
+                    : (c.prev_stock !== undefined && c.prev_stock !== null) ? c.prev_stock
+                    : null;
     map[plu] = Object.assign({}, c, { plu, counted, prevStock });
   });
   return map;
 }
 
 /* =========================
-   Prices helper (pma & salePriceTTC)
+   Read prices from stock_movements (pma, salePriceTTC)
    ========================= */
-async function getPricesForPluSet(pluSet, dateISO) {
+async function getPricesForPluSet(pluSet, dateISO){
   const dateT = new Date(dateISO + "T23:59:59");
   const result = {};
   pluSet.forEach(p => result[p] = { buyPrice: null, buyTs: 0, salePriceTTC: null, saleTs: 0, salePriceHT: null });
-  try {
+  try{
     const snap = await getDocs(collection(db, "stock_movements"));
-    snap.forEach(d => {
-      const m = d.data();
+    snap.forEach(ds => {
+      const m = ds.data();
       const plu = String(m.plu || m.PLU || "");
       if (!plu || !pluSet.has(plu)) return;
-      if (!m.createdAt || typeof m.createdAt.toDate !== "function") return;
+      if (!m.createdAt || typeof m.createdAt.toDate !== 'function') return;
       const created = m.createdAt.toDate();
       if (created > dateT) return;
       const ts = created.getTime();
@@ -427,10 +332,10 @@ async function getPricesForPluSet(pluSet, dateISO) {
         result[plu].saleTs = ts;
       }
     });
-  } catch (e) {
+  }catch(e){
     console.warn("getPricesForPluSet err", e);
   }
-  for (const p of Object.keys(result)) {
+  for (const p of Object.keys(result)){
     if (result[p].salePriceTTC) result[p].salePriceHT = round2(result[p].salePriceTTC / (1 + TVA_RATE));
     else result[p].salePriceHT = null;
   }
@@ -438,32 +343,28 @@ async function getPricesForPluSet(pluSet, dateISO) {
 }
 
 /* =========================
-   computePeriodCompta (méthode métier)
+   Core computePeriodCompta
    ========================= */
-async function computePeriodCompta(fromISO, toISO) {
-  // 1) Achats total période
+async function computePeriodCompta(fromISO, toISO){
+  // achats
   let achatsPeriode = 0;
-  try {
-    achatsPeriode = await getPurchasesForRange(fromISO, toISO);
-  } catch (e) {
-    console.warn("computePeriodCompta -> achatsPeriode err", e);
-    achatsPeriode = 0;
-  }
-  // 2) Inventaires : prev day (stock début) et toISO (stock fin)
+  try { achatsPeriode = await getPurchasesForRange(fromISO, toISO); } catch(e){ achatsPeriode = 0; console.warn(e); }
+
+  // inventories
   const prevISO = previousDateString(fromISO);
   const invPrev = await getInventoryForDate(prevISO);
   const invToday = await getInventoryForDate(toISO);
   const mapPrev = mapChangesByPlu(invPrev?.changes || []);
   const mapToday = mapChangesByPlu(invToday?.changes || []);
-  // union PLU set
+
   const pluSet = new Set([...Object.keys(mapPrev), ...Object.keys(mapToday)]);
-  // 3) récupérer prix
+
   const pricesPrev = await getPricesForPluSet(pluSet, prevISO);
   const pricesToday = await getPricesForPluSet(pluSet, toISO);
-  // 4) valeur stock debut & fin (counted * buyPrice)
-  let stockDebutValue = 0;
-  let stockFinValue = 0;
-  for (const plu of pluSet) {
+
+  // valeur stocks
+  let stockDebutValue = 0, stockFinValue = 0;
+  for (const plu of pluSet){
     const prevEntry = mapPrev[plu];
     const todayEntry = mapToday[plu];
     const prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
@@ -475,36 +376,36 @@ async function computePeriodCompta(fromISO, toISO) {
   }
   stockDebutValue = round2(stockDebutValue);
   stockFinValue = round2(stockFinValue);
-  // 5) vente théorique
+
+  // ca theorique
   let caTheorique = 0;
-  for (const plu of pluSet) {
+  for (const plu of pluSet){
     const prevEntry = mapPrev[plu];
     const todayEntry = mapToday[plu];
-    let prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
-    let todayCount = todayEntry ? toNum(todayEntry.counted || todayEntry.countedKg || 0) : 0;
-    let poidsVendu = Math.max(0, prevCount - todayCount);
+    const prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
+    const todayCount = todayEntry ? toNum(todayEntry.counted || todayEntry.countedKg || 0) : 0;
+    const poidsVendu = Math.max(0, prevCount - todayCount);
     const salePriceHT = (pricesToday[plu] && pricesToday[plu].salePriceHT) ? pricesToday[plu].salePriceHT
-                          : (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice
-                          : 0;
+                        : (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice
+                        : 0;
     caTheorique += poidsVendu * salePriceHT;
   }
   caTheorique = round2(caTheorique);
-  // 6) achats consommés via ta règle métier
+
   const achatsConsomesFormula = round2(stockDebutValue + achatsPeriode - stockFinValue);
-  // 7) CA réel from compta_journal (range)
+
+  // ca reel
   let caReel = 0;
   try {
     const q = query(collection(db, "compta_journal"), where("date", ">=", fromISO), where("date", "<=", toISO));
     const snap = await getDocs(q);
-    snap.forEach(d => {
-      caReel += toNum(d.data().caReel || d.data().caHT || 0);
-    });
+    snap.forEach(d => { caReel += toNum(d.data().caReel || d.data().caHT || 0); });
     caReel = round2(caReel);
-  } catch (e) {
-    console.warn("computePeriodCompta -> caReel err", e);
-  }
+  } catch(e) { console.warn(e); }
+
   const marge = round2(caReel - achatsConsomesFormula);
   const margePct = caReel ? round2((marge / caReel) * 100) : 0;
+
   return {
     stockDebut: stockDebutValue,
     stockFin: stockFinValue,
@@ -519,47 +420,166 @@ async function computePeriodCompta(fromISO, toISO) {
 }
 
 /* =========================
-   UI: render dashboard
+   UI rendering and actions
    ========================= */
-async function refreshDashboard() {
-  try {
-    if (!el.status) return;
-    el.status.textContent = "Chargement…";
+function renderChart(items){
+  if (!el.chartMain) return;
+  const labels = items.map(i => i.label);
+  const data = items.map(i => i.value);
+  if (chart) chart.destroy();
+  chart = new Chart(el.chartMain.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Montants €', data, backgroundColor: ['#2b9dff','#4a4a4a','#ff9d00'] }] },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+async function refreshDashboard(){
+  try{
+    if (el.status) el.status.textContent = "Chargement…";
     const range = getSelectedRange();
     const fromISO = localDateISO(range.start);
     const toISO = localDateISO(range.end);
     const res = await computePeriodCompta(fromISO, toISO);
+
     if (el.tdStockDebut) el.tdStockDebut.textContent = `${n2(res.stockDebut)} €`;
     if (el.tdStockFin) el.tdStockFin.textContent = `${n2(res.stockFin)} €`;
     if (el.tdAchatsPeriode) el.tdAchatsPeriode.textContent = `${n2(res.achatsPeriode)} €`;
     if (el.tdAchatsConso) el.tdAchatsConso.textContent = `${n2(res.achatsConsomesFormula)} €`;
     if (el.tdCaTheo) el.tdCaTheo.textContent = `${n2(res.caTheorique)} €`;
     if (el.tdCaReel) el.tdCaReel.textContent = `${n2(res.caReel)} €`;
+
     if (el.sumCaReel) el.sumCaReel.textContent = n2(res.caReel);
     if (el.sumAchatsConso) el.sumAchatsConso.textContent = n2(res.achatsConsomesFormula);
     const varStock = round2(res.stockDebut - res.stockFin);
     if (el.sumVarStock) el.sumVarStock.textContent = n2(varStock);
     if (el.sumMarge) el.sumMarge.textContent = n2(res.marge);
     if (el.sumMargePct) el.sumMargePct.textContent = (round2(res.margePct) || 0).toFixed(1);
+
     renderChart([
       { label: "CA réel HT", value: res.caReel },
       { label: "Achats consommés HT", value: res.achatsConsomesFormula },
       { label: "Variation stock HT", value: varStock }
     ]);
-    el.status.textContent = "";
+
+    if (el.status) el.status.textContent = "";
+
+    // debug / warning missing prices
     const pricesToday = res.pricesUsed && res.pricesUsed.today ? res.pricesUsed.today : {};
     const missing = Object.keys(pricesToday).filter(p => !pricesToday[p].buyPrice);
     if (missing.length) {
-      el.status.textContent = `⚠ ${missing.length} PLU(s) sans prix d'achat détecté (fallback à 0). Voir console pour 'pricesUsed'.`;
+      if (el.status) el.status.textContent = `⚠ ${missing.length} PLU(s) sans prix d'achat détecté (fallback à 0). Voir console.`;
       console.log("pricesUsed:", res.pricesUsed);
     }
-  } catch (e) {
+
+  }catch(e){
     console.error(e);
-    if (el.status) el.status.textContent = "Erreur lors du calcul : " + (e.message || e);
+    if (el.status) el.status.textContent = "Erreur : " + (e.message || e);
   }
 }
 
+/* Z save / validate */
+async function saveZForDay(dateISO){
+  const zht = toNum(el.zCaHT?.value || 0);
+  const note = (el.zNote?.value || "").trim();
+  await setDoc(doc(db, "compta_journal", dateISO), {
+    date: dateISO, caReel: zht, zNote: note, validated:false, updatedAt: serverTimestamp()
+  }, { merge:true });
+  if (el.status) el.status.textContent = `Z enregistré pour ${dateISO}`;
+  refreshDashboard();
+}
+
+async function validerJournee(dateISO){
+  const calc = await computePeriodCompta(dateISO, dateISO);
+  const zFromField = toNum(el.zCaHT?.value || 0);
+  let caReel = calc.caReel;
+  if (zFromField > 0) caReel = zFromField;
+  const payload = {
+    date: dateISO,
+    stockDebut: calc.stockDebut,
+    stockFin: calc.stockFin,
+    achatsPeriode: calc.achatsPeriode,
+    achatsConsoFinal: calc.achatsConsomesFormula,
+    caTheorique: calc.caTheorique,
+    caReel,
+    marge: round2(caReel - calc.achatsConsomesFormula),
+    margePct: (caReel ? round2((caReel - calc.achatsConsomesFormula)/caReel*100) : 0),
+    validated: true, validatedAt: serverTimestamp(), zNote: (el.zNote?.value || "").trim()
+  };
+  await setDoc(doc(db, "compta_journal", dateISO), payload, { merge:true });
+  if (el.status) el.status.textContent = `Journée ${dateISO} validée.`;
+  refreshDashboard();
+}
+
+async function unvalidateJournee(dateISO){
+  const ref = doc(db, "compta_journal", dateISO);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) { if (el.status) el.status.textContent = "Aucune validation trouvée."; return; }
+  await updateDoc(ref, { validated:false, validatedAt: serverTimestamp() });
+  if (el.status) el.status.textContent = `Validation supprimée pour ${dateISO}.`;
+  refreshDashboard();
+}
+
 /* =========================
-   Chart & UI rest (save Z, validate...) - unchanged
+   Events wiring
    ========================= */
-// ... (the rest of the file is unchanged and included above — saveZForDay, validerJournee, unvalidateJournee, wireEvents, initDashboard — they are the same as earlier)
+function wireEvents(){
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      e.currentTarget.classList.add("active");
+      mode = e.currentTarget.dataset.mode;
+      renderInputs();
+      refreshDashboard();
+    });
+  });
+
+  if (el.btnSaveZ) el.btnSaveZ.addEventListener("click", async () => {
+    const day = document.getElementById("inpDay")?.value;
+    if (!day) return alert("Choisis une date.");
+    await saveZForDay(day);
+  });
+
+  if (el.btnValiderJournee) el.btnValiderJournee.addEventListener("click", async () => {
+    const day = document.getElementById("inpDay")?.value;
+    if (!day) return alert("Choisis une date.");
+    if (!confirm(`Valider la journée ${day} (figer la marge) ?`)) return;
+    await validerJournee(day);
+  });
+
+  if (el.btnRecalcJournee) el.btnRecalcJournee.addEventListener("click", async () => {
+    await refreshDashboard();
+    if (el.status) el.status.textContent = "Recalcul effectué — tu peux modifier le Z avant validation.";
+  });
+
+  if (el.btnUnvalidateJournee) el.btnUnvalidateJournee.addEventListener("click", async () => {
+    const day = document.getElementById("inpDay")?.value;
+    if (!day) return alert("Choisis une date.");
+    if (!confirm(`Supprimer la validation de ${day} ?`)) return;
+    await unvalidateJournee(day);
+  });
+}
+
+/* =========================
+   Init
+   ========================= */
+async function initDashboard(){
+  auth.onAuthStateChanged(async user => {
+    try{
+      if (!user) { if (el.status) el.status.textContent = "Connecte-toi pour voir le module Comptabilité."; return; }
+      const snap = await getDoc(doc(db,'app_users',user.uid));
+      if (!snap.exists()) { if (el.status) el.status.textContent = "Accès refusé."; return; }
+      const d = snap.data();
+      const ok = (d.role === 'admin') || (Array.isArray(d.modules) && d.modules.includes('compta'));
+      if (!ok) { if (el.status) el.status.textContent = "Accès refusé au module Comptabilité."; return; }
+      wireEvents();
+      renderInputs();
+      refreshDashboard();
+    }catch(e){
+      console.error(e);
+      if (el.status) el.status.textContent = "Erreur d'initialisation : "+(e.message||e);
+    }
+  });
+}
+
+initDashboard();
