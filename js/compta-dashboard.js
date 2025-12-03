@@ -55,27 +55,31 @@ function ymd(d) {
 }
 
 /* ISO helpers */
-function getISOWeekRange(date) {
+function getISOWeekRange(date){
   const d = new Date(date);
-  const day = (d.getDay() + 6) % 7; // 0=lundi
-  const start = new Date(d); start.setDate(d.getDate() - day); start.setHours(0, 0, 0, 0);
-  const end = new Date(start); end.setDate(start.getDate() + 6); end.setHours(23, 59, 59, 999);
+  const day = (d.getDay()+6)%7; // 0=lundi
+  const start = new Date(d); start.setDate(d.getDate()-day);
+  start.setHours(0,0,0,0);
+  const end = new Date(start); end.setDate(start.getDate()+6);
+  end.setHours(23,59,59,999);
   return { start, end };
 }
-function getMonthRange(date) {
+function getMonthRange(date){
   const d = new Date(date);
-  const start = new Date(d.getFullYear(), d.getMonth(), 1); start.setHours(0, 0, 0, 0);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0); end.setHours(23, 59, 59, 999);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  start.setHours(0,0,0,0);
+  const end = new Date(d.getFullYear(), d.getMonth()+1, 0);
+  end.setHours(23,59,59,999);
   return { start, end };
 }
-function getYearRange(year) {
-  const start = new Date(year, 0, 1); start.setHours(0, 0, 0, 0);
-  const end = new Date(year, 11, 31); end.setHours(23, 59, 59, 999);
+function getYearRange(year){
+  const start = new Date(year,0,1); start.setHours(0,0,0,0);
+  const end = new Date(year,11,31); end.setHours(23,59,59,999);
   return { start, end };
 }
-function inRange(d, start, end) {
-  if (!d) return false;
-  return d >= start && d <= end;
+function inRange(d, start, end){
+  if(!d) return false;
+  return d>=start && d<=end;
 }
 
 /* TVA utilisée dans le projet (conversion TTC->HT) */
@@ -166,7 +170,7 @@ function getISOWeekNumber(date){
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  return Math.ceil((((d - yearStart)/86400000)+1)/7);
+  return Math.ceil((((d-yearStart)/86400000)+1)/7);
 }
 
 function refreshHeaderButtons(){
@@ -193,7 +197,6 @@ function getSelectedRange(){
     const v = document.getElementById("inpWeek")?.value;
     if (v) {
       const [y, wStr] = v.split("-W"); const w = Number(wStr);
-      // approximate: take monday of week
       const firstThurs = new Date(Number(y), 0, 1 + (w - 1) * 7);
       return getISOWeekRange(firstThurs);
     }
@@ -323,35 +326,6 @@ async function loadVentesReelles(from, to) {
     } catch (e) { console.warn("loadVentesReelles err", e); }
   }
   return { totalVentes, ventesEAN };
-}
-
-/* =========================
-   Load mouvements (exits) within period
-   ========================= */
-async function loadMouvements(from, to) {
-  const col = collection(db, "stock_movements");
-  const snap = await getDocs(col);
-  const list = [];
-  const start = new Date(from + "T00:00:00").getTime();
-  const end = new Date(to + "T23:59:59").getTime();
-  snap.forEach(d => {
-    const m = d.data();
-    const sens = (m.sens || "").toString().toLowerCase();
-    let type = (m.type || "").toString().toLowerCase();
-    if (!type && m.origin) type = (m.origin || "").toString().toLowerCase();
-    if (sens !== "sortie") return;
-    if (type === "transformation" || type === "correction") return;
-    const poids = Number(m.poids ?? m.quantity ?? 0);
-    if (!poids) return;
-    // date picking
-    let dd = null;
-    if (m.date) dd = new Date(m.date + "T00:00:00").getTime();
-    else if (m.createdAt && m.createdAt.toDate) dd = m.createdAt.toDate().getTime();
-    else if (m.createdAt && typeof m.createdAt === 'string') dd = new Date(m.createdAt).getTime();
-    else dd = Date.now();
-    if (dd >= start && dd <= end) list.push(m);
-  });
-  return list;
 }
 
 /* =========================
@@ -537,13 +511,11 @@ async function validerJournee(dateISO) {
   };
   await setDoc(doc(db, "compta_journal", dateISO), payload, { merge: true });
 
-  // Optionally save a snapshot of stock by lots / per PLU if you have a detailed snapshot collection
   el.status.textContent = `Journée ${dateISO} validée.`;
   refreshDashboard();
 }
 
 async function unvalidateJournee(dateISO) {
-  // remove validated flag
   const ref = doc(db, "compta_journal", dateISO);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
@@ -601,11 +573,9 @@ function wireEvents() {
    Init
    ========================= */
 async function initDashboard() {
-  // wait auth
   auth.onAuthStateChanged(async user => {
     try {
       if (!user) {
-        // redirect to login or show message
         el.status.textContent = "Connecte-toi pour voir le module Comptabilité.";
         return;
       }
@@ -614,7 +584,6 @@ async function initDashboard() {
         el.status.textContent = "Accès refusé au module Comptabilité.";
         return;
       }
-      // wire events and render
       wireEvents();
       renderInputs();
       refreshDashboard();
@@ -626,14 +595,3 @@ async function initDashboard() {
 }
 
 initDashboard();
-
-/* =========================
-   Small helper: compute year-month for UI default
-   ========================= */
-function getISOWeekNumber(date){
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  return Math.ceil((((d-yearStart)/86400000)+1)/7);
-}
