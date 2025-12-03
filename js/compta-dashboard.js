@@ -507,8 +507,22 @@ async function calculateLiveDay(dateStr){
   console.groupEnd();
 
 
-  // achats consommés = somme des coûts des sorties (fallback achatsPeriodeHT + varStock)
-  const achatsConsoHT = (aggs.totalCost && aggs.totalCost > 0) ? aggs.totalCost : (achatsPeriodeHT + varStock);
+    // achats consommés = somme des coûts des sorties (fallback achatsPeriodeHT + varStock)
+  const fallback = achatsPeriodeHT + varStock;
+  let achatsConsoHT;
+  if (aggs.totalCost && aggs.totalCost > 0) {
+    // si différence > 8% on utilise la formule comptable
+    const diffRatio = Math.abs(aggs.totalCost - fallback) / Math.max(1, Math.abs(fallback));
+    if (diffRatio > 0.08) {
+      console.warn("AGG mismatch: using fallback formula. aggs.totalCost=", aggs.totalCost, "fallback=", fallback, "ratio=", diffRatio);
+      achatsConsoHT = fallback;
+    } else {
+      achatsConsoHT = aggs.totalCost;
+    }
+  } else {
+    achatsConsoHT = fallback;
+  }
+
 
   // Si les journaux d'inventaire ne donnent rien de différent mais il y a des mouvements,
   // on estime stockFin depuis les lots courants et on calcule stockDebut par la formule :
