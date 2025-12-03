@@ -551,6 +551,11 @@ try {
   console.warn("Erreur calcul venteTheorique depuis ventes_par_article, fallback sur aggs.totalCA", e);
   venteTheoriqueHT = toNum(aggs.totalCA || 0);
 }
+console.group("DEBUG venteTheorique");
+console.log("ventes_par_article (extraits) :", Object.entries(ventes_par_article||{}).slice(0,10));
+console.log("venteTheoriqueHT calculée =", venteTheoriqueHT);
+console.log("aggs.totalCA (fallback) =", aggs.totalCA);
+console.groupEnd();
 
 
   const marge = caReel - achatsConsoHT;
