@@ -542,20 +542,68 @@ async function calculateLiveDay(dateStr){
     ventes_par_article[plu] = toNum(ventesArticlesFromZ[plu]);
   });
 
-  // Calculer la vente théorique à partir des ventes_par_article (qui inclut les overrides Z)
-let venteTheoriqueHT = 0;
-try {
-  venteTheoriqueHT = Object.values(ventes_par_article || {}).reduce((s, v) => s + toNum(v || 0), 0);
-} catch (e) {
-  // fallback : si problème, on conserve l'ancien calcul depuis les mouvements
-  console.warn("Erreur calcul venteTheorique depuis ventes_par_article, fallback sur aggs.totalCA", e);
-  venteTheoriqueHT = toNum(aggs.totalCA || 0);
-}
-console.group("DEBUG venteTheorique");
-console.log("ventes_par_article (extraits) :", Object.entries(ventes_par_article||{}).slice(0,10));
-console.log("venteTheoriqueHT calculée =", venteTheoriqueHT);
-console.log("aggs.totalCA (fallback) =", aggs.totalCA);
-console.groupEnd();
+   // --- Calcul vente théorique HT à partir des kg vendus * pvTTC ---
+  // On calcule les kg vendus par PLU depuis les mouvements (moves),
+  // on récupère pvTTCreel depuis stock_articles (champ pvTTCreel / pvTTCconseille / pvTTC),
+  // on convertit TTC -> HT (TVA 5.5%) et on somme.
+
+  let venteTheoriqueHT = 0;
+  try {
+    // 1) charger tous les lots pour faire lotId -> PLU
+    const lotsSnap = await getDocs(collection(db, "lots"));
+    const lotsMap = {};
+    lotsSnap.forEach(d => { lotsMap[d.id] = d.data(); });
+
+    // 2) sommer les kg vendus par PLU depuis moves
+    const soldKgByPlu = {};
+    moves.forEach(m => {
+      const qty = Number(m.poids ?? m.quantity ?? 0) || 0;
+      if (!qty) return;
+      // récupère PLU depuis le lot si possible, sinon depuis le mouvement
+      const lot = m.lotId ? lotsMap[m.lotId] : null;
+      const plu = (lot && (lot.plu || lot.PLU)) ? (lot.plu || lot.PLU) : (m.plu || m.articleId || null);
+      if (!plu) return;
+      soldKgByPlu[plu] = (soldKgByPlu[plu] || 0) + qty;
+    });
+
+    // 3) charger stock_articles -> prix de vente TTC
+    const saSnap = await getDocs(collection(db, "stock_articles"));
+    const saMap = {};
+    saSnap.forEach(d => { saMap[d.id] = d.data(); });
+
+    // 4) calculer vente theoretical HT = sum( soldKg * pvTTC/(1+TVA) )
+    for (const plu in soldKgByPlu) {
+      const kg = soldKgByPlu[plu] || 0;
+      // chercher pvTTC dans stock_articles (clef "PLU_<plu>" ou plu direct)
+      const saId1 = "PLU_" + String(plu);
+      const sa = saMap[saId1] || saMap[plu] || {};
+      let pvTTC = toNum(sa.pvTTCreel || sa.pvTTCconseille || sa.pvTTC || 0);
+
+      if (pvTTC > 0) {
+        const pvHT = pvTTC / (1 + TVA_RATE);
+        venteTheoriqueHT += pvHT * kg;
+      } else {
+        // fallback : si on a une valeur de CA calculée pour ce PLU (ventes_par_article),
+        // on peut en déduire un prix HT implicite : pvHT_implicite = caHT / kg
+        const caForPlu = toNum(ventes_par_article[plu] || 0);
+        if (caForPlu > 0 && kg > 0) {
+          const pvHT_imp = caForPlu / kg;
+          venteTheoriqueHT += pvHT_imp * kg;
+        } else {
+          // dernier fallback : utiliser aggs.totalCA proportionnel (si rien d'autre)
+          // on ajoute 0 ici (ou log) ; on préfère ne pas deviner trop.
+          console.warn(`pvTTC manquant pour PLU ${plu} — fallback: aucune valeur. kg=${kg}`);
+        }
+      }
+    }
+
+    // arrondir
+    venteTheoriqueHT = Number(venteTheoriqueHT || 0);
+
+  } catch (err) {
+    console.warn("Erreur calcul venteTheorique depuis inventory/moves — fallback sur aggs.totalCA", err);
+    venteTheoriqueHT = toNum(aggs.totalCA || 0);
+  }
 
 
   const marge = caReel - achatsConsoHT;
