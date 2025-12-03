@@ -217,112 +217,110 @@ async function loadInventaires() {
    Helpers spécifiques (TA méthode)
    ========================= */
 
-/** Somme des achats (montantHT) sur une plage de dates [fromISO, toISO].
- *  STRICT : on prend uniquement le champ header `date` (ou `dateAchat` en fallback).
- *  Retour : round2(total)
+/** Normalize header date to 'YYYY-MM-DD' (or null)
+ *  Accepts: "YYYY-MM-DD", other strings, Firestore Timestamp, Date object.
+ */
+function headerDateToISO(headerDateRaw) {
+  if (!headerDateRaw) return null;
+  // If it's a Firestore timestamp
+  if (headerDateRaw && typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
+    const d = headerDateRaw.toDate();
+    if (!isFinite(d)) return null;
+    return d.toISOString().slice(0,10);
+  }
+  // If it's a Date object
+  if (headerDateRaw instanceof Date) {
+    return headerDateRaw.toISOString().slice(0,10);
+  }
+  // If it's a string, try to extract YYYY-MM-DD at start
+  if (typeof headerDateRaw === 'string') {
+    const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+    const d = toDateAny(headerDateRaw);
+    if (d) return d.toISOString().slice(0,10);
+    return null;
+  }
+  // Fallback: try generic parse
+  const d = toDateAny(headerDateRaw);
+  if (d) return d.toISOString().slice(0,10);
+  return null;
+}
+
+/** Strict sum of achats (montantHT) on range [fromISO, toISO]
+ *  - Uses only header date (r.date or r.dateAchat), normalized to 'YYYY-MM-DD'
+ *  - Ignores createdAt, lettrage, lines...
  */
 async function getPurchasesForRange(fromISO, toISO) {
-  const start = new Date(fromISO + "T00:00:00");
-  const end = new Date(toISO + "T23:59:59");
-  let total = 0;
   try {
     const snap = await getDocs(collection(db, "achats"));
-    const included = []; // debug list
+    const included = [];
+    let total = 0;
 
     snap.forEach(docSnap => {
       const r = docSnap.data();
-      // 1) Priorité : champ header `date`
-      let headerDateRaw = null;
-      if (r.date !== undefined && r.date !== null) headerDateRaw = r.date;
-      else if (r.dateAchat !== undefined && r.dateAchat !== null) headerDateRaw = r.dateAchat;
-      else headerDateRaw = null;
+      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
+                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
+                      : null;
+      if (!headerRaw) return; // skip if no header date
 
-      if (!headerDateRaw) return; // pas de champ date d'entête → on ignore (ne pas utiliser createdAt)
+      const headerISO = headerDateToISO(headerRaw); // 'YYYY-MM-DD' or null
+      if (!headerISO) return;
 
-      // 2) Normaliser headerDateRaw en Date
-      let headerDateObj = null;
-      let headerSource = null;
-      if (typeof headerDateRaw === "string") {
-        // souvent "YYYY-MM-DD"
-        headerDateObj = toDateAny(headerDateRaw);
-        headerSource = "string";
-      } else if (headerDateRaw && headerDateRaw.toDate) {
-        // Firestore Timestamp
-        headerDateObj = headerDateRaw.toDate();
-        headerSource = "timestamp";
-      } else {
-        // autre format (Date), essayer de parser
-        headerDateObj = toDateAny(headerDateRaw);
-        headerSource = typeof headerDateRaw;
-      }
-
-      if (!headerDateObj) return; // impossible à parser → on ignore
-
-      // 3) Comparer la date normalisée à la plage
-      if (headerDateObj >= start && headerDateObj <= end) {
+      // compare lexicographically safe for YYYY-MM-DD
+      if (headerISO >= fromISO && headerISO <= toISO) {
         const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
         total += montant;
         included.push({
           id: docSnap.id,
-          headerRaw: headerDateRaw,
-          headerType: headerSource,
-          headerISO: headerDateObj.toISOString().slice(0,10),
+          headerRaw,
+          headerISO,
           montantHT: round2(montant)
         });
       }
     });
 
-    // debug : si tu veux inspecter les lignes prises en compte
-    if (included.length) {
-      console.debug(`getPurchasesForRange ${fromISO}..${toISO} → ${included.length} achats (montant total ${round2(total)} €)`, included);
-    } else {
-      console.debug(`getPurchasesForRange ${fromISO}..${toISO} → 0 achats trouvés`);
-    }
+    // debug log
+    console.debug(`getPurchasesForRange ${fromISO}..${toISO} → ${included.length} achats (total ${round2(total)} €)`);
+    if (included.length) console.table(included);
 
+    return round2(total);
   } catch (err) {
     console.error("getPurchasesForRange error:", err);
     return 0;
   }
-  return round2(total);
 }
 
-async function getPurchasesForDate(dateISO) {
-  return await getPurchasesForRange(dateISO, dateISO);
-}
-
-/** DEBUG helper : affiche en console toutes les lignes d'achats dont la date header == dateISO */
+/** DEBUG helper : affiche en console toutes les lignes d'achats retenues pour dateISO (exact match on header ISO) */
 async function debugListPurchasesForDate(dateISO) {
-  const start = new Date(dateISO + "T00:00:00");
-  const end = new Date(dateISO + "T23:59:59");
-  const out = [];
-  const snap = await getDocs(collection(db, "achats"));
-  snap.forEach(docSnap => {
-    const r = docSnap.data();
-    let headerDateRaw = r.date ?? r.dateAchat ?? null;
-    let headerDateObj = null;
-    let headerSource = null;
-    if (!headerDateRaw) {
-      headerSource = "none";
-    } else if (typeof headerDateRaw === "string") {
-      headerDateObj = toDateAny(headerDateRaw);
-      headerSource = "string";
-    } else if (headerDateRaw && headerDateRaw.toDate) {
-      headerDateObj = headerDateRaw.toDate();
-      headerSource = "timestamp";
-    } else {
-      headerDateObj = toDateAny(headerDateRaw);
-      headerSource = typeof headerDateRaw;
-    }
-    const headerISO = headerDateObj ? headerDateObj.toISOString().slice(0,10) : null;
-    const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
-    if (headerDateObj && headerDateObj >= start && headerDateObj <= end) {
-      out.push({ id: docSnap.id, headerRaw: headerDateRaw, headerType: headerSource, headerISO, montantHT: round2(montant) });
-    }
-  });
-  console.table(out);
-  const sum = out.reduce((s,x)=> s + toNum(x.montantHT), 0);
-  console.log("DEBUG sum:", round2(sum));
-  return out;
+  try {
+    const snap = await getDocs(collection(db, "achats"));
+    const out = [];
+    snap.forEach(docSnap => {
+      const r = docSnap.data();
+      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
+                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
+                      : null;
+      const headerISO = headerDateToISO(headerRaw);
+      const montant = round2(toNum(r.montantHT || r.totalHT || r.montant || 0));
+      if (headerISO === dateISO) {
+        out.push({
+          id: docSnap.id,
+          headerRaw,
+          headerISO,
+          type: r.type || null,
+          statut: r.statut || null,
+          montantHT: montant
+        });
+      }
+    });
+    console.table(out);
+    const sum = out.reduce((s,x)=> s + toNum(x.montantHT), 0);
+    console.log("DEBUG sum:", round2(sum));
+    return out;
+  } catch (e) {
+    console.error("debugListPurchasesForDate err:", e);
+    return [];
+  }
 }
 
 /** Récupère le doc journal_inventaires/{dateISO} */
