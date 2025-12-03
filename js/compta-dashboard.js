@@ -542,7 +542,16 @@ async function calculateLiveDay(dateStr){
     ventes_par_article[plu] = toNum(ventesArticlesFromZ[plu]);
   });
 
-  const venteTheoriqueHT = toNum(aggs.totalCA || 0);
+  // Calculer la vente théorique à partir des ventes_par_article (qui inclut les overrides Z)
+let venteTheoriqueHT = 0;
+try {
+  venteTheoriqueHT = Object.values(ventes_par_article || {}).reduce((s, v) => s + toNum(v || 0), 0);
+} catch (e) {
+  // fallback : si problème, on conserve l'ancien calcul depuis les mouvements
+  console.warn("Erreur calcul venteTheorique depuis ventes_par_article, fallback sur aggs.totalCA", e);
+  venteTheoriqueHT = toNum(aggs.totalCA || 0);
+}
+
 
   const marge = caReel - achatsConsoHT;
   const margePct = caReel>0 ? (marge/caReel*100) : 0;
