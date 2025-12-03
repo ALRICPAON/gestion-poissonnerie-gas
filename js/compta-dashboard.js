@@ -217,37 +217,48 @@ async function loadInventaires() {
    Helpers spécifiques (TA méthode)
    ========================= */
 
-/** Normalize header date to 'YYYY-MM-DD' (or null)
- *  Accepts: "YYYY-MM-DD", other strings, Firestore Timestamp, Date object.
+// Utilitaire: retourne YYYY-MM-DD en HEURE LOCALE
+function localDateISO(d) {
+  if (!d || !(d instanceof Date)) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Normalize header date to 'YYYY-MM-DD' (local date)
+ *  Accepts: Firestore Timestamp, Date object, or string like 'YYYY-MM-DD' or other parseable string.
  */
 function headerDateToISO(headerDateRaw) {
   if (!headerDateRaw) return null;
-  // If it's a Firestore timestamp
-  if (headerDateRaw && typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
-    const d = headerDateRaw.toDate();
-    if (!isFinite(d)) return null;
-    return d.toISOString().slice(0,10);
+
+  // Firestore Timestamp
+  if (typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
+    const d = headerDateRaw.toDate(); // JS Date in local timezone
+    return localDateISO(d);
   }
-  // If it's a Date object
-  if (headerDateRaw instanceof Date) {
-    return headerDateRaw.toISOString().slice(0,10);
-  }
-  // If it's a string, try to extract YYYY-MM-DD at start
+
+  // Date object
+  if (headerDateRaw instanceof Date) return localDateISO(headerDateRaw);
+
+  // String 'YYYY-MM-DD' or other
   if (typeof headerDateRaw === 'string') {
+    // If it starts with YYYY-MM-DD, keep it exactly (no timezone shift)
     const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
     if (m) return m[1];
-    const d = toDateAny(headerDateRaw);
-    if (d) return d.toISOString().slice(0,10);
+    // fallback parse -> then use local date
+    const parsed = toDateAny(headerDateRaw);
+    if (parsed) return localDateISO(parsed);
     return null;
   }
-  // Fallback: try generic parse
-  const d = toDateAny(headerDateRaw);
-  if (d) return d.toISOString().slice(0,10);
-  return null;
+
+  // Generic fallback: try to parse
+  const parsed = toDateAny(headerDateRaw);
+  return parsed ? localDateISO(parsed) : null;
 }
 
 /** Strict sum of achats (montantHT) on range [fromISO, toISO]
- *  - Uses only header date (r.date or r.dateAchat), normalized to 'YYYY-MM-DD'
+ *  - Uses only header date (r.date or r.dateAchat), normalized to local 'YYYY-MM-DD'
  *  - Ignores createdAt, lettrage, lines...
  */
 async function getPurchasesForRange(fromISO, toISO) {
@@ -263,7 +274,7 @@ async function getPurchasesForRange(fromISO, toISO) {
                       : null;
       if (!headerRaw) return; // skip if no header date
 
-      const headerISO = headerDateToISO(headerRaw); // 'YYYY-MM-DD' or null
+      const headerISO = headerDateToISO(headerRaw); // 'YYYY-MM-DD' local
       if (!headerISO) return;
 
       // compare lexicographically safe for YYYY-MM-DD
@@ -279,7 +290,6 @@ async function getPurchasesForRange(fromISO, toISO) {
       }
     });
 
-    // debug log
     console.debug(`getPurchasesForRange ${fromISO}..${toISO} → ${included.length} achats (total ${round2(total)} €)`);
     if (included.length) console.table(included);
 
@@ -290,7 +300,7 @@ async function getPurchasesForRange(fromISO, toISO) {
   }
 }
 
-/** DEBUG helper : affiche en console toutes les lignes d'achats retenues pour dateISO (exact match on header ISO) */
+/** DEBUG helper : liste précisément les achats dont la date d'en-tête === dateISO (matching local ISO) */
 async function debugListPurchasesForDate(dateISO) {
   try {
     const snap = await getDocs(collection(db, "achats"));
@@ -320,18 +330,6 @@ async function debugListPurchasesForDate(dateISO) {
   } catch (e) {
     console.error("debugListPurchasesForDate err:", e);
     return [];
-  }
-}
-
-/** Récupère le doc journal_inventaires/{dateISO} */
-async function getInventoryForDate(dateISO) {
-  try {
-    const snap = await getDoc(doc(db, "journal_inventaires", dateISO));
-    if (!snap.exists()) return null;
-    return snap.data(); // expected: .changes = [{plu, counted, prevStock, ...}, ...]
-  } catch (e) {
-    console.warn("getInventoryForDate err", e);
-    return null;
   }
 }
 
