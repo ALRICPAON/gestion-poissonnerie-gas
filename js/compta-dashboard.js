@@ -2,7 +2,7 @@
 import { db, auth } from "./firebase-init.js";
 import {
   collection, doc, getDoc, getDocs, query, where,
-  setDoc, deleteDoc, serverTimestamp
+  setDoc, deleteDoc, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* ---------------- Permissions helper ---------------- */
@@ -277,6 +277,134 @@ function pickStocks(invs, start, end){
   return { stockDebut, stockFin };
 }
 
+/* ---------------- Reconstruction stock & vente théorique à une date T ---------------- */
+
+/**
+ * computeStockValueAt(dateISO)
+ * - dateISO : "YYYY-MM-DD"
+ * Retourne { totalValue, perLot }
+ */
+async function computeStockValueAt(dateISO){
+  const dateT = new Date(dateISO + "T23:59:59");
+  // charger lots (map)
+  const lotsSnap = await getDocs(collection(db,"lots"));
+  const lotsMap = {};
+  lotsSnap.forEach(d => { lotsMap[d.id] = d.data(); });
+
+  // récupérer mouvements jusqu'à dateT (préférence createdAt if exists)
+  let movesSnap;
+  try {
+    movesSnap = await getDocs(query(collection(db,"stock_movements"), where("createdAt","<=", Timestamp.fromDate(dateT))));
+  } catch(e) {
+    // fallback : récupérer tout et filtrer client-side
+    movesSnap = await getDocs(collection(db,"stock_movements"));
+  }
+
+  const stateByLot = {};
+  movesSnap.forEach(d => {
+    const m = d.data();
+    // normalize createdAt
+    const created = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate() : (m.date ? new Date(m.date + "T00:00:00") : null);
+    if(!created || created > dateT) return;
+    if (m.ignoreForCompta) return;
+    const lotId = m.lotId || ("PLU__"+(m.plu||m.articleId||"UNKNOWN"));
+    if(!stateByLot[lotId]) stateByLot[lotId] = { in:0, out:0, priceFromLot: (lotsMap[lotId] && (lotsMap[lotId].prixAchatKg || lotsMap[lotId].prixAchatKg===0)) ? Number(lotsMap[lotId].prixAchatKg) : null };
+    const qty = Number(m.poids ?? m.quantity ?? 0) || 0;
+    const sens = (m.sens||"").toString().toLowerCase();
+    if (sens === "sortie" || qty < 0) {
+      stateByLot[lotId].out += Math.abs(qty);
+    } else {
+      stateByLot[lotId].in += qty;
+      if (!stateByLot[lotId].priceFromLot && (m.prixAchatKg || m.montantHT)) {
+        stateByLot[lotId].priceFromLot = Number(m.prixAchatKg || (m.montantHT / Math.max(1, qty)));
+      }
+    }
+  });
+
+  let totalValue = 0;
+  const perLot = {};
+  for(const lotId in stateByLot){
+    const s = stateByLot[lotId];
+    const remaining = Math.max(0, s.in - s.out);
+    const price = Number(s.priceFromLot || 0);
+    const val = remaining * price;
+    perLot[lotId] = { remainingKg: remaining, prixAchatKg: price, value: val };
+    totalValue += val;
+  }
+
+  return { totalValue: Number(totalValue || 0), perLot };
+}
+
+/**
+ * computeVenteTheoriqueAt(dateISO)
+ * - calcule vente théorique HT à partir des kg vendus * pvTTC
+ */
+async function computeVenteTheoriqueAt(dateISO){
+  const dateT = new Date(dateISO + "T23:59:59");
+
+  // lots map lotId->plu
+  const lotsSnap = await getDocs(collection(db,"lots"));
+  const lotsMap = {};
+  lotsSnap.forEach(d => lotsMap[d.id] = d.data());
+
+  // mouvements <= dateT
+  let movesSnap;
+  try {
+    movesSnap = await getDocs(query(collection(db,"stock_movements"), where("createdAt","<=", Timestamp.fromDate(dateT))));
+  } catch(e) {
+    movesSnap = await getDocs(collection(db,"stock_movements"));
+  }
+
+  // kg vendus par PLU
+  const soldKgByPlu = {};
+  movesSnap.forEach(d => {
+    const m = d.data();
+    const created = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate() : (m.date ? new Date(m.date+"T00:00:00") : null);
+    if(!created || created > dateT) return;
+    if(m.ignoreForCompta) return;
+    const sens = (m.sens||"").toString().toLowerCase();
+    if (!(sens === "sortie" || (m.quantity && Number(m.quantity) < 0))) return;
+    const qty = Math.abs(Number(m.poids ?? m.quantity ?? 0)) || 0;
+    let plu = m.plu || m.articleId || null;
+    if(!plu && m.lotId && lotsMap[m.lotId]) plu = lotsMap[m.lotId].plu || lotsMap[m.lotId].PLU;
+    if(!plu) return;
+    soldKgByPlu[plu] = (soldKgByPlu[plu] || 0) + qty;
+  });
+
+  // stock_articles map pour pvTTC
+  const saSnap = await getDocs(collection(db,"stock_articles"));
+  const saMap = {};
+  saSnap.forEach(d => saMap[d.id] = d.data());
+
+  // calcul
+  let venteTheoriqueHT = 0;
+  for(const plu in soldKgByPlu){
+    const kg = soldKgByPlu[plu] || 0;
+    const saKey1 = "PLU_"+String(plu);
+    const sa = saMap[saKey1] || saMap[plu] || {};
+    let pvTTC = toNum(sa.pvTTCreel || sa.pvTTCconseille || sa.pvTTC || 0);
+
+    if(!pvTTC){
+      // fallback: chercher dans mouvements une salePriceTTC pour ce plu
+      for(const d of movesSnap.docs){
+        const m = d.data();
+        const movPlu = m.plu || (m.lotId && lotsMap[m.lotId] && lotsMap[m.lotId].plu);
+        if(movPlu && String(movPlu) == String(plu) && m.salePriceTTC) { pvTTC = toNum(m.salePriceTTC); break; }
+      }
+    }
+
+    if(pvTTC > 0){
+      const pvHT = pvTTC / (1 + TVA_RATE);
+      venteTheoriqueHT += pvHT * kg;
+    } else {
+      // si pas de prix, on ne devine pas; log pour debug
+      console.warn("pvTTC manquant pour PLU", plu, "kg=",kg);
+    }
+  }
+
+  return Number(venteTheoriqueHT || 0);
+}
+
 /** 2) Achats + Factures lettrées (filtrés : ne pas compter les commandes non reçues) */
 async function loadAchatsAndFactures(start, end){
   const user = auth.currentUser;
@@ -392,6 +520,9 @@ function computeAggregationsFromMovements(moves){
   const ventes_par_article = {};
 
   moves.forEach(r => {
+    // ignorer si marqué pour compta
+    if (r.ignoreForCompta) return;
+
     const qty = toNum(r.poids ?? r.quantity ?? 0);
 
     // coût : préférence costValue -> montantHT -> prixAchatKg * qty -> pma * qty -> 0
@@ -482,8 +613,16 @@ async function calculateLiveDay(dateStr){
   const start = new Date(d); start.setHours(0,0,0,0);
   const end = new Date(d); end.setHours(23,59,59,999);
 
-  const invs = await loadInventaires();
-  let { stockDebut, stockFin } = pickStocks(invs, start, end);
+  // Recalculer stockDebut/stockFin à partir des mouvements (état exact à T)
+  const finSnap = await computeStockValueAt(dateStr);
+  let stockFin = finSnap.totalValue || 0;
+
+  // stock debut = stock value at previous day (date - 1)
+  const prev = new Date(dateStr + "T00:00:00"); prev.setDate(prev.getDate()-1);
+  const prevStr = prev.toISOString().slice(0,10);
+  const debutSnap = await computeStockValueAt(prevStr);
+  let stockDebut = debutSnap.totalValue || 0;
+
   let varStock = stockDebut - stockFin;
 
   const achatsPeriodeHT = await loadAchatsAndFactures(start, end);
@@ -497,7 +636,8 @@ async function calculateLiveDay(dateStr){
   // --- mouvements (sorties) : consommation réelle / CA réelle par mouvements ---
   const moves = await loadStockMovementsInRange(start, end);
   const aggs = computeAggregationsFromMovements(moves);
-    // après : const aggs = computeAggregationsFromMovements(moves);
+
+  // DEBUG
   console.group(`DEBUG calculateLiveDay ${dateStr}`);
   console.log("moves.length =", moves.length);
   console.log("aggs.totalCost =", aggs.totalCost);
@@ -506,8 +646,7 @@ async function calculateLiveDay(dateStr){
   console.log("achatsPeriodeHT + varStock =", (achatsPeriodeHT + varStock));
   console.groupEnd();
 
-
-    // achats consommés = somme des coûts des sorties (fallback achatsPeriodeHT + varStock)
+  // achats consommés = somme des coûts des sorties (fallback achatsPeriodeHT + varStock)
   const fallback = achatsPeriodeHT + varStock;
   let achatsConsoHT;
   if (aggs.totalCost && aggs.totalCost > 0) {
@@ -522,7 +661,6 @@ async function calculateLiveDay(dateStr){
   } else {
     achatsConsoHT = fallback;
   }
-
 
   // Si les journaux d'inventaire ne donnent rien de différent mais il y a des mouvements,
   // on estime stockFin depuis les lots courants et on calcule stockDebut par la formule :
@@ -542,69 +680,8 @@ async function calculateLiveDay(dateStr){
     ventes_par_article[plu] = toNum(ventesArticlesFromZ[plu]);
   });
 
-   // --- Calcul vente théorique HT à partir des kg vendus * pvTTC ---
-  // On calcule les kg vendus par PLU depuis les mouvements (moves),
-  // on récupère pvTTCreel depuis stock_articles (champ pvTTCreel / pvTTCconseille / pvTTC),
-  // on convertit TTC -> HT (TVA 5.5%) et on somme.
-
-  let venteTheoriqueHT = 0;
-  try {
-    // 1) charger tous les lots pour faire lotId -> PLU
-    const lotsSnap = await getDocs(collection(db, "lots"));
-    const lotsMap = {};
-    lotsSnap.forEach(d => { lotsMap[d.id] = d.data(); });
-
-    // 2) sommer les kg vendus par PLU depuis moves
-    const soldKgByPlu = {};
-    moves.forEach(m => {
-      const qty = Number(m.poids ?? m.quantity ?? 0) || 0;
-      if (!qty) return;
-      // récupère PLU depuis le lot si possible, sinon depuis le mouvement
-      const lot = m.lotId ? lotsMap[m.lotId] : null;
-      const plu = (lot && (lot.plu || lot.PLU)) ? (lot.plu || lot.PLU) : (m.plu || m.articleId || null);
-      if (!plu) return;
-      soldKgByPlu[plu] = (soldKgByPlu[plu] || 0) + qty;
-    });
-
-    // 3) charger stock_articles -> prix de vente TTC
-    const saSnap = await getDocs(collection(db, "stock_articles"));
-    const saMap = {};
-    saSnap.forEach(d => { saMap[d.id] = d.data(); });
-
-    // 4) calculer vente theoretical HT = sum( soldKg * pvTTC/(1+TVA) )
-    for (const plu in soldKgByPlu) {
-      const kg = soldKgByPlu[plu] || 0;
-      // chercher pvTTC dans stock_articles (clef "PLU_<plu>" ou plu direct)
-      const saId1 = "PLU_" + String(plu);
-      const sa = saMap[saId1] || saMap[plu] || {};
-      let pvTTC = toNum(sa.pvTTCreel || sa.pvTTCconseille || sa.pvTTC || 0);
-
-      if (pvTTC > 0) {
-        const pvHT = pvTTC / (1 + TVA_RATE);
-        venteTheoriqueHT += pvHT * kg;
-      } else {
-        // fallback : si on a une valeur de CA calculée pour ce PLU (ventes_par_article),
-        // on peut en déduire un prix HT implicite : pvHT_implicite = caHT / kg
-        const caForPlu = toNum(ventes_par_article[plu] || 0);
-        if (caForPlu > 0 && kg > 0) {
-          const pvHT_imp = caForPlu / kg;
-          venteTheoriqueHT += pvHT_imp * kg;
-        } else {
-          // dernier fallback : utiliser aggs.totalCA proportionnel (si rien d'autre)
-          // on ajoute 0 ici (ou log) ; on préfère ne pas deviner trop.
-          console.warn(`pvTTC manquant pour PLU ${plu} — fallback: aucune valeur. kg=${kg}`);
-        }
-      }
-    }
-
-    // arrondir
-    venteTheoriqueHT = Number(venteTheoriqueHT || 0);
-
-  } catch (err) {
-    console.warn("Erreur calcul venteTheorique depuis inventory/moves — fallback sur aggs.totalCA", err);
-    venteTheoriqueHT = toNum(aggs.totalCA || 0);
-  }
-
+  // precise sale theoretical
+  let venteTheoriqueHT = await computeVenteTheoriqueAt(dateStr);
 
   const marge = caReel - achatsConsoHT;
   const margePct = caReel>0 ? (marge/caReel*100) : 0;
@@ -729,12 +806,26 @@ async function validerJournee(){
   // ------------------ 1) Calcul live ------------------
   const live = await calculateLiveDay(dateStr);
 
+  // build snapshot and ensure stockFin equals snapshot
+  const snapStock = await computeStockValueAt(dateStr);
+  live.stockFin = snapStock.totalValue;
+  live.snapshotStock = snapStock.perLot;
+
   // ------------------ 2/3/4) Récupérer agrégats depuis calculateLiveDay (qui lit stock_movements) --
   const achats_consommes = live.achats_consommes || {};
   const consommation_par_article = live.consommation_par_article || {};
   const ventes_par_article = live.ventes_par_article || {};
 
-  // ------------------ 5) Save journal complet ------------------
+  // ------------------ 5a) Save journal_inventaires snapshot ------------------
+  await setDoc(doc(db,"journal_inventaires", dateStr), {
+    date: dateStr,
+    valeurStockHT: snapStock.totalValue,
+    snapshotStock: snapStock.perLot,
+    appliedAt: serverTimestamp(),
+    appliedBy: user.uid
+  }, { merge: true });
+
+  // ------------------ 5b) Save journal complet ------------------
   await setDoc(doc(db,"compta_journal",dateStr),{
     userId: user.uid,
     validated: true,
