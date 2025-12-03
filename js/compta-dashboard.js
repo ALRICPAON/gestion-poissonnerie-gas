@@ -19,6 +19,7 @@ function toDateAny(v) {
   if (!v) return null;
   if (v && typeof v.toDate === "function") return v.toDate();
   if (v instanceof Date) return v;
+  // Accept parseable strings
   const d = new Date(v);
   return isFinite(d) ? d : null;
 }
@@ -65,7 +66,7 @@ function headerDateToISO(headerDateRaw) {
 
   // String 'YYYY-MM-DD' or other
   if (typeof headerDateRaw === 'string') {
-    // If starts with YYYY-MM-DD, keep it exactly
+    // If it starts with YYYY-MM-DD, keep it exactly (no timezone shift)
     const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
     if (m) return m[1];
     // fallback parse -> then use local date
@@ -253,10 +254,6 @@ async function loadInventaires() {
 /* =========================
    Purchases helpers (strict: header date + montantHT)
    ========================= */
-
-/** Somme des achats (montantHT) sur une plage de dates [fromISO, toISO].
- *  STRICT : on prend uniquement le champ header `date` (ou `dateAchat` en fallback).
- */
 async function getPurchasesForRange(fromISO, toISO) {
   try {
     const snap = await getDocs(collection(db, "achats"));
@@ -265,7 +262,6 @@ async function getPurchasesForRange(fromISO, toISO) {
 
     snap.forEach(docSnap => {
       const r = docSnap.data();
-      // header date preference
       const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
                     : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
                     : null;
@@ -298,8 +294,6 @@ async function getPurchasesForRange(fromISO, toISO) {
 async function getPurchasesForDate(dateISO) {
   return await getPurchasesForRange(dateISO, dateISO);
 }
-
-/** DEBUG helper : liste précisément les achats dont la date d'en-tête === dateISO (matching local ISO) */
 async function debugListPurchasesForDate(dateISO) {
   try {
     const snap = await getDocs(collection(db, "achats"));
@@ -349,7 +343,7 @@ async function getInventoryForDate(dateISO) {
 
     data.changes = data.changes.map(c => {
       return {
-        plu: (c.plu || c.PLU || c.pluCode || c.code || "").toString(),
+        plu: (c.plu || c.PLU || c.pluCode || c.code || (c.article && c.article.plu) || "").toString(),
         counted: (c.counted !== undefined ? c.counted : (c.countedKg !== undefined ? c.countedKg : (c.stock_reel !== undefined ? c.stock_reel : 0))),
         prevStock: (c.prevStock !== undefined ? c.prevStock : (c.prev_stock !== undefined ? c.prev_stock : null)),
         ...c
@@ -361,6 +355,33 @@ async function getInventoryForDate(dateISO) {
     console.warn("getInventoryForDate err", e);
     return null;
   }
+}
+
+/* =========================
+   Map changes -> PLU
+   ========================= */
+function mapChangesByPlu(changesArray) {
+  const map = {};
+  if (!Array.isArray(changesArray)) return map;
+
+  changesArray.forEach(c => {
+    if (!c) return;
+    const plu = String(c.plu || c.PLU || c.pluCode || c.code || (c.article && c.article.plu) || "").trim();
+    if (!plu) return;
+    const counted =
+      (c.counted !== undefined && c.counted !== null) ? c.counted
+      : (c.countedKg !== undefined && c.countedKg !== null) ? c.countedKg
+      : (c.stock_reel !== undefined && c.stock_reel !== null) ? c.stock_reel
+      : 0;
+    const prevStock =
+      (c.prevStock !== undefined && c.prevStock !== null) ? c.prevStock
+      : (c.prev_stock !== undefined && c.prev_stock !== null) ? c.prev_stock
+      : null;
+
+    map[plu] = Object.assign({}, c, { plu, counted, prevStock });
+  });
+
+  return map;
 }
 
 /* =========================
