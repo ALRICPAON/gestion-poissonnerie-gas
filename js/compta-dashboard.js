@@ -216,85 +216,91 @@ async function loadInventaires() {
    Helpers spécifiques (TA méthode)
    ========================= */
 
-/** Achats HT pour une date (montantHT dans achats).
- *  ON PREND EXCLUSIVEMENT le champ `date` pour filtrer (priorité).
- *  Si la requête sur `date` ne retourne rien, on fait un fallback qui compare
- *  `r.date` / `r.dateAchat` (strings ou timestamps) côté client pour ne rien perdre.
+/** Somme des achats (montantHT) sur une plage de dates [fromISO, toISO].
+ *  - fromISO/toISO : 'YYYY-MM-DD'
+ *  - fonctionne si achat.date est string 'YYYY-MM-DD' OU Timestamp.
+ *  - évite le double comptage via seen doc ids.
  */
-async function getPurchasesForDate(dateISO) {
+async function getPurchasesForRange(fromISO, toISO) {
   let total = 0;
+  const seen = new Set();
+
+  const start = new Date(fromISO + "T00:00:00");
+  const end = new Date(toISO + "T23:59:59");
+  const startTs = Timestamp.fromDate(start);
+  const endTs = Timestamp.fromDate(end);
+
   try {
-    const start = new Date(dateISO + "T00:00:00");
-    const end = new Date(dateISO + "T23:59:59");
-    const startTs = Timestamp.fromDate(start);
-    const endTs = Timestamp.fromDate(end);
-
-    // 1) Requête directe sur le champ `date` (suppose que `date` est un Timestamp)
-    const q = query(
-      collection(db, "achats"),
-      where("date", ">=", startTs),
-      where("date", "<=", endTs)
-    );
-
-    const snap = await getDocs(q);
-    if (snap && !snap.empty) {
-      snap.forEach(d => {
+    // 1) Query sur date stocké comme STRING 'YYYY-MM-DD'
+    try {
+      const q1 = query(
+        collection(db, "achats"),
+        where("date", ">=", fromISO),
+        where("date", "<=", toISO)
+      );
+      const snap1 = await getDocs(q1);
+      snap1.forEach(d => {
+        if (seen.has(d.id)) return;
+        seen.add(d.id);
         const r = d.data();
         total += toNum(r.montantHT || r.totalHT || r.montant || 0);
       });
-      return round2(total);
+    } catch (e1) {
+      // la requête peut échouer si date n'est pas indexée comme string; on ignore et on poursuit le fallback
+      console.warn("getPurchasesForRange: query by string-date failed:", e1);
     }
 
-    // 2) Si la requête sur `date` ne renvoie rien, fallback : parcours tous les achats
-    //    et compare côté client (permet de gérer `date` stocké en string ou ancien format).
-    const allSnap = await getDocs(collection(db, "achats"));
-    allSnap.forEach(d => {
-      const r = d.data();
-      // On essaye d'interpréter r.date (Timestamp, Date-like ou string)
-      let dDate = null;
-      if (r.date && typeof r.date === 'object' && r.date.toDate) {
-        dDate = r.date.toDate();
-      } else if (r.date) {
-        dDate = toDateAny(r.date);
-      } else if (r.dateAchat) {
-        dDate = toDateAny(r.dateAchat);
-      } else if (r.createdAt && r.createdAt.toDate) {
-        // on évite normalement createdAt mais on ne l'utilise que si aucun champ date n'existe
-        dDate = r.createdAt.toDate();
-      }
-      if (!dDate) return;
-      if (dDate >= start && dDate <= end) {
-        total += toNum(r.montantHT || r.totalHT || r.montant || 0);
-      }
-    });
-    return round2(total);
-
-  } catch (e) {
-    // En cas d'erreur (ex: champ `date` est une string et la requête échoue), on retombe sur le fallback général.
-    console.warn("getPurchasesForDate query failed, falling back to scan. Err:", e);
+    // 2) Query sur date stocké comme TIMESTAMP (r.date is Timestamp)
     try {
-      const start = new Date(dateISO + "T00:00:00");
-      const end = new Date(dateISO + "T23:59:59");
-      let total2 = 0;
+      const q2 = query(
+        collection(db, "achats"),
+        where("date", ">=", startTs),
+        where("date", "<=", endTs)
+      );
+      const snap2 = await getDocs(q2);
+      snap2.forEach(d => {
+        if (seen.has(d.id)) return;
+        seen.add(d.id);
+        const r = d.data();
+        total += toNum(r.montantHT || r.totalHT || r.montant || 0);
+      });
+    } catch (e2) {
+      console.warn("getPurchasesForRange: query by timestamp-date failed:", e2);
+    }
+
+    // 3) Fallback (si certains docs n'ont pas de date indexable) : scan tous et comparer côté client
+    if (seen.size === 0) {
+      // seulement si aucune ligne récupérée par les requêtes, on scan pour ne perdre aucune donnée
       const allSnap = await getDocs(collection(db, "achats"));
       allSnap.forEach(d => {
+        if (seen.has(d.id)) return;
         const r = d.data();
+        // Priorité au champ header `date`
         let dDate = null;
-        if (r.date && typeof r.date === 'object' && r.date.toDate) dDate = r.date.toDate();
-        else if (r.date) dDate = toDateAny(r.date);
-        else if (r.dateAchat) dDate = toDateAny(r.dateAchat);
-        else if (r.createdAt && r.createdAt.toDate) dDate = r.createdAt.toDate();
+        if (r.date && typeof r.date === "string") {
+          dDate = toDateAny(r.date); // toDateAny gère string 'YYYY-MM-DD'
+        } else if (r.date && r.date.toDate) {
+          dDate = r.date.toDate();
+        } else if (r.dateAchat) {
+          dDate = toDateAny(r.dateAchat);
+        }
         if (!dDate) return;
         if (dDate >= start && dDate <= end) {
-          total2 += toNum(r.montantHT || r.totalHT || r.montant || 0);
+          seen.add(d.id);
+          total += toNum(r.montantHT || r.totalHT || r.montant || 0);
         }
       });
-      return round2(total2);
-    } catch (e2) {
-      console.error("getPurchasesForDate fallback failed:", e2);
-      return 0;
     }
+
+  } catch (err) {
+    console.error("getPurchasesForRange unexpected error:", err);
   }
+
+  return round2(total);
+}
+
+async function getPurchasesForDate(dateISO) {
+  return await getPurchasesForRange(dateISO, dateISO);
 }
 
 /** Récupère le doc journal_inventaires/{dateISO} */
