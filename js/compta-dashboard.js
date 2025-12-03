@@ -251,35 +251,53 @@ async function loadInventaires() {
   return invs;
 }
 
-/* =========================
-   Purchases helpers (strict: header date + montantHT)
-   ========================= */
+/** getPurchasesForRange (final)
+ *  - fromISO, toISO : 'YYYY-MM-DD'
+ *  - utilise uniquement la date d'en-tête (r.date ou r.dateAchat)
+ *  - pour single-day : headerISO === fromISO (égalité stricte)
+ */
 async function getPurchasesForRange(fromISO, toISO) {
   try {
     const snap = await getDocs(collection(db, "achats"));
     const included = [];
     let total = 0;
 
+    const isSingleDay = (fromISO === toISO);
+
     snap.forEach(docSnap => {
       const r = docSnap.data();
+
+      // 1) Header date only (no createdAt)
       const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
                     : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
                     : null;
       if (!headerRaw) return;
 
-      const headerISO = headerDateToISO(headerRaw); // local YYYY-MM-DD
+      // 2) Normalize to local YYYY-MM-DD
+      const headerISO = headerDateToISO(headerRaw);
       if (!headerISO) return;
 
-      if (headerISO >= fromISO && headerISO <= toISO) {
-        const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
-        total += montant;
-        included.push({
-          id: docSnap.id,
-          headerRaw,
-          headerISO,
-          montantHT: round2(montant)
-        });
+      // 3) Match: strict equality when single day, else range
+      let matches = false;
+      if (isSingleDay) {
+        matches = (headerISO === fromISO);
+      } else {
+        matches = (headerISO >= fromISO && headerISO <= toISO);
       }
+
+      if (!matches) return;
+
+      // 4) Add montantHT (only the header montant)
+      const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
+      total += montant;
+      included.push({
+        id: docSnap.id,
+        headerRaw,
+        headerISO,
+        montantHT: round2(montant),
+        type: r.type || null,
+        statut: r.statut || null
+      });
     });
 
     console.debug(`getPurchasesForRange ${fromISO}..${toISO} → ${included.length} achats (total ${round2(total)} €)`);
@@ -291,6 +309,7 @@ async function getPurchasesForRange(fromISO, toISO) {
     return 0;
   }
 }
+
 async function getPurchasesForDate(dateISO) {
   return await getPurchasesForRange(dateISO, dateISO);
 }
