@@ -17,9 +17,8 @@ function toNum(v) {
 }
 function toDateAny(v) {
   if (!v) return null;
-  if (v.toDate) return v.toDate();
+  if (v && typeof v.toDate === "function") return v.toDate();
   if (v instanceof Date) return v;
-  // Accept "YYYY-MM-DD" and other parseable strings
   const d = new Date(v);
   return isFinite(d) ? d : null;
 }
@@ -41,6 +40,43 @@ function previousDateString(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() - 1);
   return d.toISOString().slice(0,10);
+}
+
+function localDateISO(d) {
+  if (!d || !(d instanceof Date)) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Normalize header date to 'YYYY-MM-DD' using LOCAL date */
+function headerDateToISO(headerDateRaw) {
+  if (!headerDateRaw) return null;
+
+  // Firestore Timestamp
+  if (typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
+    const d = headerDateRaw.toDate();
+    return localDateISO(d);
+  }
+
+  // Date object
+  if (headerDateRaw instanceof Date) return localDateISO(headerDateRaw);
+
+  // String 'YYYY-MM-DD' or other
+  if (typeof headerDateRaw === 'string') {
+    // If starts with YYYY-MM-DD, keep it exactly
+    const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+    // fallback parse -> then use local date
+    const parsed = toDateAny(headerDateRaw);
+    if (parsed) return localDateISO(parsed);
+    return null;
+  }
+
+  // Generic fallback: try to parse
+  const parsed = toDateAny(headerDateRaw);
+  return parsed ? localDateISO(parsed) : null;
 }
 
 function getISOWeekRange(date){
@@ -121,7 +157,8 @@ function renderInputs(){
       <input id="inpWeek" type="week">
     </label>`;
     const w = getISOWeekNumber(now);
-    document.getElementById("inpWeek").value = `${now.getFullYear()}-W${String(w).padStart(2,"0")}`;
+    const elWeek = document.getElementById("inpWeek");
+    if (elWeek) elWeek.value = `${now.getFullYear()}-W${String(w).padStart(2,"0")}`;
   } else if (mode === "month") {
     inputsRow.innerHTML = `<label>Mois
       <input id="inpMonth" type="month" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}">
@@ -151,10 +188,10 @@ function renderInputs(){
 
 function refreshHeaderButtons(){
   const dayMode = (mode === "day");
-  el.btnSaveZ.style.display = dayMode ? "" : "none";
-  el.btnValiderJournee.style.display = dayMode ? "" : "none";
-  el.btnRecalcJournee.style.display = dayMode ? "" : "none";
-  el.btnUnvalidateJournee.style.display = dayMode ? "" : "none";
+  if (el.btnSaveZ) el.btnSaveZ.style.display = dayMode ? "" : "none";
+  if (el.btnValiderJournee) el.btnValiderJournee.style.display = dayMode ? "" : "none";
+  if (el.btnRecalcJournee) el.btnRecalcJournee.style.display = dayMode ? "" : "none";
+  if (el.btnUnvalidateJournee) el.btnUnvalidateJournee.style.display = dayMode ? "" : "none";
 }
 
 /* =========================
@@ -206,60 +243,19 @@ async function loadInventaires() {
   snap.forEach(d => {
     const r = d.data();
     const dateStr = r.date || d.id;
-    const dt = new Date(dateStr);
-    if (isFinite(dt)) invs.push({ dateStr, date: dt, valeur: toNum(r.valeurStockHT || 0) });
+    const dt = toDateAny(dateStr) || new Date(dateStr);
+    if (isFinite(dt)) invs.push({ dateStr, date: dt, valeur: toNum(r.valeurStockHT || 0), raw: r });
   });
   invs.sort((a,b) => a.date - b.date);
   return invs;
 }
 
 /* =========================
-   Helpers spécifiques (TA méthode)
+   Purchases helpers (strict: header date + montantHT)
    ========================= */
 
-// Utilitaire: retourne YYYY-MM-DD en HEURE LOCALE
-function localDateISO(d) {
-  if (!d || !(d instanceof Date)) return null;
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-/** Normalize header date to 'YYYY-MM-DD' (local date)
- *  Accepts: Firestore Timestamp, Date object, or string like 'YYYY-MM-DD' or other parseable string.
- */
-function headerDateToISO(headerDateRaw) {
-  if (!headerDateRaw) return null;
-
-  // Firestore Timestamp
-  if (typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
-    const d = headerDateRaw.toDate(); // JS Date in local timezone
-    return localDateISO(d);
-  }
-
-  // Date object
-  if (headerDateRaw instanceof Date) return localDateISO(headerDateRaw);
-
-  // String 'YYYY-MM-DD' or other
-  if (typeof headerDateRaw === 'string') {
-    // If it starts with YYYY-MM-DD, keep it exactly (no timezone shift)
-    const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (m) return m[1];
-    // fallback parse -> then use local date
-    const parsed = toDateAny(headerDateRaw);
-    if (parsed) return localDateISO(parsed);
-    return null;
-  }
-
-  // Generic fallback: try to parse
-  const parsed = toDateAny(headerDateRaw);
-  return parsed ? localDateISO(parsed) : null;
-}
-
-/** Strict sum of achats (montantHT) on range [fromISO, toISO]
- *  - Uses only header date (r.date or r.dateAchat), normalized to local 'YYYY-MM-DD'
- *  - Ignores createdAt, lettrage, lines...
+/** Somme des achats (montantHT) sur une plage de dates [fromISO, toISO].
+ *  STRICT : on prend uniquement le champ header `date` (ou `dateAchat` en fallback).
  */
 async function getPurchasesForRange(fromISO, toISO) {
   try {
@@ -269,15 +265,15 @@ async function getPurchasesForRange(fromISO, toISO) {
 
     snap.forEach(docSnap => {
       const r = docSnap.data();
+      // header date preference
       const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
-                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
-                      : null;
-      if (!headerRaw) return; // skip if no header date
+                    : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
+                    : null;
+      if (!headerRaw) return;
 
-      const headerISO = headerDateToISO(headerRaw); // 'YYYY-MM-DD' local
+      const headerISO = headerDateToISO(headerRaw); // local YYYY-MM-DD
       if (!headerISO) return;
 
-      // compare lexicographically safe for YYYY-MM-DD
       if (headerISO >= fromISO && headerISO <= toISO) {
         const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
         total += montant;
@@ -298,6 +294,9 @@ async function getPurchasesForRange(fromISO, toISO) {
     console.error("getPurchasesForRange error:", err);
     return 0;
   }
+}
+async function getPurchasesForDate(dateISO) {
+  return await getPurchasesForRange(dateISO, dateISO);
 }
 
 /** DEBUG helper : liste précisément les achats dont la date d'en-tête === dateISO (matching local ISO) */
@@ -333,23 +332,40 @@ async function debugListPurchasesForDate(dateISO) {
   }
 }
 
-/** Transforme array changes en map plu => change */
-function mapChangesByPlu(changesArray) {
-  const map = {};
-  if (!Array.isArray(changesArray)) return map;
-  changesArray.forEach(ch => {
-    const plu = String(ch.plu || ch.PLU || "");
-    if (!plu) return;
-    map[plu] = ch;
-  });
-  return map;
+/* =========================
+   Inventory helper
+   ========================= */
+async function getInventoryForDate(dateISO) {
+  try {
+    const ref = doc(db, "journal_inventaires", dateISO);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    const data = snap.data();
+
+    if (!Array.isArray(data.changes)) {
+      if (Array.isArray(data.items)) data.changes = data.items;
+      else data.changes = [];
+    }
+
+    data.changes = data.changes.map(c => {
+      return {
+        plu: (c.plu || c.PLU || c.pluCode || c.code || "").toString(),
+        counted: (c.counted !== undefined ? c.counted : (c.countedKg !== undefined ? c.countedKg : (c.stock_reel !== undefined ? c.stock_reel : 0))),
+        prevStock: (c.prevStock !== undefined ? c.prevStock : (c.prev_stock !== undefined ? c.prev_stock : null)),
+        ...c
+      };
+    });
+
+    return data;
+  } catch (e) {
+    console.warn("getInventoryForDate err", e);
+    return null;
+  }
 }
 
-/**
- * Récupère les prix récents (pma et salePriceTTC) pour un ensemble de PLU,
- * en prenant la dernière valeur dont createdAt <= dateISO.
- * Retour : { plu: { buyPrice: number|null, salePriceTTC: number|null, salePriceHT: number|null } }
- */
+/* =========================
+   Prices helper (pma & salePriceTTC)
+   ========================= */
 async function getPricesForPluSet(pluSet, dateISO) {
   const dateT = new Date(dateISO + "T23:59:59");
   const result = {};
@@ -361,7 +377,7 @@ async function getPricesForPluSet(pluSet, dateISO) {
       const m = d.data();
       const plu = String(m.plu || m.PLU || "");
       if (!plu || !pluSet.has(plu)) return;
-      if (!m.createdAt || !m.createdAt.toDate) return;
+      if (!m.createdAt || typeof m.createdAt.toDate !== "function") return;
       const created = m.createdAt.toDate();
       if (created > dateT) return;
       const ts = created.getTime();
@@ -393,15 +409,10 @@ async function getPricesForPluSet(pluSet, dateISO) {
    computePeriodCompta (méthode métier)
    ========================= */
 async function computePeriodCompta(fromISO, toISO) {
-  // 1) Achats total période (somme des jours)
+  // 1) Achats total période
   let achatsPeriode = 0;
   try {
-    if (fromISO === toISO) {
-      achatsPeriode = await getPurchasesForDate(fromISO);
-    } else {
-      // Calcul via une seule requête journalière (itération ici, mais getPurchasesForRange lit tout et filtre)
-      achatsPeriode = await getPurchasesForRange(fromISO, toISO);
-    }
+    achatsPeriode = await getPurchasesForRange(fromISO, toISO);
   } catch (e) {
     console.warn("computePeriodCompta -> achatsPeriode err", e);
     achatsPeriode = 0;
@@ -417,8 +428,7 @@ async function computePeriodCompta(fromISO, toISO) {
   // union PLU set
   const pluSet = new Set([...Object.keys(mapPrev), ...Object.keys(mapToday)]);
 
-  // 3) récupérer prix : buyPrice au prevISO pour stockDebut, buyPrice au toISO pour stockFin,
-  //    salePriceHT au toISO pour vente théorique
+  // 3) récupérer prix
   const pricesPrev = await getPricesForPluSet(pluSet, prevISO);
   const pricesToday = await getPricesForPluSet(pluSet, toISO);
 
@@ -441,7 +451,7 @@ async function computePeriodCompta(fromISO, toISO) {
   stockDebutValue = round2(stockDebutValue);
   stockFinValue = round2(stockFinValue);
 
-  // 5) vente théorique : poidsVendu = prev.counted - today.counted ; salePriceHT from pricesToday
+  // 5) vente théorique
   let caTheorique = 0;
   for (const plu of pluSet) {
     const prevEntry = mapPrev[plu];
@@ -476,7 +486,6 @@ async function computePeriodCompta(fromISO, toISO) {
   const marge = round2(caReel - achatsConsomesFormula);
   const margePct = caReel ? round2((marge / caReel) * 100) : 0;
 
-  // 8) retourner tout
   return {
     stockDebut: stockDebutValue,
     stockFin: stockFinValue,
@@ -495,6 +504,7 @@ async function computePeriodCompta(fromISO, toISO) {
    ========================= */
 async function refreshDashboard() {
   try {
+    if (!el.status) return;
     el.status.textContent = "Chargement…";
     const range = getSelectedRange();
     const fromISO = range.start.toISOString().slice(0,10);
@@ -502,28 +512,26 @@ async function refreshDashboard() {
 
     const res = await computePeriodCompta(fromISO, toISO);
 
-    el.tdStockDebut.textContent = `${n2(res.stockDebut)} €`;
-    el.tdStockFin.textContent = `${n2(res.stockFin)} €`;
-    el.tdAchatsPeriode.textContent = `${n2(res.achatsPeriode)} €`;
-    el.tdAchatsConso.textContent = `${n2(res.achatsConsomesFormula)} €`;
-    el.tdCaTheo.textContent = `${n2(res.caTheorique)} €`;
-    el.tdCaReel.textContent = `${n2(res.caReel)} €`;
+    if (el.tdStockDebut) el.tdStockDebut.textContent = `${n2(res.stockDebut)} €`;
+    if (el.tdStockFin) el.tdStockFin.textContent = `${n2(res.stockFin)} €`;
+    if (el.tdAchatsPeriode) el.tdAchatsPeriode.textContent = `${n2(res.achatsPeriode)} €`;
+    if (el.tdAchatsConso) el.tdAchatsConso.textContent = `${n2(res.achatsConsomesFormula)} €`;
+    if (el.tdCaTheo) el.tdCaTheo.textContent = `${n2(res.caTheorique)} €`;
+    if (el.tdCaReel) el.tdCaReel.textContent = `${n2(res.caReel)} €`;
 
-    el.sumCaReel.textContent = n2(res.caReel);
-    el.sumAchatsConso.textContent = n2(res.achatsConsomesFormula);
+    if (el.sumCaReel) el.sumCaReel.textContent = n2(res.caReel);
+    if (el.sumAchatsConso) el.sumAchatsConso.textContent = n2(res.achatsConsomesFormula);
     const varStock = round2(res.stockDebut - res.stockFin);
-    el.sumVarStock.textContent = n2(varStock);
-    el.sumMarge.textContent = n2(res.marge);
-    el.sumMargePct.textContent = (round2(res.margePct) || 0).toFixed(1);
+    if (el.sumVarStock) el.sumVarStock.textContent = n2(varStock);
+    if (el.sumMarge) el.sumMarge.textContent = n2(res.marge);
+    if (el.sumMargePct) el.sumMargePct.textContent = (round2(res.margePct) || 0).toFixed(1);
 
-    // chart
     renderChart([
       { label: "CA réel HT", value: res.caReel },
       { label: "Achats consommés HT", value: res.achatsConsomesFormula },
       { label: "Variation stock HT", value: varStock }
     ]);
 
-    // debug : show status + small hint if prices missing
     el.status.textContent = "";
     const pricesToday = res.pricesUsed && res.pricesUsed.today ? res.pricesUsed.today : {};
     const missing = Object.keys(pricesToday).filter(p => !pricesToday[p].buyPrice);
@@ -534,11 +542,12 @@ async function refreshDashboard() {
 
   } catch (e) {
     console.error(e);
-    el.status.textContent = "Erreur lors du calcul : " + (e.message || e);
+    if (el.status) el.status.textContent = "Erreur lors du calcul : " + (e.message || e);
   }
 }
 
 function renderChart(items) {
+  if (!el.chartMain) return;
   const labels = items.map(i => i.label);
   const data = items.map(i => i.value);
   if (chart) chart.destroy();
@@ -553,8 +562,8 @@ function renderChart(items) {
    Z & validation
    ========================= */
 async function saveZForDay(dateISO) {
-  const zht = toNum(el.zCaHT.value || 0);
-  const note = (el.zNote.value || "").trim();
+  const zht = toNum(el.zCaHT?.value || 0);
+  const note = (el.zNote?.value || "").trim();
   const docRef = doc(db, "compta_journal", dateISO);
   await setDoc(docRef, {
     date: dateISO,
@@ -563,13 +572,13 @@ async function saveZForDay(dateISO) {
     validated: false,
     updatedAt: serverTimestamp()
   }, { merge: true });
-  el.status.textContent = `Z enregistré pour ${dateISO}`;
+  if (el.status) el.status.textContent = `Z enregistré pour ${dateISO}`;
   refreshDashboard();
 }
 
 async function validerJournee(dateISO) {
   const calc = await computePeriodCompta(dateISO, dateISO);
-  const zFromField = toNum(el.zCaHT.value || 0);
+  const zFromField = toNum(el.zCaHT?.value || 0);
   let caReel = calc.caReel;
   if (zFromField > 0) caReel = zFromField;
   const payload = {
@@ -584,10 +593,10 @@ async function validerJournee(dateISO) {
     margePct: (caReel ? round2((caReel - calc.achatsConsomesFormula) / caReel * 100) : 0),
     validated: true,
     validatedAt: serverTimestamp(),
-    zNote: (el.zNote.value || "").trim()
+    zNote: (el.zNote?.value || "").trim()
   };
   await setDoc(doc(db, "compta_journal", dateISO), payload, { merge: true });
-  el.status.textContent = `Journée ${dateISO} validée.`;
+  if (el.status) el.status.textContent = `Journée ${dateISO} validée.`;
   refreshDashboard();
 }
 
@@ -595,11 +604,11 @@ async function unvalidateJournee(dateISO) {
   const ref = doc(db, "compta_journal", dateISO);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
-    el.status.textContent = "Aucune validation trouvée pour cette date.";
+    if (el.status) el.status.textContent = "Aucune validation trouvée pour cette date.";
     return;
   }
   await updateDoc(ref, { validated: false, validatedAt: serverTimestamp() });
-  el.status.textContent = `Validation supprimée pour ${dateISO}.`;
+  if (el.status) el.status.textContent = `Validation supprimée pour ${dateISO}.`;
   refreshDashboard();
 }
 
@@ -617,27 +626,27 @@ function wireEvents() {
     });
   });
 
-  el.btnSaveZ.addEventListener("click", async () => {
+  if (el.btnSaveZ) el.btnSaveZ.addEventListener("click", async () => {
     const day = document.getElementById("inpDay")?.value;
     if (!day) return alert("Choisis une date.");
     await saveZForDay(day);
   });
 
-  el.btnValiderJournee.addEventListener("click", async () => {
+  if (el.btnValiderJournee) el.btnValiderJournee.addEventListener("click", async () => {
     const day = document.getElementById("inpDay")?.value;
     if (!day) return alert("Choisis une date.");
     if (!confirm(`Valider la journée ${day} (figer la marge) ?`)) return;
     await validerJournee(day);
   });
 
-  el.btnRecalcJournee.addEventListener("click", async () => {
+  if (el.btnRecalcJournee) el.btnRecalcJournee.addEventListener("click", async () => {
     editingDay = true;
     savedDayData = null;
     await refreshDashboard();
-    el.status.textContent = "Recalcul effectué — tu peux modifier le Z avant validation.";
+    if (el.status) el.status.textContent = "Recalcul effectué — tu peux modifier le Z avant validation.";
   });
 
-  el.btnUnvalidateJournee.addEventListener("click", async () => {
+  if (el.btnUnvalidateJournee) el.btnUnvalidateJournee.addEventListener("click", async () => {
     const day = document.getElementById("inpDay")?.value;
     if (!day) return alert("Choisis une date.");
     if (!confirm(`Supprimer la validation de ${day} ?`)) return;
@@ -652,22 +661,21 @@ async function initDashboard() {
   auth.onAuthStateChanged(async user => {
     try {
       if (!user) {
-        el.status.textContent = "Connecte-toi pour voir le module Comptabilité.";
+        if (el.status) el.status.textContent = "Connecte-toi pour voir le module Comptabilité.";
         return;
       }
-      // permission check (app_users.modules inclut 'compta' or role admin)
       const snap = await getDoc(doc(db, 'app_users', user.uid));
-      if (!snap.exists()) { el.status.textContent = "Accès refusé."; return; }
+      if (!snap.exists()) { if (el.status) el.status.textContent = "Accès refusé."; return; }
       const d = snap.data();
       const ok = (d.role === 'admin') || (Array.isArray(d.modules) && d.modules.includes('compta'));
-      if (!ok) { el.status.textContent = "Accès refusé au module Comptabilité."; return; }
+      if (!ok) { if (el.status) el.status.textContent = "Accès refusé au module Comptabilité."; return; }
 
       wireEvents();
       renderInputs();
       refreshDashboard();
     } catch (e) {
       console.error(e);
-      el.status.textContent = "Erreur d'initialisation : " + (e.message || e);
+      if (el.status) el.status.textContent = "Erreur d'initialisation : " + (e.message || e);
     }
   });
 }
