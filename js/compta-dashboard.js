@@ -2,36 +2,11 @@
 import { db, auth } from "./firebase-init.js";
 import {
   collection, doc, getDoc, getDocs, query, where,
-  setDoc, deleteDoc, serverTimestamp, Timestamp, updateDoc
+  setDoc, updateDoc, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* =========================
-   Permissions helpers
-   ========================= */
-let _currentUserHasCompta = false;
-
-async function hasComptaAccess(user) {
-  if (!user) return false;
-  try {
-    const snap = await getDoc(doc(db, 'app_users', user.uid));
-    if (!snap.exists()) return false;
-    const d = snap.data();
-    if (d.role === 'admin') return true;
-    return Array.isArray(d.modules) && d.modules.includes('compta');
-  } catch (e) {
-    console.error('Erreur hasComptaAccess:', e);
-    return false;
-  }
-}
-
-async function ensureCompta(user) {
-  const ok = await hasComptaAccess(user);
-  if (!ok) throw new Error('Accès refusé : vous n’avez pas le droit Comptabilité');
-  return true;
-}
-
-/* =========================
-   Utils
+   Utils & Constantes
    ========================= */
 const n2 = v => Number(v || 0).toFixed(2);
 function toNum(v) {
@@ -53,23 +28,31 @@ function ymd(d) {
   const dd = String(x.getDate()).padStart(2, "0");
   return `${x.getFullYear()}-${mm}-${dd}`;
 }
+function round2(n) { return Math.round((Number(n) + Number.EPSILON) * 100) / 100; }
 
-/* ISO helpers */
+/* TVA 5.5% pour conversion salePriceTTC -> HT */
+const TVA_RATE = 0.055;
+
+/* =========================
+   Date helpers / ranges
+   ========================= */
+function previousDateString(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0,10);
+}
+
 function getISOWeekRange(date){
   const d = new Date(date);
   const day = (d.getDay()+6)%7; // 0=lundi
-  const start = new Date(d); start.setDate(d.getDate()-day);
-  start.setHours(0,0,0,0);
-  const end = new Date(start); end.setDate(start.getDate()+6);
-  end.setHours(23,59,59,999);
+  const start = new Date(d); start.setDate(d.getDate()-day); start.setHours(0,0,0,0);
+  const end = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
   return { start, end };
 }
 function getMonthRange(date){
   const d = new Date(date);
-  const start = new Date(d.getFullYear(), d.getMonth(), 1);
-  start.setHours(0,0,0,0);
-  const end = new Date(d.getFullYear(), d.getMonth()+1, 0);
-  end.setHours(23,59,59,999);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1); start.setHours(0,0,0,0);
+  const end = new Date(d.getFullYear(), d.getMonth()+1, 0); end.setHours(23,59,59,999);
   return { start, end };
 }
 function getYearRange(year){
@@ -77,16 +60,16 @@ function getYearRange(year){
   const end = new Date(year,11,31); end.setHours(23,59,59,999);
   return { start, end };
 }
-function inRange(d, start, end){
-  if(!d) return false;
-  return d>=start && d<=end;
+function getISOWeekNumber(date){
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-yearStart)/86400000)+1)/7);
 }
 
-/* TVA utilisée dans le projet (conversion TTC->HT) */
-const TVA_RATE = 0.055; // 5.5%
-
 /* =========================
-   DOM bindings (page: compta-dashboard.html)
+   DOM bindings
    ========================= */
 const tabs = document.getElementById("modeTabs");
 const inputsRow = document.getElementById("inputsRow");
@@ -122,7 +105,7 @@ let editingDay = false;
 let savedDayData = null;
 
 /* =========================
-   Render inputs based on mode
+   Render inputs by mode
    ========================= */
 function renderInputs(){
   inputsRow.innerHTML = "";
@@ -163,14 +146,6 @@ function renderInputs(){
   });
 
   refreshHeaderButtons();
-}
-
-function getISOWeekNumber(date){
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  return Math.ceil((((d-yearStart)/86400000)+1)/7);
 }
 
 function refreshHeaderButtons(){
@@ -222,7 +197,7 @@ function getSelectedRange(){
 }
 
 /* =========================
-   Data loaders
+   Data loaders (generic)
    ========================= */
 async function loadInventaires() {
   const snap = await getDocs(collection(db, "journal_inventaires"));
@@ -237,179 +212,204 @@ async function loadInventaires() {
   return invs;
 }
 
-/** nearest BEFORE start, and nearest AT/BEFORE end */
-function pickStocks(invs, start, end) {
-  let stockDebut = 0; let stockFin = 0;
-  const beforeStart = invs.filter(x => x.date < start);
-  if (beforeStart.length) stockDebut = beforeStart[beforeStart.length - 1].valeur;
-  const beforeEnd = invs.filter(x => x.date <= end);
-  if (beforeEnd.length) stockFin = beforeEnd[beforeEnd.length - 1].valeur;
-  return { stockDebut, stockFin };
-}
-
 /* =========================
-   Reconstruction stock value at T (lots + stock_movements)
+   Helpers spécifiques (TA méthode)
    ========================= */
-async function computeStockValueAt(dateISO) {
-  const dateT = new Date(dateISO + "T23:59:59");
-  // load lots
-  const lotsSnap = await getDocs(collection(db, "lots"));
-  const lotsMap = {};
-  lotsSnap.forEach(d => lotsMap[d.id] = d.data());
 
-  // load movements up to dateT
-  let movesSnap;
+/** Achats HT pour une date (montantHT dans achats). */
+async function getPurchasesForDate(dateISO) {
+  let total = 0;
   try {
-    movesSnap = await getDocs(query(collection(db, "stock_movements"), where("createdAt", "<=", Timestamp.fromDate(dateT))));
-  } catch (e) {
-    // fallback: read all and filter
-    movesSnap = await getDocs(collection(db, "stock_movements"));
-  }
-
-  const stateByLot = {};
-  movesSnap.forEach(d => {
-    const m = d.data();
-    const created = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate() : (m.date ? new Date(m.date + "T00:00:00") : null);
-    if (!created || created > dateT) return;
-    if (m.ignoreForCompta) return;
-    const lotId = m.lotId || ("PLU__" + (m.plu || m.articleId || "UNKNOWN"));
-    if (!stateByLot[lotId]) stateByLot[lotId] = {
-      in: 0, out: 0,
-      priceFromLot: (lotsMap[lotId] && (lotsMap[lotId].prixAchatKg || lotsMap[lotId].prixAchatKg === 0)) ? Number(lotsMap[lotId].prixAchatKg) : null
-    };
-    const qty = Number(m.poids ?? m.quantity ?? 0) || 0;
-    const sens = (m.sens || "").toString().toLowerCase();
-    if (sens === "sortie" || qty < 0) stateByLot[lotId].out += Math.abs(qty);
-    else {
-      stateByLot[lotId].in += qty;
-      if (!stateByLot[lotId].priceFromLot && (m.prixAchatKg || m.montantHT)) {
-        stateByLot[lotId].priceFromLot = Number(m.prixAchatKg || (m.montantHT / Math.max(1, qty)));
-      }
-    }
-  });
-
-  let totalValue = 0;
-  const perLot = {};
-  for (const lotId in stateByLot) {
-    const s = stateByLot[lotId];
-    const remaining = Math.max(0, s.in - s.out);
-    const price = Number(s.priceFromLot || 0);
-    const val = remaining * price;
-    perLot[lotId] = { remaining, price, val };
-    totalValue += val;
-  }
-  return { totalValue, perLot };
-}
-
-/* =========================
-   Load ventes réelles (helper)
-   ========================= */
-async function loadVentesReelles(from, to) {
-  const start = new Date(from + "T00:00:00");
-  const end = new Date(to + "T23:59:59");
-  const oneDay = 24*3600*1000;
-  let totalVentes = 0;
-  const ventesEAN = {};
-  for (let t = start.getTime(); t <= end.getTime(); t += oneDay) {
-    const dateStr = new Date(t).toISOString().slice(0,10);
-    try {
-      const snap = await getDoc(doc(db, "ventes_reelles", dateStr));
-      if (!snap.exists()) continue;
-      const o = snap.data();
-      if (o.caHT) totalVentes += toNum(o.caHT);
-      else if (o.ventes && typeof o.ventes === "object") {
-        for (const e in o.ventes) { ventesEAN[e] = (ventesEAN[e] || 0) + toNum(o.ventes[e]); totalVentes += toNum(o.ventes[e]); }
-      } else if (o.ventesEAN && typeof o.ventesEAN === "object") {
-        for (const e in o.ventesEAN) { ventesEAN[e] = (ventesEAN[e] || 0) + toNum(o.ventesEAN[e]); totalVentes += toNum(o.ventesEAN[e]); }
-      } else if (o.totalCA) totalVentes += toNum(o.totalCA);
-      else if (o.caTTC) totalVentes += toNum(o.caTTC);
-    } catch (e) { console.warn("loadVentesReelles err", e); }
-  }
-  return { totalVentes, ventesEAN };
-}
-
-/* =========================
-   Core period compta calculation (recommended)
-   ========================= */
-async function computePeriodCompta(fromISO, toISO) {
-  // 1) stockDebut / stockFin from journal_inventaires
-  const invs = await loadInventaires();
-  const { stockDebut, stockFin } = pickStocks(invs, new Date(fromISO + "T00:00:00"), new Date(toISO + "T23:59:59"));
-
-  // 2) achatsPeriode: sum of achats (by date) — prioritizable with lettrage
-  let achatsPeriode = 0;
-  try {
-    const snapAchats = await getDocs(collection(db, "achats"));
-    snapAchats.forEach(d => {
+    const snap = await getDocs(collection(db, "achats"));
+    const start = new Date(dateISO + "T00:00:00");
+    const end = new Date(dateISO + "T23:59:59");
+    snap.forEach(d => {
       const r = d.data();
       const dDate = toDateAny(r.date || r.dateAchat || r.createdAt);
       if (!dDate) return;
-      if (dDate < new Date(fromISO + "T00:00:00") || dDate > new Date(toISO + "T23:59:59")) return;
-      const montant = toNum(r.totalHT || r.montantHT || r.total || 0);
-      achatsPeriode += montant;
+      if (dDate >= start && dDate <= end) {
+        total += toNum(r.montantHT || r.totalHT || r.total || r.montant || 0);
+      }
     });
   } catch (e) {
-    console.warn("computePeriodCompta: load achats error", e);
+    console.warn("getPurchasesForDate err", e);
+  }
+  return round2(total);
+}
+
+/** Récupère le doc journal_inventaires/{dateISO} */
+async function getInventoryForDate(dateISO) {
+  try {
+    const snap = await getDoc(doc(db, "journal_inventaires", dateISO));
+    if (!snap.exists()) return null;
+    return snap.data(); // expected: .changes = [{plu, counted, prevStock, ...}, ...]
+  } catch (e) {
+    console.warn("getInventoryForDate err", e);
+    return null;
+  }
+}
+
+/** Transforme array changes en map plu => change */
+function mapChangesByPlu(changesArray) {
+  const map = {};
+  if (!Array.isArray(changesArray)) return map;
+  changesArray.forEach(ch => {
+    const plu = String(ch.plu || ch.PLU || "");
+    if (!plu) return;
+    map[plu] = ch;
+  });
+  return map;
+}
+
+/**
+ * Récupère les prix récents (pma et salePriceTTC) pour un ensemble de PLU,
+ * en prenant la dernière valeur dont createdAt <= dateISO.
+ * Retour : { plu: { buyPrice: number|null, salePriceTTC: number|null, salePriceHT: number|null } }
+ */
+async function getPricesForPluSet(pluSet, dateISO) {
+  const dateT = new Date(dateISO + "T23:59:59");
+  const result = {};
+  pluSet.forEach(p => result[p] = { buyPrice: null, buyTs: 0, salePriceTTC: null, saleTs: 0, salePriceHT: null });
+
+  try {
+    const snap = await getDocs(collection(db, "stock_movements"));
+    snap.forEach(d => {
+      const m = d.data();
+      const plu = String(m.plu || m.PLU || "");
+      if (!plu || !pluSet.has(plu)) return;
+      if (!m.createdAt || !m.createdAt.toDate) return;
+      const created = m.createdAt.toDate();
+      if (created > dateT) return;
+      const ts = created.getTime();
+
+      const buyCandidate = toNum(m.pma ?? m.prixAchatKg ?? m.prixAchat ?? 0);
+      if (buyCandidate > 0 && ts >= (result[plu].buyTs || 0)) {
+        result[plu].buyPrice = buyCandidate;
+        result[plu].buyTs = ts;
+      }
+
+      const saleCandidate = toNum(m.salePriceTTC ?? 0);
+      if (saleCandidate > 0 && ts >= (result[plu].saleTs || 0)) {
+        result[plu].salePriceTTC = saleCandidate;
+        result[plu].saleTs = ts;
+      }
+    });
+  } catch (e) {
+    console.warn("getPricesForPluSet err", e);
   }
 
-  // 3) achatsConsoMovements: value of sorties by lot price
-  const lotsSnap = await getDocs(collection(db, "lots"));
-  const lots = {};
-  lotsSnap.forEach(d => lots[d.id] = d.data());
+  for (const p of Object.keys(result)) {
+    if (result[p].salePriceTTC) result[p].salePriceHT = round2(result[p].salePriceTTC / (1 + TVA_RATE));
+    else result[p].salePriceHT = null;
+  }
+  return result;
+}
 
-  const movesSnapAll = await getDocs(collection(db, "stock_movements"));
-  let achatsConsoMovements = 0;
-  movesSnapAll.forEach(d => {
-    const m = d.data();
-    const created = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate() : (m.date ? new Date(m.date + "T00:00:00") : null);
-    if (!created) return;
-    if (created < new Date(fromISO + "T00:00:00") || created > new Date(toISO + "T23:59:59")) return;
-    if (m.ignoreForCompta) return;
-    const sens = (m.sens || "").toString().toLowerCase();
-    if (sens !== "sortie") return;
-    const type = (m.type || m.origin || "").toString().toLowerCase();
-    if (type === "transformation" || type === "correction") return;
-    const poids = Math.abs(Number(m.poids ?? m.quantity ?? 0) || 0);
-    if (!poids) return;
-    const lot = lots[m.lotId] || {};
-    const prixKg = toNum(lot.prixAchatKg || m.prixAchatKg || m.prixAchat || 0);
-    achatsConsoMovements += prixKg * poids;
-  });
-
-  // 4) caTheorique (we try to read ventes_reelles; fallback 0)
-  let caTheorique = 0;
+/* =========================
+   computePeriodCompta (méthode métier)
+   ========================= */
+async function computePeriodCompta(fromISO, toISO) {
+  // 1) Achats total période (somme des jours)
+  let achatsPeriode = 0;
   try {
-    const ventes = await loadVentesReelles(fromISO, toISO);
-    caTheorique = ventes.totalVentes / (1 + TVA_RATE); // make HT
-  } catch (e) { console.warn("caTheorique load err", e); }
+    if (fromISO === toISO) {
+      achatsPeriode = await getPurchasesForDate(fromISO);
+    } else {
+      let total = 0;
+      const start = new Date(fromISO + "T00:00:00");
+      const end = new Date(toISO + "T23:59:59");
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        total += await getPurchasesForDate(d.toISOString().slice(0,10));
+      }
+      achatsPeriode = round2(total);
+    }
+  } catch (e) {
+    console.warn("computePeriodCompta -> achatsPeriode err", e);
+    achatsPeriode = 0;
+  }
 
-  // 5) caReel: sum from compta_journal between dates
+  // 2) Inventaires : prev day (stock début) et toISO (stock fin)
+  const prevISO = previousDateString(fromISO);
+  const invPrev = await getInventoryForDate(prevISO);
+  const invToday = await getInventoryForDate(toISO);
+  const mapPrev = mapChangesByPlu(invPrev?.changes || []);
+  const mapToday = mapChangesByPlu(invToday?.changes || []);
+
+  // union PLU set
+  const pluSet = new Set([...Object.keys(mapPrev), ...Object.keys(mapToday)]);
+
+  // 3) récupérer prix : buyPrice au prevISO pour stockDebut, buyPrice au toISO pour stockFin,
+  //    salePriceHT au toISO pour vente théorique
+  const pricesPrev = await getPricesForPluSet(pluSet, prevISO);
+  const pricesToday = await getPricesForPluSet(pluSet, toISO);
+
+  // 4) valeur stock debut & fin (counted * buyPrice)
+  let stockDebutValue = 0;
+  let stockFinValue = 0;
+  for (const plu of pluSet) {
+    const prevEntry = mapPrev[plu];
+    const todayEntry = mapToday[plu];
+
+    const prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
+    const todayCount = todayEntry ? toNum(todayEntry.counted || todayEntry.countedKg || 0) : 0;
+
+    const buyPrev = (pricesPrev[plu] && pricesPrev[plu].buyPrice) ? pricesPrev[plu].buyPrice : 0;
+    const buyToday = (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice : buyPrev || 0;
+
+    stockDebutValue += prevCount * buyPrev;
+    stockFinValue += todayCount * buyToday;
+  }
+  stockDebutValue = round2(stockDebutValue);
+  stockFinValue = round2(stockFinValue);
+
+  // 5) vente théorique : poidsVendu = prev.counted - today.counted ; salePriceHT from pricesToday
+  let caTheorique = 0;
+  for (const plu of pluSet) {
+    const prevEntry = mapPrev[plu];
+    const todayEntry = mapToday[plu];
+    let prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
+    let todayCount = todayEntry ? toNum(todayEntry.counted || todayEntry.countedKg || 0) : 0;
+    let poidsVendu = Math.max(0, prevCount - todayCount);
+
+    const salePriceHT = (pricesToday[plu] && pricesToday[plu].salePriceHT) ? pricesToday[plu].salePriceHT
+                          : (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice
+                          : 0;
+    caTheorique += poidsVendu * salePriceHT;
+  }
+  caTheorique = round2(caTheorique);
+
+  // 6) achats consommés via ta règle métier
+  const achatsConsomesFormula = round2(stockDebutValue + achatsPeriode - stockFinValue);
+
+  // 7) CA réel from compta_journal (range)
   let caReel = 0;
   try {
     const q = query(collection(db, "compta_journal"), where("date", ">=", fromISO), where("date", "<=", toISO));
     const snap = await getDocs(q);
-    snap.forEach(d => { caReel += toNum(d.data().caReel || d.data().caHT || 0); });
-  } catch (e) { console.warn("caReel load err", e); }
+    snap.forEach(d => {
+      caReel += toNum(d.data().caReel || d.data().caHT || 0);
+    });
+    caReel = round2(caReel);
+  } catch (e) {
+    console.warn("computePeriodCompta -> caReel err", e);
+  }
 
-  // 6) final achats consommés: prefer mouvements if present
-  const achats_consomes_final = (achatsConsoMovements > 0) ? achatsConsoMovements : (stockDebut + achatsPeriode - stockFin);
-  const marge = caReel - achats_consomes_final;
-  const margePct = caReel ? (marge / caReel * 100) : 0;
+  const marge = round2(caReel - achatsConsomesFormula);
+  const margePct = caReel ? round2((marge / caReel) * 100) : 0;
 
+  // 8) retourner tout
   return {
-    stockDebut: round2(stockDebut),
-    stockFin: round2(stockFin),
-    achatsPeriode: round2(achatsPeriode),
-    achatsConsoMovements: round2(achatsConsoMovements),
-    achats_consomes_final: round2(achats_consomes_final),
-    caTheorique: round2(caTheorique),
-    caReel: round2(caReel),
-    marge: round2(marge),
-    margePct: round2(margePct)
+    stockDebut: stockDebutValue,
+    stockFin: stockFinValue,
+    achatsPeriode,
+    achatsConsomesFormula,
+    caTheorique,
+    caReel,
+    marge,
+    margePct,
+    pricesUsed: { prev: pricesPrev, today: pricesToday }
   };
 }
-
-function round2(n) { return Math.round((Number(n) + Number.EPSILON) * 100) / 100; }
 
 /* =========================
    UI: render dashboard
@@ -421,32 +421,39 @@ async function refreshDashboard() {
     const fromISO = range.start.toISOString().slice(0,10);
     const toISO = range.end.toISOString().slice(0,10);
 
-    // compute
     const res = await computePeriodCompta(fromISO, toISO);
 
-    // fill UI
     el.tdStockDebut.textContent = `${n2(res.stockDebut)} €`;
     el.tdStockFin.textContent = `${n2(res.stockFin)} €`;
     el.tdAchatsPeriode.textContent = `${n2(res.achatsPeriode)} €`;
-    el.tdAchatsConso.textContent = `${n2(res.achats_consomes_final)} €`;
+    el.tdAchatsConso.textContent = `${n2(res.achatsConsomesFormula)} €`;
     el.tdCaTheo.textContent = `${n2(res.caTheorique)} €`;
     el.tdCaReel.textContent = `${n2(res.caReel)} €`;
 
     el.sumCaReel.textContent = n2(res.caReel);
-    el.sumAchatsConso.textContent = n2(res.achats_consomes_final);
+    el.sumAchatsConso.textContent = n2(res.achatsConsomesFormula);
     const varStock = round2(res.stockDebut - res.stockFin);
     el.sumVarStock.textContent = n2(varStock);
     el.sumMarge.textContent = n2(res.marge);
     el.sumMargePct.textContent = (round2(res.margePct) || 0).toFixed(1);
 
-    // chart summary (simple)
+    // chart
     renderChart([
       { label: "CA réel HT", value: res.caReel },
-      { label: "Achats consommés HT", value: res.achats_consomes_final },
+      { label: "Achats consommés HT", value: res.achatsConsomesFormula },
       { label: "Variation stock HT", value: varStock }
     ]);
 
+    // debug : show status + small hint if prices missing
     el.status.textContent = "";
+    // If many PLUs have no buy price, warn
+    const pricesToday = res.pricesUsed && res.pricesUsed.today ? res.pricesUsed.today : {};
+    const missing = Object.keys(pricesToday).filter(p => !pricesToday[p].buyPrice);
+    if (missing.length) {
+      el.status.textContent = `⚠ ${missing.length} PLU(s) sans prix d'achat détecté (fallback à 0). Voir console pour 'pricesUsed'.`;
+      console.log("pricesUsed:", res.pricesUsed);
+    }
+
   } catch (e) {
     console.error(e);
     el.status.textContent = "Erreur lors du calcul : " + (e.message || e);
@@ -465,15 +472,11 @@ function renderChart(items) {
 }
 
 /* =========================
-   Z (CA réel) & validation
+   Z & validation
    ========================= */
 async function saveZForDay(dateISO) {
   const zht = toNum(el.zCaHT.value || 0);
   const note = (el.zNote.value || "").trim();
-  if (!zht) {
-    // allow zero but warn
-    // continue
-  }
   const docRef = doc(db, "compta_journal", dateISO);
   await setDoc(docRef, {
     date: dateISO,
@@ -487,10 +490,7 @@ async function saveZForDay(dateISO) {
 }
 
 async function validerJournee(dateISO) {
-  // compute and store full snapshot
-  const start = dateISO; const end = dateISO;
-  const calc = await computePeriodCompta(start, end);
-  // read existing Z if present
+  const calc = await computePeriodCompta(dateISO, dateISO);
   const zFromField = toNum(el.zCaHT.value || 0);
   let caReel = calc.caReel;
   if (zFromField > 0) caReel = zFromField;
@@ -499,18 +499,16 @@ async function validerJournee(dateISO) {
     stockDebut: calc.stockDebut,
     stockFin: calc.stockFin,
     achatsPeriode: calc.achatsPeriode,
-    achatsConsoMovements: calc.achatsConsoMovements,
-    achatsConsoFinal: calc.achats_consomes_final,
+    achatsConsoFinal: calc.achatsConsomesFormula,
     caTheorique: calc.caTheorique,
     caReel,
-    marge: round2(caReel - calc.achats_consomes_final),
-    margePct: (caReel ? round2((caReel - calc.achats_consomes_final) / caReel * 100) : 0),
+    marge: round2(caReel - calc.achatsConsomesFormula),
+    margePct: (caReel ? round2((caReel - calc.achatsConsomesFormula) / caReel * 100) : 0),
     validated: true,
     validatedAt: serverTimestamp(),
     zNote: (el.zNote.value || "").trim()
   };
   await setDoc(doc(db, "compta_journal", dateISO), payload, { merge: true });
-
   el.status.textContent = `Journée ${dateISO} validée.`;
   refreshDashboard();
 }
@@ -528,7 +526,7 @@ async function unvalidateJournee(dateISO) {
 }
 
 /* =========================
-   Event bindings
+   Events wiring
    ========================= */
 function wireEvents() {
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -579,11 +577,13 @@ async function initDashboard() {
         el.status.textContent = "Connecte-toi pour voir le module Comptabilité.";
         return;
       }
-      const ok = await hasComptaAccess(user);
-      if (!ok) {
-        el.status.textContent = "Accès refusé au module Comptabilité.";
-        return;
-      }
+      // permission check (app_users.modules inclut 'compta' or role admin)
+      const snap = await getDoc(doc(db, 'app_users', user.uid));
+      if (!snap.exists()) { el.status.textContent = "Accès refusé."; return; }
+      const d = snap.data();
+      const ok = (d.role === 'admin') || (Array.isArray(d.modules) && d.modules.includes('compta'));
+      if (!ok) { el.status.textContent = "Accès refusé au module Comptabilité."; return; }
+
       wireEvents();
       renderInputs();
       refreshDashboard();
