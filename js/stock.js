@@ -8,15 +8,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 console.log("DEBUG: stock.js chargé !");
-// robust number parser (assure que toNum existe)
-if (typeof toNum !== 'function') {
-  function toNum(v) {
-    if (v === undefined || v === null || v === '') return 0;
-    const s = String(v).trim().replace(/\s/g, '').replace(',', '.');
-    const x = parseFloat(s);
-    return isFinite(x) ? x : 0;
-  }
+// robust number parser (définie au top-level)
+function toNum(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  const s = String(v).trim().replace(/\s/g, '').replace(',', '.');
+  const x = parseFloat(s);
+  return isFinite(x) ? x : 0;
 }
+
 
 
 /************************************************************
