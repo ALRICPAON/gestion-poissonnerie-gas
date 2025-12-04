@@ -214,8 +214,155 @@ function getSelectedRange(){
 /* =========================
    Purchases robustes + debug
    ========================= */
-// ... keep the getPurchasesForRange, debugListPurchasesForDate, inspectPurchases as before
-// (Assume they are present as in your current file) 
+/* =========================
+   Purchases robustes + debug (AJOUT manquant)
+   Remplacer le placeholder par ce bloc
+   ========================= */
+
+/** Option: mettre true pour ne compter QUE les BL reçus (sécurité métier) */
+const ONLY_BL_RECEIVED = false;
+
+/**
+ * getPurchasesForRange(fromISO, toISO)
+ * - fromISO/toISO = 'YYYY-MM-DD' (local)
+ * - Utilise uniquement r.date (ou r.dateAchat), pas createdAt
+ */
+async function getPurchasesForRange(fromISO, toISO) {
+  try {
+    const snap = await getDocs(collection(db, "achats"));
+    const isSingle = (fromISO === toISO);
+    const included = [];
+    const excludedNear = [];
+    let total = 0;
+
+    snap.forEach(docSnap => {
+      const r = docSnap.data();
+
+      // 1) header date strict
+      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
+                        : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
+                        : null;
+      if (!headerRaw) return;
+
+      // 2) normalize to local YYYY-MM-DD using headerDateToISO
+      const headerISO = headerDateToISO(headerRaw);
+      if (!headerISO) return;
+
+      // 3) optional business filter
+      if (ONLY_BL_RECEIVED) {
+        if (String(r.type || "").toUpperCase() !== "BL") return;
+        if (String(r.statut || "").toLowerCase() !== "received") return;
+      }
+
+      // 4) match
+      const matches = isSingle ? (headerISO === fromISO) : (headerISO >= fromISO && headerISO <= toISO);
+
+      if (matches) {
+        const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
+        total += montant;
+        included.push({
+          id: docSnap.id,
+          headerRaw,
+          headerISO,
+          montantHT: round2(montant),
+          type: r.type || null,
+          statut: r.statut || null
+        });
+      } else {
+        if (!isSingle) return;
+        // collect nearby dates for debug (±2 jours)
+        const diffMs = Math.abs(new Date(headerISO) - new Date(fromISO));
+        if (diffMs <= 2 * 24 * 3600 * 1000) {
+          excludedNear.push({
+            id: docSnap.id,
+            headerRaw,
+            headerISO,
+            montantHT: round2(toNum(r.montantHT || r.totalHT || r.montant || 0)),
+            type: r.type || null,
+            statut: r.statut || null
+          });
+        }
+      }
+    });
+
+    console.group(`getPurchasesForRange ${fromISO}..${toISO}`);
+    console.log("ONLY_BL_RECEIVED:", ONLY_BL_RECEIVED);
+    console.log("Included count:", included.length, "Total montant:", round2(total));
+    if (included.length) console.table(included);
+    if (excludedNear.length) {
+      console.log("Excluded (nearby dates) — helpful for debugging:");
+      console.table(excludedNear);
+    }
+    console.groupEnd();
+
+    return round2(total);
+  } catch (err) {
+    console.error("getPurchasesForRange err:", err);
+    return 0;
+  }
+}
+
+async function getPurchasesForDate(dateISO) {
+  return await getPurchasesForRange(dateISO, dateISO);
+}
+
+/** debugListPurchasesForDate(dateISO) — affiche docs dont headerISO === dateISO */
+async function debugListPurchasesForDate(dateISO) {
+  try {
+    const snap = await getDocs(collection(db, "achats"));
+    const out = [];
+    snap.forEach(docSnap => {
+      const r = docSnap.data();
+      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
+                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
+                      : null;
+      const headerISO = headerDateToISO(headerRaw);
+      const montant = round2(toNum(r.montantHT || r.totalHT || r.montant || 0));
+      if (headerISO === dateISO) {
+        out.push({ id: docSnap.id, headerRaw, headerISO, type: r.type, statut: r.statut, montantHT: montant });
+      }
+    });
+    console.group(`debugListPurchasesForDate ${dateISO} -> ${out.length} docs`);
+    console.table(out);
+    console.log("DEBUG sum:", round2(out.reduce((s, x) => s + toNum(x.montantHT), 0)));
+    console.groupEnd();
+    return out;
+  } catch (e) {
+    console.error("debugListPurchasesForDate err", e);
+    return [];
+  }
+}
+
+/** inspectPurchases(ids) — affiche raw doc pour diagnostics (headerRaw, createdAt, etc.) */
+async function inspectPurchases(ids) {
+  for (const id of ids) {
+    try {
+      const snap = await getDoc(doc(db, "achats", id));
+      if (!snap.exists()) { console.log(id, "-> missing"); continue; }
+      const r = snap.data();
+      console.group(`achat ${id}`);
+      console.log("raw:", r);
+      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date : (r.dateAchat !== undefined ? r.dateAchat : null);
+      console.log("headerRaw:", headerRaw);
+      if (headerRaw && typeof headerRaw.toDate === 'function') {
+        const d = headerRaw.toDate();
+        console.log("headerLocal:", d.toString(), "headerISO(local):", localDateISO(d));
+      } else if (headerRaw) {
+        const parsed = new Date(headerRaw);
+        console.log("headerParsed:", parsed.toString(), "headerISO(local):", localDateISO(parsed));
+      }
+      if (r.createdAt && typeof r.createdAt.toDate === 'function') {
+        const c = r.createdAt.toDate();
+        console.log("createdAt local:", c.toString(), "createdAt ISO:", c.toISOString());
+      } else console.log("createdAt:", r.createdAt);
+      console.log("montantHT:", r.montantHT, "type:", r.type, "statut:", r.statut);
+      console.groupEnd();
+    } catch (e) {
+      console.error("inspect error", id, e);
+    }
+  }
+}
+
 
 /* =========================
    Inventory read and normalization
