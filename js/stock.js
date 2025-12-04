@@ -229,7 +229,7 @@ function fillTable(tbodyId, items) {
 }
 
 /* ---------------------------
-   savePvReel : sauvegarde et mise à jour UI
+   savePvReel : sauvegarde et mise à jour UI (optimistic)
    - inp : élément input DOM
    --------------------------- */
 async function savePvReel(inp) {
@@ -241,41 +241,58 @@ async function savePvReel(inp) {
 
   // disable input while saving
   inp.disabled = true;
+
+  // Find row and necessary numbers (use dataset as fallback)
+  const tr = inp.closest("tr");
+  const stockKg = tr ? toNum(tr.dataset.stockKg) : 0;
+  // pma may come from tr.dataset or from map
+  let pma = tr ? toNum(tr.dataset.pma) : 0;
+  const mapItem = stockItemsMap.get(key);
+  if ((!pma || pma === 0) && mapItem && mapItem.pma != null) pma = toNum(mapItem.pma);
+
+  // compute marge optimistic
+  const pvHT = val / 1.055;
+  const margeReelle = pvHT > 0 ? (pvHT - pma) / pvHT : null;
+
+  // optimistic update of DOM and in-memory item
   try {
-    // save to Firestore
+    // update dataset on the row for totals & for later reads
+    if (tr) {
+      tr.dataset.pvttcreel = val;
+    }
+
+    // update in-memory map (if present)
+    if (mapItem) {
+      mapItem.pvTTCreel = val;
+      mapItem.margeReelle = margeReelle;
+      stockItemsMap.set(key, mapItem);
+    }
+
+    // update the marge cell in the row immediately
+    if (tr) {
+      const margeCell = tr.querySelector(".marge-reelle");
+      if (margeCell) {
+        margeCell.textContent = margeReelle != null ? (margeReelle * 100).toFixed(1) + " %" : "";
+      }
+    }
+
+    // update totals immediately (reads DOM rows)
+    updateTotauxFromDOM();
+
+  } catch (e) {
+    console.warn("savePvReel optimistic update failed:", e);
+  }
+
+  // persist to Firestore (still awaited to catch errors)
+  try {
     await setDoc(doc(db, "stock_articles", key), { pvTTCreel: val }, { merge: true });
   } catch (e) {
     console.error("Erreur save pvTTCreel:", e);
+    // Option: show an error marker, or revert optimistic update.
+    // For now we just log. If tu veux que l'on inverse en cas d'erreur, on peut l'ajouter.
   } finally {
     inp.disabled = false;
   }
-
-  // update dataset on the row for totals
-  const tr = inp.closest("tr");
-  if (tr) {
-    tr.dataset.pvttcreel = val;
-  }
-
-  // update in-memory map
-  const item = stockItemsMap.get(key);
-  if (item) {
-    item.pvTTCreel = val;
-    // recompute margeReelle
-    const pvHT = val / 1.055;
-    item.margeReelle = pvHT > 0 ? (pvHT - item.pma) / pvHT : null;
-  }
-
-  // update the marge cell in the row
-  if (tr) {
-    const margeCell = tr.querySelector(".marge-reelle");
-    if (margeCell) {
-      const it = stockItemsMap.get(key);
-      margeCell.textContent = it && it.margeReelle != null ? (it.margeReelle * 100).toFixed(1) + " %" : "";
-    }
-  }
-
-  // update totals (recalculate from DOM rows)
-  updateTotauxFromDOM();
 }
 
 /* ---------------------------
