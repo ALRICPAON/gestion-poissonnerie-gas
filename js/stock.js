@@ -8,6 +8,16 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 console.log("DEBUG: stock.js chargé !");
+// robust number parser (assure que toNum existe)
+if (typeof toNum !== 'function') {
+  function toNum(v) {
+    if (v === undefined || v === null || v === '') return 0;
+    const s = String(v).trim().replace(/\s/g, '').replace(',', '.');
+    const x = parseFloat(s);
+    return isFinite(x) ? x : 0;
+  }
+}
+
 
 /************************************************************
  * 1️⃣  Détection rayon TRAD / FE / LS (basé sur Firestore)
@@ -229,7 +239,7 @@ function fillTable(tbodyId, items) {
 }
 
 /* ---------------------------
-   savePvReel : sauvegarde et mise à jour UI (optimistic)
+   savePvReel : sauvegarde et mise à jour UI (optimistic + debug)
    - inp : élément input DOM
    --------------------------- */
 async function savePvReel(inp) {
@@ -239,57 +249,61 @@ async function savePvReel(inp) {
   const val = toNum(raw);
   if (isNaN(val)) return;
 
-  // disable input while saving
+  // disable input while saving to avoid multiple submits
   inp.disabled = true;
 
-  // Find row and necessary numbers (use dataset as fallback)
+  // locate row and get pma / stock
   const tr = inp.closest("tr");
   const stockKg = tr ? toNum(tr.dataset.stockKg) : 0;
-  // pma may come from tr.dataset or from map
   let pma = tr ? toNum(tr.dataset.pma) : 0;
   const mapItem = stockItemsMap.get(key);
   if ((!pma || pma === 0) && mapItem && mapItem.pma != null) pma = toNum(mapItem.pma);
 
-  // compute marge optimistic
+  // optimistic calculation
   const pvHT = val / 1.055;
   const margeReelle = pvHT > 0 ? (pvHT - pma) / pvHT : null;
 
-  // optimistic update of DOM and in-memory item
-  try {
-    // update dataset on the row for totals & for later reads
-    if (tr) {
-      tr.dataset.pvttcreel = val;
-    }
+  // store previous state in case we want to revert on error
+  const prevDatasetPv = tr ? tr.dataset.pvttcreel : null;
+  const prevMapItem = mapItem ? Object.assign({}, mapItem) : null;
 
-    // update in-memory map (if present)
+  try {
+    // optimistic DOM update
+    if (tr) tr.dataset.pvttcreel = val;
     if (mapItem) {
       mapItem.pvTTCreel = val;
       mapItem.margeReelle = margeReelle;
       stockItemsMap.set(key, mapItem);
     }
 
-    // update the marge cell in the row immediately
     if (tr) {
       const margeCell = tr.querySelector(".marge-reelle");
-      if (margeCell) {
-        margeCell.textContent = margeReelle != null ? (margeReelle * 100).toFixed(1) + " %" : "";
-      }
+      if (margeCell) margeCell.textContent = margeReelle != null ? (margeReelle * 100).toFixed(1) + " %" : "";
     }
 
-    // update totals immediately (reads DOM rows)
+    // update totals immediately
     updateTotauxFromDOM();
 
-  } catch (e) {
-    console.warn("savePvReel optimistic update failed:", e);
-  }
-
-  // persist to Firestore (still awaited to catch errors)
-  try {
+    // persist to Firestore
     await setDoc(doc(db, "stock_articles", key), { pvTTCreel: val }, { merge: true });
+
+    // debug log success
+    console.debug(`savePvReel: saved ${val} for ${key}`);
+
   } catch (e) {
     console.error("Erreur save pvTTCreel:", e);
-    // Option: show an error marker, or revert optimistic update.
-    // For now we just log. If tu veux que l'on inverse en cas d'erreur, on peut l'ajouter.
+    // revert optimistic update on error
+    if (tr) tr.dataset.pvttcreel = prevDatasetPv ?? "";
+    if (prevMapItem) {
+      stockItemsMap.set(key, prevMapItem);
+      const margeCell = tr ? tr.querySelector(".marge-reelle") : null;
+      if (margeCell && prevMapItem.margeReelle != null) margeCell.textContent = (prevMapItem.margeReelle * 100).toFixed(1) + " %";
+      else if (margeCell) margeCell.textContent = "";
+    }
+    // recompute totals back
+    updateTotauxFromDOM();
+    // optionally notify user
+    alert("Erreur lors de l'enregistrement du prix. Regarde la console pour détails.");
   } finally {
     inp.disabled = false;
   }
