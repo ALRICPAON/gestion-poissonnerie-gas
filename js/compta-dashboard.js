@@ -212,52 +212,170 @@ function getSelectedRange(){
 }
 
 /* =========================
-   Purchases (strict header date + montantHT)
+   Purchases robustes + debug
+   - Remplace getPurchasesForRange / getPurchasesForDate / debugListPurchasesForDate
    ========================= */
-async function getPurchasesForRange(fromISO, toISO){
-  try{
+
+/** Option: mettre true pour ne compter QUE les BL reçus (sécurité métier) */
+const ONLY_BL_RECEIVED = false; // <- si tu veux, mettre true
+
+/** normalize header date -> local YYYY-MM-DD (déjà présente, mais on réutilise) */
+function headerDateToISO_local(headerDateRaw) {
+  if (!headerDateRaw) return null;
+  if (typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
+    // Firestore Timestamp -> Date -> local ISO
+    const d = headerDateRaw.toDate();
+    return localDateISO(d);
+  }
+  if (headerDateRaw instanceof Date) return localDateISO(headerDateRaw);
+  if (typeof headerDateRaw === 'string') {
+    const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+    const parsed = toDateAny(headerDateRaw);
+    if (parsed) return localDateISO(parsed);
+    return null;
+  }
+  const parsed = toDateAny(headerDateRaw);
+  return parsed ? localDateISO(parsed) : null;
+}
+
+/**
+ * getPurchasesForRange robust
+ * - fromISO / toISO : 'YYYY-MM-DD' (LOCAL dates)
+ * - ONLY_BL_RECEIVED : si true, ne garde que type==='BL' et statut==='received'
+ */
+async function getPurchasesForRange(fromISO, toISO) {
+  try {
     const snap = await getDocs(collection(db, "achats"));
     const isSingle = (fromISO === toISO);
-    let total = 0;
     const included = [];
-    snap.forEach(ds => {
-      const r = ds.data();
+    const excludedNear = []; // pour debug : ceux ayant headerISO mais pas match
+    let total = 0;
+
+    snap.forEach(docSnap => {
+      const r = docSnap.data();
+
+      // 1) prendre strictement le header date (date / dateAchat)
       const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
                         : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
                         : null;
       if (!headerRaw) return;
-      const headerISO = headerDateToISO(headerRaw);
+
+      // 2) normaliser en YYYY-MM-DD local
+      const headerISO = headerDateToISO_local(headerRaw);
       if (!headerISO) return;
+
+      // 3) appliquer filtre métier optionnel (BL reçu)
+      if (ONLY_BL_RECEIVED) {
+        if (String(r.type || "").toUpperCase() !== "BL") return;
+        if (String(r.statut || "").toLowerCase() !== "received") return;
+      }
+
+      // 4) correspondance strict pour jour unique, range sinon
       const matches = isSingle ? (headerISO === fromISO) : (headerISO >= fromISO && headerISO <= toISO);
-      if (!matches) return;
-      const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
-      total += montant;
-      included.push({ id: ds.id, headerISO, montantHT: round2(montant), type: r.type, statut: r.statut });
+
+      if (matches) {
+        const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
+        total += montant;
+        included.push({
+          id: docSnap.id,
+          headerRaw,
+          headerISO,
+          montantHT: round2(montant),
+          type: r.type || null,
+          statut: r.statut || null
+        });
+      } else {
+        // pour debug on collecte aussi les entrées proches (le même mois ou -/+1 jour)
+        if (!isSingle) return;
+        // Si on est en single day, on veut savoir si on avait un doc avec headerISO adjacent
+        if (Math.abs(new Date(headerISO) - new Date(fromISO)) <= 2 * 24*3600*1000) {
+          excludedNear.push({
+            id: docSnap.id,
+            headerRaw,
+            headerISO,
+            montantHT: round2(toNum(r.montantHT || r.totalHT || r.montant || 0)),
+            type: r.type || null,
+            statut: r.statut || null
+          });
+        }
+      }
     });
-    console.debug(`getPurchasesForRange ${fromISO}..${toISO} → ${included.length} achats`, included);
+
+    // Debug log clair
+    console.group(`getPurchasesForRange ${fromISO}..${toISO}`);
+    console.log("ONLY_BL_RECEIVED:", ONLY_BL_RECEIVED);
+    console.log("Included count:", included.length, "Total montant:", round2(total));
+    if (included.length) console.table(included);
+    if (excludedNear.length) {
+      console.log("Excluded (nearby dates) — useful to see why some docs are on prior/next day:");
+      console.table(excludedNear);
+    }
+    console.groupEnd();
+
     return round2(total);
-  }catch(err){
-    console.error("getPurchasesForRange err", err);
+  } catch (err) {
+    console.error("getPurchasesForRange err:", err);
     return 0;
   }
 }
-async function getPurchasesForDate(dateISO){ return await getPurchasesForRange(dateISO, dateISO); }
+async function getPurchasesForDate(dateISO) { return await getPurchasesForRange(dateISO, dateISO); }
 
-// debug helper
-async function debugListPurchasesForDate(dateISO){
-  const snap = await getDocs(collection(db, "achats"));
-  const out = [];
-  snap.forEach(ds => {
-    const r = ds.data();
-    const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
-                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat : null;
-    const headerISO = headerDateToISO(headerRaw);
-    const montant = round2(toNum(r.montantHT || r.totalHT || r.montant || 0));
-    if (headerISO === dateISO) out.push({ id: ds.id, headerRaw, headerISO, montantHT: montant, type: r.type, statut: r.statut });
-  });
-  console.table(out);
-  console.log("DEBUG sum:", round2(out.reduce((s,x)=> s + toNum(x.montantHT), 0)));
-  return out;
+/** debugListing strict — montre les documents dont headerISO === dateISO */
+async function debugListPurchasesForDate(dateISO) {
+  try {
+    const snap = await getDocs(collection(db, "achats"));
+    const out = [];
+    snap.forEach(docSnap => {
+      const r = docSnap.data();
+      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
+                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
+                      : null;
+      const headerISO = headerDateToISO_local(headerRaw);
+      const montant = round2(toNum(r.montantHT || r.totalHT || r.montant || 0));
+      if (headerISO === dateISO) {
+        out.push({ id: docSnap.id, headerRaw, headerISO, type: r.type, statut: r.statut, montantHT: montant });
+      }
+    });
+    console.group(`debugListPurchasesForDate ${dateISO} -> ${out.length} docs`);
+    console.table(out);
+    console.log("DEBUG sum:", round2(out.reduce((s, x) => s + toNum(x.montantHT), 0)));
+    console.groupEnd();
+    return out;
+  } catch (e) {
+    console.error("debugListPurchasesForDate err", e);
+    return [];
+  }
+}
+
+/** Debug helper: inspect raw docs by id (pour voir exactly headerRaw / createdAt) */
+async function inspectPurchases(ids) {
+  for (const id of ids) {
+    try {
+      const snap = await getDoc(doc(db, "achats", id));
+      if (!snap.exists()) { console.log(id, "-> missing"); continue; }
+      const r = snap.data();
+      console.group(`achat ${id}`);
+      console.log("raw:", r);
+      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date : (r.dateAchat !== undefined ? r.dateAchat : null);
+      console.log("headerRaw:", headerRaw);
+      if (headerRaw && typeof headerRaw.toDate === 'function') {
+        const d = headerRaw.toDate();
+        console.log("headerLocal:", d.toString(), "headerISO(local):", localDateISO(d));
+      } else if (headerRaw) {
+        const parsed = new Date(headerRaw);
+        console.log("headerParsed:", parsed.toString(), "headerISO(local):", localDateISO(parsed));
+      }
+      if (r.createdAt && typeof r.createdAt.toDate === 'function') {
+        const c = r.createdAt.toDate();
+        console.log("createdAt local:", c.toString(), "createdAt ISO:", c.toISOString());
+      } else console.log("createdAt:", r.createdAt);
+      console.log("montantHT:", r.montantHT, "type:", r.type, "statut:", r.statut);
+      console.groupEnd();
+    } catch (e) {
+      console.error("inspect error", id, e);
+    }
+  }
 }
 
 /* =========================
