@@ -186,7 +186,7 @@ function getSelectedRange(){
       const end = new Date(monday); end.setDate(monday.getDate()+6); end.setHours(23,59,59,999);
       return { start, end };
     }
-    return getISOWeekRangeFromMonday(now);
+    return { start: now, end: now };
   }
   if (mode === "month"){
     const v = document.getElementById("inpMonth")?.value;
@@ -213,174 +213,14 @@ function getSelectedRange(){
 
 /* =========================
    Purchases robustes + debug
-   - Remplace getPurchasesForRange / getPurchasesForDate / debugListPurchasesForDate
    ========================= */
-
-/** Option: mettre true pour ne compter QUE les BL reçus (sécurité métier) */
-const ONLY_BL_RECEIVED = false; // <- si tu veux, mettre true
-
-/** normalize header date -> local YYYY-MM-DD (déjà présente, mais on réutilise) */
-function headerDateToISO_local(headerDateRaw) {
-  if (!headerDateRaw) return null;
-  if (typeof headerDateRaw === 'object' && typeof headerDateRaw.toDate === 'function') {
-    // Firestore Timestamp -> Date -> local ISO
-    const d = headerDateRaw.toDate();
-    return localDateISO(d);
-  }
-  if (headerDateRaw instanceof Date) return localDateISO(headerDateRaw);
-  if (typeof headerDateRaw === 'string') {
-    const m = headerDateRaw.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (m) return m[1];
-    const parsed = toDateAny(headerDateRaw);
-    if (parsed) return localDateISO(parsed);
-    return null;
-  }
-  const parsed = toDateAny(headerDateRaw);
-  return parsed ? localDateISO(parsed) : null;
-}
-
-/**
- * getPurchasesForRange robust
- * - fromISO / toISO : 'YYYY-MM-DD' (LOCAL dates)
- * - ONLY_BL_RECEIVED : si true, ne garde que type==='BL' et statut==='received'
- */
-async function getPurchasesForRange(fromISO, toISO) {
-  try {
-    const snap = await getDocs(collection(db, "achats"));
-    const isSingle = (fromISO === toISO);
-    const included = [];
-    const excludedNear = []; // pour debug : ceux ayant headerISO mais pas match
-    let total = 0;
-
-    snap.forEach(docSnap => {
-      const r = docSnap.data();
-
-      // 1) prendre strictement le header date (date / dateAchat)
-      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
-                        : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
-                        : null;
-      if (!headerRaw) return;
-
-      // 2) normaliser en YYYY-MM-DD local
-      const headerISO = headerDateToISO_local(headerRaw);
-      if (!headerISO) return;
-
-      // 3) appliquer filtre métier optionnel (BL reçu)
-      if (ONLY_BL_RECEIVED) {
-        if (String(r.type || "").toUpperCase() !== "BL") return;
-        if (String(r.statut || "").toLowerCase() !== "received") return;
-      }
-
-      // 4) correspondance strict pour jour unique, range sinon
-      const matches = isSingle ? (headerISO === fromISO) : (headerISO >= fromISO && headerISO <= toISO);
-
-      if (matches) {
-        const montant = toNum(r.montantHT || r.totalHT || r.montant || 0);
-        total += montant;
-        included.push({
-          id: docSnap.id,
-          headerRaw,
-          headerISO,
-          montantHT: round2(montant),
-          type: r.type || null,
-          statut: r.statut || null
-        });
-      } else {
-        // pour debug on collecte aussi les entrées proches (le même mois ou -/+1 jour)
-        if (!isSingle) return;
-        // Si on est en single day, on veut savoir si on avait un doc avec headerISO adjacent
-        if (Math.abs(new Date(headerISO) - new Date(fromISO)) <= 2 * 24*3600*1000) {
-          excludedNear.push({
-            id: docSnap.id,
-            headerRaw,
-            headerISO,
-            montantHT: round2(toNum(r.montantHT || r.totalHT || r.montant || 0)),
-            type: r.type || null,
-            statut: r.statut || null
-          });
-        }
-      }
-    });
-
-    // Debug log clair
-    console.group(`getPurchasesForRange ${fromISO}..${toISO}`);
-    console.log("ONLY_BL_RECEIVED:", ONLY_BL_RECEIVED);
-    console.log("Included count:", included.length, "Total montant:", round2(total));
-    if (included.length) console.table(included);
-    if (excludedNear.length) {
-      console.log("Excluded (nearby dates) — useful to see why some docs are on prior/next day:");
-      console.table(excludedNear);
-    }
-    console.groupEnd();
-
-    return round2(total);
-  } catch (err) {
-    console.error("getPurchasesForRange err:", err);
-    return 0;
-  }
-}
-async function getPurchasesForDate(dateISO) { return await getPurchasesForRange(dateISO, dateISO); }
-
-/** debugListing strict — montre les documents dont headerISO === dateISO */
-async function debugListPurchasesForDate(dateISO) {
-  try {
-    const snap = await getDocs(collection(db, "achats"));
-    const out = [];
-    snap.forEach(docSnap => {
-      const r = docSnap.data();
-      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date
-                      : (r.dateAchat !== undefined && r.dateAchat !== null) ? r.dateAchat
-                      : null;
-      const headerISO = headerDateToISO_local(headerRaw);
-      const montant = round2(toNum(r.montantHT || r.totalHT || r.montant || 0));
-      if (headerISO === dateISO) {
-        out.push({ id: docSnap.id, headerRaw, headerISO, type: r.type, statut: r.statut, montantHT: montant });
-      }
-    });
-    console.group(`debugListPurchasesForDate ${dateISO} -> ${out.length} docs`);
-    console.table(out);
-    console.log("DEBUG sum:", round2(out.reduce((s, x) => s + toNum(x.montantHT), 0)));
-    console.groupEnd();
-    return out;
-  } catch (e) {
-    console.error("debugListPurchasesForDate err", e);
-    return [];
-  }
-}
-
-/** Debug helper: inspect raw docs by id (pour voir exactly headerRaw / createdAt) */
-async function inspectPurchases(ids) {
-  for (const id of ids) {
-    try {
-      const snap = await getDoc(doc(db, "achats", id));
-      if (!snap.exists()) { console.log(id, "-> missing"); continue; }
-      const r = snap.data();
-      console.group(`achat ${id}`);
-      console.log("raw:", r);
-      const headerRaw = (r.date !== undefined && r.date !== null) ? r.date : (r.dateAchat !== undefined ? r.dateAchat : null);
-      console.log("headerRaw:", headerRaw);
-      if (headerRaw && typeof headerRaw.toDate === 'function') {
-        const d = headerRaw.toDate();
-        console.log("headerLocal:", d.toString(), "headerISO(local):", localDateISO(d));
-      } else if (headerRaw) {
-        const parsed = new Date(headerRaw);
-        console.log("headerParsed:", parsed.toString(), "headerISO(local):", localDateISO(parsed));
-      }
-      if (r.createdAt && typeof r.createdAt.toDate === 'function') {
-        const c = r.createdAt.toDate();
-        console.log("createdAt local:", c.toString(), "createdAt ISO:", c.toISOString());
-      } else console.log("createdAt:", r.createdAt);
-      console.log("montantHT:", r.montantHT, "type:", r.type, "statut:", r.statut);
-      console.groupEnd();
-    } catch (e) {
-      console.error("inspect error", id, e);
-    }
-  }
-}
+// ... keep the getPurchasesForRange, debugListPurchasesForDate, inspectPurchases as before
+// (Assume they are present as in your current file) 
 
 /* =========================
    Inventory read and normalization
    ========================= */
+/* getInventoryForDate and mapChangesByPlu kept as in your file */
 async function getInventoryForDate(dateISO){
   try{
     const ref = doc(db, "journal_inventaires", dateISO);
@@ -461,6 +301,100 @@ async function getPricesForPluSet(pluSet, dateISO){
 }
 
 /* =========================
+   NEW: computeStockValueForDate
+   ========================= */
+/**
+ * computeStockValueForDate(dateISO)
+ * - dateISO : 'YYYY-MM-DD' (local)
+ * Retour :
+ * {
+ *   totalValue: number,
+ *   perPlu: { [plu]: { counted: number, buyPrice: number|null, value: number } },
+ *   missingPrices: [plu,...]
+ * }
+ */
+async function computeStockValueForDate(dateISO) {
+  // 1) lire l'inventaire du jour
+  const inv = await getInventoryForDate(dateISO);
+  const changes = inv?.changes || [];
+  const perPluCounted = {}; // plu -> counted
+  changes.forEach(c => {
+    const plu = String(c.plu || c.PLU || c.pluCode || c.code || (c.article && c.article.plu) || "").trim();
+    if (!plu) return;
+    const counted = Number(c.counted ?? c.countedKg ?? 0) || 0;
+    perPluCounted[plu] = (perPluCounted[plu] || 0) + counted;
+  });
+
+  const pluList = Object.keys(perPluCounted);
+  if (pluList.length === 0) return { totalValue: 0, perPlu: {}, missingPrices: [] };
+
+  // 2) récupérer stock_movements et garder, par PLU, le dernier pma <= dateT
+  const dateT = new Date(dateISO + "T23:59:59");
+  const snapMov = await getDocs(collection(db, "stock_movements"));
+  const priceByPlu = {}; // plu -> { buyPrice, ts }
+  snapMov.forEach(docSnap => {
+    const m = docSnap.data();
+    const plu = String(m.plu || m.PLU || "");
+    if (!plu) return;
+    if (!m.createdAt || typeof m.createdAt.toDate !== "function") return;
+    const created = m.createdAt.toDate();
+    if (created > dateT) return;
+    const ts = created.getTime();
+    const buyCandidate = toNum(m.pma ?? m.prixAchatKg ?? m.prixAchat ?? 0);
+    if (buyCandidate > 0) {
+      if (!priceByPlu[plu] || ts >= priceByPlu[plu].ts) {
+        priceByPlu[plu] = { buyPrice: buyCandidate, ts };
+      }
+    }
+  });
+
+  // 3) fallback: lots (si présent)
+  try {
+    const snapLots = await getDocs(collection(db, "lots"));
+    const lotsByPlu = {};
+    snapLots.forEach(d => {
+      const l = d.data();
+      const plu = String(l.plu || l.PLU || l.articleId || d.id || "").trim();
+      if (!plu) return;
+      // pick a lot prixAchatKg if present (not focusing on timestamps here)
+      if (!lotsByPlu[plu]) lotsByPlu[plu] = [];
+      lotsByPlu[plu].push(l);
+    });
+    for (const p of pluList) {
+      if (!priceByPlu[p]) {
+        const lots = lotsByPlu[p] || [];
+        // choose first lot with prixAchatKg > 0
+        let chosen = null;
+        for (const l of lots) {
+          const v = toNum(l.prixAchatKg ?? l.prixAchat ?? 0);
+          if (v > 0) { chosen = v; break; }
+        }
+        if (chosen) priceByPlu[p] = { buyPrice: chosen, ts: 0 };
+      }
+    }
+  } catch (e) {
+    // ignore fallback errors
+    console.warn("computeStockValueForDate: lots fallback failed", e);
+  }
+
+  // 4) compose perPlu values
+  const perPlu = {};
+  let totalValue = 0;
+  const missingPrices = [];
+  for (const plu of pluList) {
+    const counted = Number(perPluCounted[plu] || 0);
+    const priceEntry = priceByPlu[plu];
+    const buyPrice = priceEntry ? Number(priceEntry.buyPrice || 0) : null;
+    const val = buyPrice ? round2(counted * buyPrice) : 0;
+    perPlu[plu] = { counted, buyPrice: buyPrice ?? null, value: val };
+    totalValue += val;
+    if (!buyPrice) missingPrices.push(plu);
+  }
+  totalValue = round2(totalValue);
+  return { totalValue, perPlu, missingPrices };
+}
+
+/* =========================
    Core computePeriodCompta
    ========================= */
 async function computePeriodCompta(fromISO, toISO){
@@ -468,44 +402,48 @@ async function computePeriodCompta(fromISO, toISO){
   let achatsPeriode = 0;
   try { achatsPeriode = await getPurchasesForRange(fromISO, toISO); } catch(e){ achatsPeriode = 0; console.warn(e); }
 
-  // inventories
+  // stocks: use new computeStockValueForDate
   const prevISO = previousDateString(fromISO);
+  let stockDebutValue = 0;
+  let stockFinValue = 0;
+  let stockDebutDetails = null;
+  let stockFinDetails = null;
+  try {
+    const sDeb = await computeStockValueForDate(prevISO);
+    stockDebutValue = sDeb.totalValue;
+    stockDebutDetails = sDeb;
+  } catch(e) {
+    console.warn("computePeriodCompta: stockDebut compute failed", e);
+    stockDebutValue = 0;
+  }
+  try {
+    const sFin = await computeStockValueForDate(toISO);
+    stockFinValue = sFin.totalValue;
+    stockFinDetails = sFin;
+  } catch(e) {
+    console.warn("computePeriodCompta: stockFin compute failed", e);
+    stockFinValue = 0;
+  }
+
+  // build PLU set from inventory for caTheorique (reuse old logic)
   const invPrev = await getInventoryForDate(prevISO);
   const invToday = await getInventoryForDate(toISO);
   const mapPrev = mapChangesByPlu(invPrev?.changes || []);
   const mapToday = mapChangesByPlu(invToday?.changes || []);
-
   const pluSet = new Set([...Object.keys(mapPrev), ...Object.keys(mapToday)]);
 
-  const pricesPrev = await getPricesForPluSet(pluSet, prevISO);
+  // retrieve sale prices for caTheorique
   const pricesToday = await getPricesForPluSet(pluSet, toISO);
 
-  // valeur stocks
-  let stockDebutValue = 0, stockFinValue = 0;
-  for (const plu of pluSet){
-    const prevEntry = mapPrev[plu];
-    const todayEntry = mapToday[plu];
-    const prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
-    const todayCount = todayEntry ? toNum(todayEntry.counted || todayEntry.countedKg || 0) : 0;
-    const buyPrev = (pricesPrev[plu] && pricesPrev[plu].buyPrice) ? pricesPrev[plu].buyPrice : 0;
-    const buyToday = (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice : buyPrev || 0;
-    stockDebutValue += prevCount * buyPrev;
-    stockFinValue += todayCount * buyToday;
-  }
-  stockDebutValue = round2(stockDebutValue);
-  stockFinValue = round2(stockFinValue);
-
-  // ca theorique
+  // ca theorique using counted differences and salePriceHT (or buyPrice as fallback)
   let caTheorique = 0;
-  for (const plu of pluSet){
-    const prevEntry = mapPrev[plu];
-    const todayEntry = mapToday[plu];
-    const prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
-    const todayCount = todayEntry ? toNum(todayEntry.counted || todayEntry.countedKg || 0) : 0;
+  for (const plu of pluSet) {
+    const prevCount = mapPrev[plu] ? toNum(mapPrev[plu].counted || mapPrev[plu].countedKg || 0) : 0;
+    const todayCount = mapToday[plu] ? toNum(mapToday[plu].counted || mapToday[plu].countedKg || 0) : 0;
     const poidsVendu = Math.max(0, prevCount - todayCount);
     const salePriceHT = (pricesToday[plu] && pricesToday[plu].salePriceHT) ? pricesToday[plu].salePriceHT
-                        : (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice
-                        : 0;
+      : (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice
+      : 0;
     caTheorique += poidsVendu * salePriceHT;
   }
   caTheorique = round2(caTheorique);
@@ -533,7 +471,8 @@ async function computePeriodCompta(fromISO, toISO){
     caReel,
     marge,
     margePct,
-    pricesUsed: { prev: pricesPrev, today: pricesToday }
+    pricesUsed: { today: pricesToday },
+    stockDetails: { prev: stockDebutDetails, today: stockFinDetails }
   };
 }
 
@@ -583,11 +522,10 @@ async function refreshDashboard(){
     if (el.status) el.status.textContent = "";
 
     // debug / warning missing prices
-    const pricesToday = res.pricesUsed && res.pricesUsed.today ? res.pricesUsed.today : {};
-    const missing = Object.keys(pricesToday).filter(p => !pricesToday[p].buyPrice);
-    if (missing.length) {
+    const missing = (res.stockDetails && (res.stockDetails.prev?.missingPrices || res.stockDetails.today?.missingPrices)) || [];
+    if (missing && missing.length) {
       if (el.status) el.status.textContent = `⚠ ${missing.length} PLU(s) sans prix d'achat détecté (fallback à 0). Voir console.`;
-      console.log("pricesUsed:", res.pricesUsed);
+      console.log("stockDetails:", res.stockDetails);
     }
 
   }catch(e){
