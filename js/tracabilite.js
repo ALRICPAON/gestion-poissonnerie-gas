@@ -392,6 +392,54 @@ function renderCards(cards, typeFilter) {
 
   els.list.innerHTML = html;
 }
+/* === Image popup pour agrandir les .trace-photo (délégation) === */
+function ensureImagePopupExists() {
+  if (document.getElementById('img-popup')) return;
+  const html = `
+    <div id="img-popup" class="popup" style="display:none">
+      <div class="popup-content">
+        <img id="img-popup-src" style="max-width:100%; max-height:80vh; border-radius:6px; display:block; margin:0 auto;">
+        <div style="text-align:right; margin-top:10px;">
+          <button id="img-popup-close" class="btn btn-muted">Fermer</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // close handlers
+  const popup = document.getElementById('img-popup');
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) popup.style.display = 'none';
+  });
+  document.getElementById('img-popup-close').addEventListener('click', () => {
+    popup.style.display = 'none';
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const p = document.getElementById('img-popup');
+      if (p) p.style.display = 'none';
+    }
+  });
+}
+
+function showImagePopup(src, altText = '') {
+  ensureImagePopupExists();
+  const img = document.getElementById('img-popup-src');
+  const popup = document.getElementById('img-popup');
+  img.src = src;
+  img.alt = altText || '';
+  popup.style.display = 'flex';
+}
+
+/* délégation : un seul handler pour la liste */
+document.addEventListener('click', (e) => {
+  const imgEl = e.target.closest && e.target.closest('.trace-photo');
+  if (!imgEl) return;
+  const src = imgEl.getAttribute('src') || imgEl.dataset.src;
+  if (!src) return;
+  showImagePopup(src, imgEl.alt || '');
+});
 
 
 window.fetchPhotoForLot = fetchPhotoForLot;
