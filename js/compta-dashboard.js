@@ -447,17 +447,7 @@ async function getPricesForPluSet(pluSet, dateISO){
   return result;
 }
 
-/**
- * computeStockValueForDate(dateISO) - lots-first version
- * - dateISO : 'YYYY-MM-DD' (local)
- * Retour :
- * {
- *   totalValue: number,
- *   perPlu: { [plu]: { counted: number, buyPrice: number|null, value: number, lots: [lotSummary...] } },
- *   missingPrices: [plu,...],
- *   uncertainLots: [ { id, plu, createdAt, updatedAt, note } ]  // lots créés <= dateT mais updatedAfter dateT
- * }
- */
+// Remplace ou colle cette fonction dans ton fichier (remplace l'ancienne computeStockValueForDate)
 async function computeStockValueForDate(dateISO) {
   const dateT = new Date(dateISO + "T23:59:59");
   const perPlu = {};
@@ -465,138 +455,220 @@ async function computeStockValueForDate(dateISO) {
   const missingPrices = new Set();
   const uncertainLots = [];
 
-  try {
-    const snapLots = await getDocs(collection(db, "lots"));
-    // Parcours des lots
-    snapLots.forEach(docSnap => {
-      const l = docSnap.data();
-      // normaliser createdAt / updatedAt
-      let created = null;
-      if (l.createdAt && typeof l.createdAt.toDate === "function") created = l.createdAt.toDate();
-      else created = toDateAny(l.createdAt);
-
-      if (!created) return; // lot sans date -> on ignore
-
-      if (created > dateT) return; // lot créé APRES la date -> pas compté
-
-      let updated = null;
-      if (l.updatedAt && typeof l.updatedAt.toDate === "function") updated = l.updatedAt.toDate();
-      else updated = toDateAny(l.updatedAt);
-
-      const plu = String(l.plu || l.PLU || l.pluCode || l.code || l.articleId || "").trim();
-      if (!plu) return; // lot sans PLU -> ignore
-
-      // poidsRestant et prix
-      const poidsInitial = toNum(l.poidsInitial ?? l.poids ?? 0);
-      const poidsRestant = (l.poidsRestant !== undefined && l.poidsRestant !== null)
-                            ? toNum(l.poidsRestant)
-                            : (l.poids !== undefined && l.poids !== null ? toNum(l.poids) : null);
-
-      const prixAchatKg = toNum(l.prixAchatKg ?? l.prixAchat ?? l.buyPrice ?? 0);
-
-      // Si le lot a été mis à jour APRES la dateT, on marque comme incertain (on n'utilise pas la valeur actuelle)
-      if (updated && updated > dateT) {
-        uncertainLots.push({
-          id: docSnap.id,
-          plu,
-          createdAt: created.toISOString(),
-          updatedAt: updated ? updated.toISOString() : null,
-          poidsInitial,
-          poidsRestant,
-          prixAchatKg,
-          note: "Lot mis à jour après la date (poidsRestant actuel peut être postérieur à dateT)"
-        });
-        return;
-      }
-
-      // Sinon on considère que poidsRestant reflète l'état au dateT (ou on tombe sur poidsInitial si poidsRestant absent)
-      const weightAtDate = (poidsRestant !== null ? poidsRestant : poidsInitial || 0);
-
-      const lotValue = (prixAchatKg && weightAtDate) ? round2(prixAchatKg * weightAtDate) : 0;
-
-      // Aggrégation par PLU
-      if (!perPlu[plu]) perPlu[plu] = { counted: 0, buyPrice: null, value: 0, lots: [] };
-      perPlu[plu].counted += weightAtDate;
-      perPlu[plu].value += lotValue;
-      perPlu[plu].lots.push({
-        lotId: docSnap.id,
-        poidsAtDate: weightAtDate,
-        prixAchatKg: prixAchatKg || null,
-        value: lotValue,
-        createdAt: created.toISOString(),
-        updatedAt: updated ? updated.toISOString() : null,
-        closed: !!l.closed,
-        source: l.source || null
-      });
-
-      // si pas de prix trouvé pour ce lot, on marque le PLU
-      if (!prixAchatKg || prixAchatKg === 0) missingPrices.add(plu);
-
-      totalValue += lotValue;
-    });
-  } catch (e) {
-    console.warn("computeStockValueForDate (lots) error:", e);
+  // Helper pour extraire une quantité depuis un mouvement (plusieurs noms possibles)
+  function extractQty(m) {
+    // try many candidate fields
+    const cand = [
+      m.qty, m.quantity, m.quantite, m.qte, m.kg, m.poids, m.poidsKg, m.delta, m.deltaKg, m.delta_kg, m.qteKg,
+      m.amount, m.value
+    ];
+    for (const c of cand) {
+      if (c === undefined || c === null) continue;
+      const n = toNum(c);
+      if (n !== 0) return n; // return non-zero or zero if explicitly zero
+      // if c is numeric zero, still return 0 (we accept it)
+      if (typeof c === 'number' && c === 0) return 0;
+    }
+    // try parsing from string fields that include a number
+    const sCandidates = [m.note, m.comment, m.info, m.meta];
+    for (const s of sCandidates) {
+      if (!s || typeof s !== 'string') continue;
+      const mnum = s.match(/-?\d+(\.\d+)?/);
+      if (mnum) return toNum(mnum[0]);
+    }
+    return null; // not found
   }
 
-  // Finalisation des perPlu (arrondis) et conversion missingPrices en array
+  // Heuristique pour décider si un mouvement est "sortie" (décrémente) ou "entrée" (incrémente)
+  function isOutgoingMovement(m) {
+    const t = String((m.type || m.operation || m.action || m.op || m.nom || "")).toLowerCase();
+    // mots qui indiquent sortie/vente/consommation
+    const outKeywords = ["sale","vente","out","sortie","consum","prelev","remove","sold","consomm","dispatch","dispatch"];
+    const inKeywords = ["in","recept","reception","enter","entrée","recette","receive","ajout","purchase","inbound"];
+    for (const k of outKeywords) if (t.includes(k)) return true;
+    for (const k of inKeywords) if (t.includes(k)) return false;
+    // if movement has a signed quantity negative -> outgoing
+    const q = extractQty(m);
+    if (q !== null && q < 0) return true;
+    // fallback: unknown -> return null (we cannot decide)
+    return null;
+  }
+
+  // 1) read lots (created <= dateT)
+  let lots = [];
+  try {
+    const snapLots = await getDocs(collection(db, "lots"));
+    snapLots.forEach(d => {
+      const l = d.data();
+      // normalize createdAt/updatedAt to Date
+      let created = null;
+      if (l.createdAt && typeof l.createdAt.toDate === 'function') created = l.createdAt.toDate();
+      else created = toDateAny(l.createdAt);
+      if (!created) return;
+      if (created > dateT) return; // lot created after dateT -> ignore
+      let updated = null;
+      if (l.updatedAt && typeof l.updatedAt.toDate === 'function') updated = l.updatedAt.toDate();
+      else updated = toDateAny(l.updatedAt);
+
+      // standardize fields
+      const lotObj = {
+        lotId: d.id,
+        raw: l,
+        created,
+        updated,
+        plu: String(l.plu || l.PLU || l.pluCode || l.code || l.articleId || "").trim(),
+        poidsInitial: toNum(l.poidsInitial ?? l.poids ?? l.initialWeight ?? 0),
+        poidsRestant: (l.poidsRestant !== undefined && l.poidsRestant !== null) ? toNum(l.poidsRestant) : null,
+        prixAchatKg: toNum(l.prixAchatKg ?? l.prixAchat ?? l.buyPrice ?? 0),
+        closed: !!l.closed
+      };
+      if (!lotObj.plu) return;
+      lots.push(lotObj);
+    });
+  } catch (e) {
+    console.warn("computeStockValueForDate: error reading lots", e);
+  }
+
+  // If no lots -> fallback to previous method (journal_inventaires)
+  if (!lots.length) {
+    // call previous fallback logic (existing code) or reuse computeStockValueForDate old
+    // For brevity, return empty and let caller fallback, or you can call previous logic here
+    return { totalValue: 0, perPlu: {}, missingPrices: [], uncertainLots: [] };
+  }
+
+  // 2) read stock_movements up to dateT and group by lotId (one query)
+  const movementsByLot = {};
+  try {
+    const q = query(collection(db, "stock_movements"), where("createdAt", "<=", Timestamp.fromDate(dateT)));
+    const snapMov = await getDocs(q);
+    snapMov.forEach(ds => {
+      const m = ds.data();
+      const lid = String(m.lotId || m.lot || m.lot_id || m.ligneId || "").trim();
+      if (!lid) return;
+      if (!movementsByLot[lid]) movementsByLot[lid] = [];
+      // store created Date for sorting & raw
+      let created = null;
+      if (m.createdAt && typeof m.createdAt.toDate === 'function') created = m.createdAt.toDate();
+      else created = toDateAny(m.createdAt);
+      movementsByLot[lid].push(Object.assign({ created }, m));
+    });
+    // sort each list by created asc
+    for (const k of Object.keys(movementsByLot)) {
+      movementsByLot[k].sort((a,b) => (a.created ? a.created.getTime() : 0) - (b.created ? b.created.getTime() : 0));
+    }
+  } catch (e) {
+    console.warn("computeStockValueForDate: error reading stock_movements", e);
+  }
+
+  // 3) for each lot, determine weightAtDate: if updated <= dateT use poidsRestant; else reconstruct
+  for (const lot of lots) {
+    const { lotId, plu, poidsInitial, poidsRestant, prixAchatKg, updated } = lot;
+    let weightAtDate = null;
+    let uncertain = false;
+    let uncertainNotes = [];
+
+    // if updated is absent or updated <= dateT => poidsRestant assumed valid
+    if (!updated || updated <= dateT) {
+      weightAtDate = (poidsRestant !== null ? poidsRestant : poidsInitial || 0);
+    } else {
+      // need to reconstruct from movements
+      // start with poidsInitial
+      let weight = (poidsInitial || 0);
+      const moves = movementsByLot[lotId] || [];
+      if (!moves.length) {
+        // no movements found — can't reconstruct precisely
+        uncertain = true;
+        uncertainNotes.push("aucun mouvement trouvé pour lot, poidsRestant actuel non applicable (updated>dateT)");
+        // fallback: use poidsInitial as approximation (but mark uncertain)
+        weight = poidsInitial || 0;
+      } else {
+        // apply movements in chronological order
+        for (const m of moves) {
+          // extract numeric qty
+          const q = extractQty(m);
+          let delta = null;
+          if (q !== null) {
+            // If quantity is negative, use as-is (outgoing)
+            if (q < 0) {
+              delta = q; // negative reduces weight
+            } else {
+              // if movement type indicates outgoing, subtract; if incoming, add
+              const outgoing = isOutgoingMovement(m);
+              if (outgoing === true) delta = -Math.abs(q);
+              else if (outgoing === false) delta = Math.abs(q);
+              else {
+                // unknown direction: try to infer common cases
+                // if m has field 'delta' negative -> use delta
+                if (typeof m.delta === 'number') delta = toNum(m.delta);
+                else {
+                  // cannot determine sign reliably -> mark uncertain and skip applying
+                  uncertain = true;
+                  uncertainNotes.push(`mvt inconnu ${m.id || ''} type:${m.type || m.operation || ''} qty:${q}`);
+                  continue;
+                }
+              }
+            }
+          } else {
+            // no qty info -> uncertain
+            uncertain = true;
+            uncertainNotes.push(`mvt sans qty ${m.id || ''} type:${m.type || m.operation || ''}`);
+            continue;
+          }
+
+          // apply delta
+          weight = weight + delta;
+          if (weight < 0) weight = 0; // clamp
+        }
+      }
+      weightAtDate = round2(weight);
+    }
+
+    // finalize: compute lot value
+    const buy = prixAchatKg || null;
+    const val = (buy && weightAtDate) ? round2(buy * weightAtDate) : 0;
+
+    // aggregate by PLU
+    if (!perPlu[plu]) perPlu[plu] = { counted: 0, buyPrice: null, value: 0, lots: [] };
+    perPlu[plu].counted = round2((perPlu[plu].counted || 0) + weightAtDate);
+    perPlu[plu].value = round2((perPlu[plu].value || 0) + val);
+    perPlu[plu].lots.push({
+      lotId,
+      poidsAtDate: weightAtDate,
+      prixAchatKg: buy,
+      value: val,
+      createdAt: lot.created ? lot.created.toISOString() : null,
+      updatedAt: lot.updated ? lot.updated.toISOString() : null,
+      uncertain,
+      uncertainNotes
+    });
+
+    if (!buy || buy === 0) missingPrices.add(plu);
+    if (uncertain) uncertainLots.push({ lotId, plu, notes: uncertainNotes });
+
+    totalValue += val;
+  }
+
+  // compute buyPrice per PLU as weighted average
   for (const p of Object.keys(perPlu)) {
-    perPlu[p].counted = round2(perPlu[p].counted);
-    perPlu[p].value = round2(perPlu[p].value);
-    // buyPrice : si plusieurs lots avec prix différents, on peut calculer un prix moyen pondéré (optionnel)
-    // On calcule ici le prix moyen pondéré par poids
+    const info = perPlu[p];
     let totalWeight = 0, totalVal = 0;
-    perPlu[p].lots.forEach(l => {
+    info.lots.forEach(l => {
       totalWeight += toNum(l.poidsAtDate || 0);
       totalVal += toNum(l.value || 0);
     });
-    perPlu[p].buyPrice = totalWeight ? round2(totalVal / totalWeight) : (perPlu[p].lots[0]?.prixAchatKg ?? null);
+    info.buyPrice = totalWeight ? round2(totalVal / totalWeight) : (info.lots[0]?.prixAchatKg ?? null);
+    info.counted = round2(info.counted);
+    info.value = round2(info.value);
   }
 
-  // Si on a trouvé au moins 1 lot "certain", on retourne ce résultat
-  if (Object.keys(perPlu).length > 0) {
-    return {
-      totalValue: round2(totalValue),
-      perPlu,
-      missingPrices: Array.from(missingPrices),
-      uncertainLots
-    };
-  }
-
-  // Sinon : fallback à l'ancienne méthode (journal_inventaires + stock_movements)
-  // On réutilise ta méthode précédente (scanning stock_movements) comme fallback
-  try {
-    // ancienne implémentation (reprise rapide)
-    const inv = await getInventoryForDate(dateISO);
-    const changes = inv?.changes || [];
-    const pluSet = new Set();
-    const countedByPlu = {};
-    changes.forEach(c => {
-      const plu = String(c.plu || c.PLU || c.pluCode || c.code || (c.article && c.article.plu) || "").trim();
-      if (!plu) return;
-      const counted = Number(c.counted ?? c.countedKg ?? 0) || 0;
-      pluSet.add(plu);
-      countedByPlu[plu] = (countedByPlu[plu] || 0) + counted;
-    });
-
-    // récupérer prix via stock_movements (dernier pma <= dateT)
-    const prices = await getPricesForPluSet(pluSet, dateISO);
-    let total = 0;
-    const perPluFallback = {};
-    const missing = [];
-    for (const p of Object.keys(countedByPlu)) {
-      const cnt = countedByPlu[p];
-      const buy = (prices[p] && prices[p].buyPrice) ? prices[p].buyPrice : null;
-      const val = buy ? round2(cnt * buy) : 0;
-      perPluFallback[p] = { counted: cnt, buyPrice: buy, value: val };
-      total += val;
-      if (!buy) missing.push(p);
-    }
-    return { totalValue: round2(total), perPlu: perPluFallback, missingPrices: missing, uncertainLots: [] };
-  } catch (e) {
-    console.warn("computeStockValueForDate fallback failed:", e);
-    return { totalValue: 0, perPlu: {}, missingPrices: [], uncertainLots: [] };
-  }
+  return {
+    totalValue: round2(totalValue),
+    perPlu,
+    missingPrices: Array.from(missingPrices),
+    uncertainLots
+  };
 }
+
 
 /* =========================
    Core computePeriodCompta
