@@ -358,12 +358,48 @@ h2 {
   margin-bottom: 0.8em;
 }
 
+/* trace photo clickable */
 .trace-photo {
   width: 90px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   margin-top: 6px;
+  cursor: pointer; /* <-- ajout */
 }
+
+/* popup image (hidden by default, shown when .show is added) */
+.popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;             /* hidden by default */
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.popup.show {
+  display: flex;
+}
+.popup-content {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 92%;
+  max-width: 900px;     /* allow large preview */
+  max-height: 90vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+#img-popup-src {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 6px;
+  display: block;
+  margin: 0 auto;
+}
+
 
 .badge-open {
   background: #2aa83b;
@@ -467,11 +503,5 @@ h2 {
 .table-select tbody tr:hover {
   background: #f0fbfd;
 }
-.trace-photo {
-  width: 90px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  margin-top: 6px;
-  cursor: pointer; /* <-- ajout */
-}
+
 
