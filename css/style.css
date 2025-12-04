@@ -467,4 +467,11 @@ h2 {
 .table-select tbody tr:hover {
   background: #f0fbfd;
 }
+.trace-photo {
+  width: 90px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-top: 6px;
+  cursor: pointer; /* <-- ajout */
+}
 
