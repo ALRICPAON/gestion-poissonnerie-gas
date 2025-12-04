@@ -104,55 +104,60 @@ function getClosestDLC(lots) {
 
   return dlcClosest;
 }
+// Map globale pour stocker les items affichés (clé -> item)
+const stockItemsMap = new Map();
 
-/************************************************************
- * 6️⃣  TABLEAU final TRAD / FE / LS
- ************************************************************/
 function fillTable(tbodyId, items) {
   const tb = document.getElementById(tbodyId);
   if (!tb) return;
 
-  /* --------------------------------------------------------
-   * 🔒 1) Sauvegarde de l’input actif (pour TAB)
-   * ------------------------------------------------------ */
+  /* Sauvegarde de l’input actif (pour TAB) */
   const active = document.activeElement;
   let restore = null;
-
-  if (active && active.classList.contains("pv-reel-input")) {
+  if (active && active.classList && active.classList.contains("pv-reel-input")) {
     restore = {
       key: active.dataset.key,
       value: active.value
     };
   }
 
-  /* --------------------------------------------------------
-   * 🔤 2) Tri alphabétique AVANT affichage
-   * ------------------------------------------------------ */
+  /* Tri alphabétique */
   items.sort((a, b) =>
     (a.designation || "").localeCompare(b.designation || "", "fr", { sensitivity: "base" })
   );
 
-  /* --------------------------------------------------------
-   * 🧽 3) Reset tableau
-   * ------------------------------------------------------ */
+  /* Reset tableau */
   tb.innerHTML = "";
 
-  const fmt = n =>
-    Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+  /* helper formatting */
+  const fmt = n => Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
-  /* --------------------------------------------------------
-   * 🖨️ 4) Impression lignes
-   * ------------------------------------------------------ */
+  /* On va remplir la map pour pouvoir mettre à jour sans recharger */
+  // (si on veut vider seulement la catégorie)
+  // stockItemsMap.clear(); // pas utile si keys distincts entre catégories, mais on peut le faire si besoin
+
   items.forEach(it => {
+    // store item in map
+    stockItemsMap.set(it.key, Object.assign({}, it));
+
     const tr = document.createElement("tr");
+
+    // create row and attach dataset for quick computations
+    tr.dataset.key = it.key;
+    tr.dataset.stockKg = it.stockKg;
+    tr.dataset.pma = it.pma;
+    tr.dataset.valeurStock = it.valeurStockHT;
+    // store recommended pv and current pv if exists
+    tr.dataset.pvttcconseille = it.pvTTCconseille ?? "";
+    tr.dataset.pvttcreel = it.pvTTCreel ?? "";
 
     tr.innerHTML = `
       <td>${it.plu || it.gencode || ""}</td>
       <td>${it.designation}</td>
       <td>${it.stockKg.toFixed(2)} kg</td>
       <td>${fmt(it.pma)}</td>
-      <td>${(it.margeTheo * 100).toFixed(1)} %</td>
-      <td>${fmt(it.pvTTCconseille)}</td>
+      <td><span class="marge-theo">${(it.margeTheo * 100).toFixed(1)} %</span></td>
+      <td><span class="pv-conseille">${fmt(it.pvTTCconseille)}</span></td>
 
       <td>
         <input 
@@ -165,59 +170,149 @@ function fillTable(tbodyId, items) {
         >
       </td>
 
-      <td>${it.margeReelle != null ? (it.margeReelle * 100).toFixed(1) + " %" : ""}</td>
+      <td class="marge-reelle">${it.margeReelle != null ? (it.margeReelle * 100).toFixed(1) + " %" : ""}</td>
       <td>${it.dlc ? new Date(it.dlc + "T00:00:00").toLocaleDateString("fr-FR") : ""}</td>
 
       <td>${fmt(it.valeurStockHT)}</td>
     `;
 
-    // 🔥 Coloration DLC
+    // coloration DLC
     if (it.dlc) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const d = new Date(it.dlc);
-      d.setHours(0, 0, 0, 0);
-
+      const today = new Date(); today.setHours(0,0,0,0);
+      const d = new Date(it.dlc); d.setHours(0,0,0,0);
       const diffDays = (d - today) / 86400000;
-
-      if (diffDays <= 0) tr.style.backgroundColor = "#ffcccc";      // rouge
-      else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3"; // orange
+      if (diffDays <= 0) tr.style.backgroundColor = "#ffcccc";
+      else if (diffDays <= 2) tr.style.backgroundColor = "#ffe7b3";
     }
 
     tb.appendChild(tr);
   });
 
-  /* --------------------------------------------------------
-   * 💾 5) Sauvegarde PV réel
-   * ------------------------------------------------------ */
-  document.querySelectorAll(".pv-reel-input").forEach(inp => {
-    inp.addEventListener("change", async e => {
-      const key = e.target.dataset.key;
-      const val = Number(e.target.value);
-      if (isNaN(val)) return;
+  /* Handler: save & navigation clavier (Enter pour descendre) */
+  const inputs = tb.querySelectorAll(".pv-reel-input");
 
-      await setDoc(doc(db, "stock_articles", key), { pvTTCreel: val }, { merge: true });
+  // helper: format currency used in totals
+  function formatCurrency(n) { return Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" }); }
 
-      const scrollY = window.scrollY;
-
-      document.activeElement.blur();
-      await loadStock();
-
-      window.scrollTo(0, scrollY);
+  inputs.forEach((inp, idx) => {
+    // keydown for Enter -> save and move to next input
+    inp.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        // save current then move to next
+        await savePvReel(inp);
+        // focus next input if any
+        const next = inputs[idx + 1];
+        if (next) { next.focus(); next.select(); }
+      }
     });
+
+    // blur and change -> save (user may tab away)
+    const saveOnEvent = async (ev) => {
+      // avoid saving if value unchanged and no pvTTCreel previously
+      await savePvReel(inp);
+    };
+    inp.addEventListener("blur", saveOnEvent);
+    inp.addEventListener("change", saveOnEvent);
   });
 
-  /* --------------------------------------------------------
-   * 🔁 6) Restauration du focus (TAB correct)
-   * ------------------------------------------------------ */
+  /* Restauration du focus (si on venait d’éditer) */
   if (restore) {
     const elem = document.querySelector(`.pv-reel-input[data-key="${restore.key}"]`);
     if (elem) {
       elem.focus();
       elem.select();
+      // restore value if needed
+      if (restore.value != null) elem.value = restore.value;
     }
   }
+}
+
+/* ---------------------------
+   savePvReel : sauvegarde et mise à jour UI
+   - inp : élément input DOM
+   --------------------------- */
+async function savePvReel(inp) {
+  if (!inp) return;
+  const key = inp.dataset.key;
+  const raw = inp.value;
+  const val = toNum(raw);
+  if (isNaN(val)) return;
+
+  // disable input while saving
+  inp.disabled = true;
+  try {
+    // save to Firestore
+    await setDoc(doc(db, "stock_articles", key), { pvTTCreel: val }, { merge: true });
+  } catch (e) {
+    console.error("Erreur save pvTTCreel:", e);
+  } finally {
+    inp.disabled = false;
+  }
+
+  // update dataset on the row for totals
+  const tr = inp.closest("tr");
+  if (tr) {
+    tr.dataset.pvttcreel = val;
+  }
+
+  // update in-memory map
+  const item = stockItemsMap.get(key);
+  if (item) {
+    item.pvTTCreel = val;
+    // recompute margeReelle
+    const pvHT = val / 1.055;
+    item.margeReelle = pvHT > 0 ? (pvHT - item.pma) / pvHT : null;
+  }
+
+  // update the marge cell in the row
+  if (tr) {
+    const margeCell = tr.querySelector(".marge-reelle");
+    if (margeCell) {
+      const it = stockItemsMap.get(key);
+      margeCell.textContent = it && it.margeReelle != null ? (it.margeReelle * 100).toFixed(1) + " %" : "";
+    }
+  }
+
+  // update totals (recalculate from DOM rows)
+  updateTotauxFromDOM();
+}
+
+/* ---------------------------
+   updateTotauxFromDOM : recalcule les totaux en lisant les rows
+   avise le DOM .aht .vtc .marge dans les totaux
+   --------------------------- */
+function updateTotauxFromDOM() {
+  function calc(tbodyId, divId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    let achatHT = 0;
+    let venteTTC = 0;
+
+    tbody.querySelectorAll("tr").forEach(tr => {
+      const stockKg = toNum(tr.dataset.stockKg);
+      const valeurStock = toNum(tr.dataset.valeurStock);
+      const pvttcreel = tr.dataset.pvttcreel ? toNum(tr.dataset.pvttcreel) : null;
+      const pv = pvttcreel && pvttcreel > 0 ? pvttcreel : toNum(tr.dataset.pvttcconseille);
+
+      achatHT += valeurStock;
+      venteTTC += pv * stockKg;
+    });
+
+    const venteHT = venteTTC / 1.055;
+    const marge = venteHT > 0 ? ((venteHT - achatHT) / venteHT) * 100 : 0;
+
+    const div = document.getElementById(divId);
+    if (div) {
+      div.querySelector(".aht").textContent = Number(achatHT).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+      div.querySelector(".vtc").textContent = Number(venteTTC).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+      div.querySelector(".marge").textContent = marge.toFixed(1) + " %";
+    }
+  }
+
+  calc("tbody-trad", "totaux-trad");
+  calc("tbody-fe", "totaux-fe");
+  calc("tbody-ls", "totaux-ls");
 }
 
 /************************************************************
