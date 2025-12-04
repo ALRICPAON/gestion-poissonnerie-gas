@@ -127,8 +127,8 @@ function refreshHeaderButtons(){
 function renderInputs(){
   const now = new Date();
   el.inputsRow.innerHTML = "";
+
   if (mode === "day"){
-    // <-- added stock fin manual input
     el.inputsRow.innerHTML = `<label>Date
       <input id="inpDay" type="date" value="${localDateISO(now)}">
     </label>
@@ -156,21 +156,90 @@ function renderInputs(){
     el.inputsRow.innerHTML = `<label>Année
       <input id="inpYear" type="number" min="2020" step="1" value="${now.getFullYear()}">
     </label>`;
-  } else { // custom
-    el.inputsRow.innerHTML = `<label>Début
-      <input id="inpStart" type="date" value="${localDateISO(now)}">
-    </label>
-    <label>Fin
-      <input id="inpEnd" type="date" value="${localDateISO(now)}">
-    </label>`;
+  } else { // custom = période
+    // presets: last7, last30, thisMonth, lastMonth
+    el.inputsRow.innerHTML = `
+      <label>Début
+        <input id="inpStart" type="date" value="${localDateISO(now)}">
+      </label>
+      <label>Fin
+        <input id="inpEnd" type="date" value="${localDateISO(now)}">
+      </label>
+      <label>Préréglages
+        <select id="inpPreset">
+          <option value="">— choisir —</option>
+          <option value="last7">7 derniers jours</option>
+          <option value="last30">30 derniers jours</option>
+          <option value="thisMonth">Ce mois</option>
+          <option value="lastMonth">Mois dernier</option>
+        </select>
+      </label>
+      <div style="align-self:center;">
+        <button id="btnApplyPeriod" class="btn btn-accent">Appliquer</button>
+      </div>
+    `;
+    // after injecting, wire preset behavior below
   }
 
+  // attach change listeners to inputs to refresh automatically
   el.inputsRow.querySelectorAll("input").forEach(i => {
     i.addEventListener("change", () => { refreshDashboard(); });
   });
 
+  // if custom mode, wire preset select & apply button
+  if (mode === "custom") {
+    const preset = document.getElementById("inpPreset");
+    const inpStart = document.getElementById("inpStart");
+    const inpEnd = document.getElementById("inpEnd");
+    const btnApply = document.getElementById("btnApplyPeriod");
+
+    function setRange(s, e) {
+      if (inpStart) inpStart.value = s;
+      if (inpEnd) inpEnd.value = e;
+    }
+
+    if (preset) {
+      preset.addEventListener("change", () => {
+        const val = preset.value;
+        const today = new Date();
+        if (val === "last7") {
+          const end = new Date(today); // today
+          const start = new Date(today); start.setDate(start.getDate()-6);
+          setRange(localDateISO(start), localDateISO(end));
+        } else if (val === "last30") {
+          const end = new Date(today);
+          const start = new Date(today); start.setDate(start.getDate()-29);
+          setRange(localDateISO(start), localDateISO(end));
+        } else if (val === "thisMonth") {
+          const start = new Date(today.getFullYear(), today.getMonth(), 1);
+          const end = new Date(today.getFullYear(), today.getMonth()+1, 0);
+          setRange(localDateISO(start), localDateISO(end));
+        } else if (val === "lastMonth") {
+          const start = new Date(today.getFullYear(), today.getMonth()-1, 1);
+          const end = new Date(today.getFullYear(), today.getMonth(), 0);
+          setRange(localDateISO(start), localDateISO(end));
+        }
+        // auto-refresh after preset change
+        refreshDashboard();
+      });
+    }
+
+    if (btnApply) {
+      btnApply.addEventListener("click", () => {
+        // ensure dates are set and valid
+        const s = inpStart?.value;
+        const e = inpEnd?.value;
+        if (!s || !e) return alert("Choisis une date de début et de fin.");
+        if (new Date(s) > new Date(e)) return alert("La date de début doit être antérieure à la date de fin.");
+        // refresh with the selected period
+        refreshDashboard();
+      });
+    }
+  }
+
   refreshHeaderButtons();
 }
+
 
 function getSelectedRange(){
   const now = new Date();
