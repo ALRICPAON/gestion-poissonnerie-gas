@@ -74,18 +74,33 @@ function renderLines(){
     const lot = nz(r.lot);
     const ok = r.received ? "✅" : "";
     // Trace simplifiée : priorité aux infos du BL
-const faoDisplay =
-  r.fao ||
-  (r.zone && r.sousZone ? `FAO${r.zone.replace(/\D+/g, '')} ${r.sousZone}` :
-   r.zone ? `FAO${r.zone.replace(/\D+/g, '')}` :
-   r.sousZone ? `FAO ${r.sousZone}` : "");
+// sanitize zone / sousZone: for safety convert to string only when present
+const zoneRaw = (r.zone !== undefined && r.zone !== null) ? r.zone : "";
+const sousZoneRaw = (r.sousZone !== undefined && r.sousZone !== null) ? r.sousZone : "";
 
+// convert to string for replace (avoid calling replace on non-strings)
+const zoneStr = zoneRaw === "" ? "" : String(zoneRaw);
+const sousZoneStr = sousZoneRaw === "" ? "" : String(sousZoneRaw);
+
+// strip non-digits from zone when present
+const zoneDigits = zoneStr ? zoneStr.replace(/\D+/g, '') : "";
+
+// build FAO display with robust checks
+const faoDisplay = r.fao && String(r.fao).trim()
+  ? String(r.fao)
+  : (zoneDigits && sousZoneStr) ? `FAO${zoneDigits} ${sousZoneStr}`
+  : (zoneDigits) ? `FAO${zoneDigits}`
+  : (sousZoneStr) ? `FAO ${sousZoneStr}`
+  : "";
+
+// build traca safely (use nz which already does toString)
 const traca = [
   nz(r.nomLatin),
-  nz(r.fao) || [nz(r.zone), nz(r.sousZone)].filter(Boolean).join(" "),
+  (r.fao && String(r.fao).trim()) ? String(r.fao) : [nz(zoneStr), nz(sousZoneStr)].filter(Boolean).join(" "),
   nz(r.engin),
   r.allergenes ? `Allergènes: ${r.allergenes}` : ""
 ].filter(Boolean).join(" — ");
+
 
     return `
       <tr data-id="${r.id}">
