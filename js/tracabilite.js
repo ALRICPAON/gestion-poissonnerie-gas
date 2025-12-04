@@ -392,13 +392,13 @@ function renderCards(cards, typeFilter) {
 
   els.list.innerHTML = html;
 }
-/* === Image popup pour agrandir les .trace-photo (délégation) === */
+/* === Image popup pour agrandir les .trace-photo (délégation sur #trace-list) === */
 function ensureImagePopupExists() {
   if (document.getElementById('img-popup')) return;
   const html = `
-    <div id="img-popup" class="popup" style="display:none">
-      <div class="popup-content">
-        <img id="img-popup-src" style="max-width:100%; max-height:80vh; border-radius:6px; display:block; margin:0 auto;">
+    <div id="img-popup" class="popup" aria-hidden="true">
+      <div class="popup-content" role="dialog" aria-modal="true">
+        <img id="img-popup-src" alt="">
         <div style="text-align:right; margin-top:10px;">
           <button id="img-popup-close" class="btn btn-muted">Fermer</button>
         </div>
@@ -409,16 +409,17 @@ function ensureImagePopupExists() {
 
   // close handlers
   const popup = document.getElementById('img-popup');
+  // click outside content closes
   popup.addEventListener('click', (e) => {
-    if (e.target === popup) popup.style.display = 'none';
+    if (e.target === popup) popup.classList.remove('show');
   });
   document.getElementById('img-popup-close').addEventListener('click', () => {
-    popup.style.display = 'none';
+    popup.classList.remove('show');
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       const p = document.getElementById('img-popup');
-      if (p) p.style.display = 'none';
+      if (p) p.classList.remove('show');
     }
   });
 }
@@ -429,17 +430,31 @@ function showImagePopup(src, altText = '') {
   const popup = document.getElementById('img-popup');
   img.src = src;
   img.alt = altText || '';
-  popup.style.display = 'flex';
+  popup.classList.add('show');
+  popup.setAttribute('aria-hidden', 'false');
 }
 
-/* délégation : un seul handler pour la liste */
-document.addEventListener('click', (e) => {
-  const imgEl = e.target.closest && e.target.closest('.trace-photo');
-  if (!imgEl) return;
-  const src = imgEl.getAttribute('src') || imgEl.dataset.src;
-  if (!src) return;
-  showImagePopup(src, imgEl.alt || '');
-});
+function hideImagePopup() {
+  const popup = document.getElementById('img-popup');
+  if (popup) {
+    popup.classList.remove('show');
+    popup.setAttribute('aria-hidden', 'true');
+  }
+}
+
+// Delegated click handler on the trace list
+const traceList = document.getElementById('trace-list');
+if (traceList) {
+  traceList.addEventListener('click', (e) => {
+    // Find nearest img.trace-photo
+    const imgEl = e.target.closest ? e.target.closest('.trace-photo') : null;
+    if (!imgEl) return;
+    // get the source (support both src and data-src)
+    const src = imgEl.getAttribute('src') || imgEl.dataset.src;
+    if (!src) return;
+    showImagePopup(src, imgEl.alt || '');
+  });
+}
 
 
 window.fetchPhotoForLot = fetchPhotoForLot;
