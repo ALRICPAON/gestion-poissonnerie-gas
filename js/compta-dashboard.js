@@ -582,18 +582,57 @@ async function computePeriodCompta(fromISO, toISO){
   // retrieve sale prices for caTheorique
   const pricesToday = await getPricesForPluSet(pluSet, toISO);
 
-  // ca theorique using counted differences and salePriceHT (or buyPrice as fallback)
-  let caTheorique = 0;
-  for (const plu of pluSet) {
-    const prevCount = mapPrev[plu] ? toNum(mapPrev[plu].counted || mapPrev[plu].countedKg || 0) : 0;
-    const todayCount = mapToday[plu] ? toNum(mapToday[plu].counted || mapToday[plu].countedKg || 0) : 0;
-    const poidsVendu = Math.max(0, prevCount - todayCount);
-    const salePriceHT = (pricesToday[plu] && pricesToday[plu].salePriceHT) ? pricesToday[plu].salePriceHT
-      : (pricesToday[plu] && pricesToday[plu].buyPrice) ? pricesToday[plu].buyPrice
-      : 0;
-    caTheorique += poidsVendu * salePriceHT;
+  // --- CA THÉORIQUE : poidsVendu * salePriceTTC (converti HT) ---
+let caTheorique = 0;
+const caParPlu = {}; // debug : { plu: { poidsVendu, salePriceTTC, salePriceHT, montant } }
+const missingSalePrice = []; // PLU sans salePriceTTC (on utilisera pma en fallback)
+
+for (const plu of pluSet) {
+  const prevEntry = mapPrev[plu];
+  const todayEntry = mapToday[plu];
+
+  const prevCount = prevEntry ? toNum(prevEntry.counted || prevEntry.countedKg || 0) : 0;
+  const todayCount = todayEntry ? toNum(todayEntry.counted || todayEntry.countedKg || 0) : 0;
+  const poidsVendu = Math.max(0, prevCount - todayCount);
+
+  // récupérer salePriceTTC depuis pricesToday (déjà rempli depuis stock_movements)
+  let salePriceTTC = null;
+  if (pricesToday[plu] && pricesToday[plu].salePriceTTC) {
+    salePriceTTC = toNum(pricesToday[plu].salePriceTTC);
   }
-  caTheorique = round2(caTheorique);
+
+  // convertir TTC -> HT (si présent)
+  let salePriceHT = 0;
+  if (salePriceTTC && salePriceTTC > 0) {
+    salePriceHT = round2(salePriceTTC / (1 + TVA_RATE));
+  } else {
+    // fallback : utiliser buyPrice (pma) si salePriceTTC manquant
+    if (pricesToday[plu] && pricesToday[plu].buyPrice) {
+      salePriceHT = pricesToday[plu].buyPrice;
+    } else {
+      salePriceHT = 0; // aucun prix trouvé
+      missingSalePrice.push(plu);
+    }
+  }
+
+  const montantPlu = round2(poidsVendu * salePriceHT);
+  caTheorique += montantPlu;
+
+  caParPlu[plu] = {
+    poidsVendu,
+    salePriceTTC: salePriceTTC || null,
+    salePriceHT: salePriceHT || null,
+    montant: montantPlu
+  };
+}
+
+caTheorique = round2(caTheorique);
+
+// debug : log si nécessaire
+if (Object.keys(caParPlu).length) {
+  console.debug("caTheorique detail (par PLU):", caParPlu);
+  if (missingSalePrice.length) console.warn("PLU sans salePriceTTC (fallback pma utilisé) :", missingSalePrice);
+}
 
   const achatsConsomesFormula = round2(stockDebutValue + achatsPeriode - stockFinValue);
 
