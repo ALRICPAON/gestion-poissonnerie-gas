@@ -504,4 +504,13 @@ h2 {
   background: #f0fbfd;
 }
 
+.totaux-all {
+  background: var(--bg-box);
+  padding: 0.6rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+.totaux-all .aht, .totaux-all .vtc { font-weight:700; }
 
