@@ -230,11 +230,50 @@ const traca = [
       get(".prixkg")?.addEventListener(ev, onCalc);
       get(".mht")?.addEventListener(ev, async () => { await saveLine(id); recomputeTotals(); });
       get(".designation")?.addEventListener(ev, () => saveLine(id));
-      get(".plu")?.addEventListener(ev, async () => {
-        await saveLine(id);
-        await autofillTraceFromPLU(id); // auto-traça par Article
-        renderLines();
-      });
+     get(".plu")?.addEventListener(ev, async () => {
+  // Sauvegarde et auto-complétion
+  await saveLine(id);
+  await autofillTraceFromPLU(id); // met à jour lines[idx] côté mémoire
+
+  // Mise à jour locale DOM pour éviter un renderLines() complet qui casse le focus
+  const row = qs(`tr[data-id="${id}"]`);
+  const idx = lines.findIndex(x => x.id === id);
+  if (row && idx >= 0) {
+    // Met à jour le champ designation (input)
+    const desInp = row.querySelector(".designation");
+    if (desInp) {
+      desInp.value = nz(lines[idx].designation);
+    }
+
+    // Met à jour les pills (nomLatin / fao / zone / sousZone / engin / allergenes)
+    row.querySelectorAll(".pill").forEach(p => {
+      const field = p.getAttribute("data-edit");
+      if (!field) return;
+      const text = nz(lines[idx][field]);
+      p.textContent = text || "—";
+    });
+
+    // Si tu veux, on met aussi à jour d'autres inputs calculés (ex: colis, ptotal…)
+    const colisInp = row.querySelector(".colis");
+    if (colisInp && lines[idx].colis != null) colisInp.value = nz(lines[idx].colis);
+
+    // conserve le focus si on était en train d'éditer le PLU : on le remet après maj
+    const active = document.activeElement;
+    if (active && (active.classList.contains("plu") || active.classList.contains("designation"))) {
+      // on remet le focus sur l'élément adapté si nécessaire
+      if (active.classList.contains("plu")) {
+        // si on venait de PLU et a tabulé, le navigateur doit déjà être sur designation;
+        // si on veut forcer le focus sur designation :
+        const des = row.querySelector(".designation");
+        if (des) { des.focus(); des.select && des.select(); }
+      } else {
+        // sinon remet le focus sur le même champ
+        // (do nothing, il est déjà actif)
+      }
+    }
+  }
+});
+
     });
 
     // Traça inline edit (clic sur pill)
