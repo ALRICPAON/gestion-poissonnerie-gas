@@ -148,6 +148,41 @@ const traca = [
 
     // Focused line tracker (for popup / Enter navigation)
     tr.addEventListener("focusin", (e) => { focusedLineId = id; });
+        // Focused line tracker (for popup / Enter navigation)
+    tr.addEventListener("focusin", (e) => { focusedLineId = id; });
+
+    // --- Empêcher les pills d'être tabbables et rendre Tab depuis PLU prévisible ---
+    tr.querySelectorAll(".pill").forEach(p => {
+      // retirer du tab order
+      p.setAttribute("tabindex", "-1");
+      // clic sur pill -> edition inline (existant)
+      p.addEventListener("click", () => startInlineEditPill(id, p));
+    });
+
+    // Intercepter Tab dans le champ PLU pour aller AU DÉSIGNATION (évite sauts)
+    const pluInput = tr.querySelector(".plu");
+    if (pluInput) {
+      pluInput.addEventListener("keydown", (e) => {
+        if (e.key === "Tab" && !e.shiftKey) {
+          // Empêcher le comportement par défaut qui peut sauter au mauvais élément
+          e.preventDefault();
+          // Priorité : aller à l'input designation de la même ligne
+          const des = tr.querySelector(".designation");
+          if (des) {
+            des.focus();
+            des.select && des.select();
+          } else {
+            // fallback : aller au prochain input.inp de la ligne
+            const inputs = Array.from(tr.querySelectorAll("input.inp"));
+            const idx = inputs.indexOf(pluInput);
+            const next = inputs[idx + 1] || inputs[0];
+            next && (next.focus(), next.select && next.select());
+          }
+        }
+        // Optionnel : Shift+Tab laisser le comportement normal (remonter)
+      });
+    }
+
 
     // ENTER navigation (mêmes colonnes)
     tr.querySelectorAll("input.inp").forEach((inp, colIdx) => {
