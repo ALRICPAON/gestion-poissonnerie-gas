@@ -4,26 +4,37 @@
 
   function createQRCodeIn(containerId, url) {
     const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = "";
-    // global QRCode from qrcode.min.js
-    if (typeof QRCode === "undefined") {
-      container.textContent = "Erreur: QRCode lib introuvable.";
+    if (!container) {
+      console.warn('[home-qr] container introuvable:', containerId);
       return;
     }
-    new QRCode(container, {
-      text: url,
-      width: 256,
-      height: 256,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
+    container.innerHTML = "";
+    if (typeof QRCode === "undefined") {
+      container.textContent = "Erreur: librairie QR introuvable.";
+      return;
+    }
+    // création
+    try {
+      new QRCode(container, {
+        text: url,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    } catch (e) {
+      console.error('[home-qr] create QR failed', e);
+      container.textContent = "Erreur génération QR.";
+    }
   }
 
   function showModal() {
     const modal = document.getElementById('qr-modal');
-    if (!modal) return;
+    if (!modal) {
+      alert("Modal QR introuvable (ajoute le HTML de la modal).");
+      return;
+    }
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     // lock scroll
@@ -67,14 +78,17 @@
       await navigator.clipboard.writeText(QR_TARGET_URL);
       alert("URL copiée dans le presse-papier !");
     } catch (e) {
-      // fallback
-      prompt("Copier manuellement (Ctrl+C puis Entrée) :", QR_TARGET_URL);
+      console.warn("Copy failed:", e);
+      prompt("Copie manuelle : Ctrl+C puis Entrée", QR_TARGET_URL);
     }
   }
 
   function initQR() {
     const btn = document.getElementById('btnGenQR');
-    if (!btn) return;
+    if (!btn) {
+      console.warn('[home-qr] btnGenQR introuvable');
+      return;
+    }
     btn.addEventListener('click', () => {
       createQRCodeIn('qr-container', QR_TARGET_URL);
       showModal();
@@ -86,7 +100,6 @@
     const modal = document.getElementById('qr-modal');
     if (modal) {
       modal.addEventListener('click', (e) => {
-        // close clicking on backdrop
         if (e.target === modal) hideModal();
       });
     }
@@ -97,15 +110,19 @@
     const copy = document.getElementById('qr-copy');
     copy && copy.addEventListener('click', copyURLToClipboard);
 
-    // ensure open link correct
     const openLink = document.getElementById('qr-open');
     if (openLink) openLink.href = QR_TARGET_URL;
 
-    // keyboard escape to close
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') hideModal();
     });
   }
 
-  document.addEventListener('DOMContentLoaded', initQR);
+  // si DOMContentLoaded déjà passé, init tout de suite
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initQR);
+  } else {
+    // déjà chargé -> init immédiatement
+    setTimeout(initQR, 0);
+  }
 })();
