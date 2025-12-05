@@ -315,37 +315,71 @@ async function savePvReel(inp) {
    updateTotauxFromDOM : recalcule les totaux en lisant les rows
    avise le DOM .aht .vtc .marge dans les totaux
    --------------------------- */
-function updateTotauxFromDOM() {
-  function calc(tbodyId, divId) {
-    const tbody = document.getElementById(tbodyId);
-    if (!tbody) return;
+function updateTotaux(trad, fe, ls) {
+  const fmt = n =>
+    Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+
+  function calc(arr, divId) {
+    const div = document.getElementById(divId);
+    if (!div) return;
+
     let achatHT = 0;
     let venteTTC = 0;
 
-    tbody.querySelectorAll("tr").forEach(tr => {
-      const stockKg = toNum(tr.dataset.stockKg);
-      const valeurStock = toNum(tr.dataset.valeurStock);
-      const pvttcreel = tr.dataset.pvttcreel ? toNum(tr.dataset.pvttcreel) : null;
-      const pv = pvttcreel && pvttcreel > 0 ? pvttcreel : toNum(tr.dataset.pvttcconseille);
-
-      achatHT += valeurStock;
-      venteTTC += pv * stockKg;
+    arr.forEach(it => {
+      achatHT += it.valeurStockHT;
+      const pv = it.pvTTCreel || it.pvTTCconseille || 0;
+      venteTTC += pv * it.stockKg;
     });
 
     const venteHT = venteTTC / 1.055;
     const marge = venteHT > 0 ? ((venteHT - achatHT) / venteHT) * 100 : 0;
 
-    const div = document.getElementById(divId);
-    if (div) {
-      div.querySelector(".aht").textContent = Number(achatHT).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-      div.querySelector(".vtc").textContent = Number(venteTTC).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-      div.querySelector(".marge").textContent = marge.toFixed(1) + " %";
-    }
+    // Mise à jour DOM pour ce rayon
+    const ahtEl = div.querySelector(".aht");
+    const vtcEl = div.querySelector(".vtc");
+    const margeEl = div.querySelector(".marge");
+    if (ahtEl) ahtEl.textContent = fmt(achatHT);
+    if (vtcEl) vtcEl.textContent = fmt(venteTTC);
+    if (margeEl) margeEl.textContent = marge.toFixed(1) + " %";
   }
 
-  calc("tbody-trad", "totaux-trad");
-  calc("tbody-fe", "totaux-fe");
-  calc("tbody-ls", "totaux-ls");
+  // calculs par rayon (inchangé)
+  calc(trad, "totaux-trad");
+  calc(fe,   "totaux-fe");
+  calc(ls,   "totaux-ls");
+
+  // --- Calcul total général (tous rayons) ---
+  try {
+    const all = [];
+    if (Array.isArray(trad)) all.push(...trad);
+    if (Array.isArray(fe)) all.push(...fe);
+    if (Array.isArray(ls)) all.push(...ls);
+
+    let achatHT_total = 0;
+    let venteTTC_total = 0;
+
+    all.forEach(it => {
+      achatHT_total += it.valeurStockHT || 0;
+      const pv = it.pvTTCreel || it.pvTTCconseille || 0;
+      venteTTC_total += (pv || 0) * (it.stockKg || 0);
+    });
+
+    const venteHT_total = venteTTC_total / 1.055;
+    const marge_total = venteHT_total > 0 ? ((venteHT_total - achatHT_total) / venteHT_total) * 100 : 0;
+
+    const divAll = document.getElementById("totaux-all");
+    if (divAll) {
+      const ahtAll = divAll.querySelector(".aht");
+      const vtcAll = divAll.querySelector(".vtc");
+      const margeAll = divAll.querySelector(".marge");
+      if (ahtAll) ahtAll.textContent = fmt(achatHT_total);
+      if (vtcAll) vtcAll.textContent = fmt(venteTTC_total);
+      if (margeAll) margeAll.textContent = marge_total.toFixed(1) + " %";
+    }
+  } catch (e) {
+    console.warn("updateTotaux: erreur calcul total général", e);
+  }
 }
 
 /************************************************************
