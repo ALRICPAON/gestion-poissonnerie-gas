@@ -362,7 +362,12 @@ async function clearSessionApplication(sessionId) {
 /* ---------- Rendu tableau + saisie (autosave) ---------- */
 
 function renderInventaireTableFromData() {
-  const rowsHtml = dataInventaire.map(item => `
+  // tri alphabétique par designation (locale FR, accents gérés)
+  const sorted = [...dataInventaire].sort((a, b) =>
+    String(a.designation || "").localeCompare(String(b.designation || ""), "fr", { sensitivity: "base" })
+  );
+
+  const rowsHtml = sorted.map(item => `
     <tr data-plu="${item.plu}">
       <td>${item.plu}</td>
       <td>${item.designation || ""}</td>
