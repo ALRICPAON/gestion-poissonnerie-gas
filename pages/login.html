@@ -39,5 +39,38 @@
       import('../js/auth.js').then(m => m.redirectIfLoggedIn('/pages/home.html'));
     });
   </script>
+  <!-- ajouter après <script type="module" src="../js/auth.js"></script> -->
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const pwd = document.getElementById('password');
+    if (!pwd) return;
+
+    // envelopper le champ password pour positionner l'icône
+    const wrapper = document.createElement('div');
+    wrapper.className = 'pwd-wrapper';
+    pwd.parentNode.insertBefore(wrapper, pwd);
+    wrapper.appendChild(pwd);
+
+    // btn toggle
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pwd-toggle';
+    btn.title = 'Afficher / masquer le mot de passe';
+    btn.innerHTML = '👁️';
+    wrapper.appendChild(btn);
+
+    btn.addEventListener('click', () => {
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        btn.innerHTML = '🙈';
+      } else {
+        pwd.type = 'password';
+        btn.innerHTML = '👁️';
+      }
+      pwd.focus();
+    });
+  });
+</script>
+
 </body>
 </html>
