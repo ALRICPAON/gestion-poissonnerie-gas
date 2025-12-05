@@ -105,11 +105,7 @@ function splitMulti(raw) {
   if (!raw && raw !== 0) return [];
   const s = String(raw).trim();
   if (!s) return [];
-  // Replace common ' - ' sequences by a single space where appropriate but keep FAO handled separately
-  // We split on , / ; | and also " / " with optional spaces
   const parts = s.split(/[\/,;|]+/).map(p => p.trim()).filter(Boolean);
-  // additionally, for tokens that include repeated inner punctuation (like "FAO27 -VII-" keep as is),
-  // we trim stray hyphens/spaces at ends
   return parts.map(p => p.replace(/^[\s\-\–\—\:]+|[\s\-\–\—\:]+$/g,'').trim()).filter(Boolean);
 }
 
@@ -121,7 +117,6 @@ function dedupeFuzzy(arr = [], opts = {}) {
   const displayFn = opts.display || (v => v);
   const threshold = (typeof opts.fuzzyThreshold === 'number') ? opts.fuzzyThreshold : 1;
 
-  // build frequency map of normalized tokens
   const tokens = [];
   for (const raw of arr || []) {
     if (raw === undefined || raw === null) continue;
@@ -131,7 +126,6 @@ function dedupeFuzzy(arr = [], opts = {}) {
   }
   if (!tokens.length) return [];
 
-  // bucket by normalized key
   const buckets = new Map();
   for (const t of tokens) {
     const k = normalizer(t);
@@ -139,7 +133,6 @@ function dedupeFuzzy(arr = [], opts = {}) {
     buckets.get(k).push(t);
   }
 
-  // attempt to merge near keys
   const keys = Array.from(buckets.keys());
   const merged = [];
   const visited = new Set();
@@ -159,7 +152,6 @@ function dedupeFuzzy(arr = [], opts = {}) {
     merged.push(group);
   }
 
-  // pick best display for each merged group (most frequent or longest)
   const results = [];
   for (const g of merged) {
     const counts = new Map();
@@ -203,7 +195,6 @@ async function getInfoPLU(plu) {
     if (d.engin) splitMulti(canoniseEngin(d.engin)).forEach(x => enginTokens.push(x));
     decongeles.push(d.decongele ? "Oui" : "Non");
     if (d.allergenes) splitMulti(d.allergenes).forEach(x => allergenesTokens.push(x));
-    // méthodes
     const m = d.Categorie || d.categorie || d.Elevage || d.methodeProd || d.methode || "";
     if (m) splitMulti(m).forEach(x => methodesTokens.push(x));
     if (d.criee) splitMulti(d.criee).forEach(x => crieeTokens.push(x));
@@ -222,7 +213,6 @@ async function getInfoPLU(plu) {
 
   // achats fallback
   let achatData = null;
-  let achatMethode = "";
   try {
     const snapAchats = await getDocs(query(collection(db, "achats"), where("plu", "==", plu)));
     if (!snapAchats.empty) {
@@ -274,7 +264,17 @@ async function getInfoPLU(plu) {
   }
 
   // dedupe & pretty
-  const designationDisplay = dedupeFuzzy(designationsTokens, { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 1 }).join(", ");
+  // PRIORITÉ POUR LA DESIGNATION : si article contient une désignation, on l'utilise DIRECTEMENT
+  let designationDisplay = "";
+  if (artData?.Designation || artData?.designation) {
+    // On prend la désignation telle qu'elle est dans la fiche article (autorité)
+    designationDisplay = String(artData.Designation || artData.designation || "").trim();
+  } else {
+    // sinon on agrège/dedup à partir des tokens des lots / achats
+    designationDisplay = dedupeFuzzy(designationsTokens, { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 1 }).join(", ");
+    if (!designationDisplay && achatData?.designation) designationDisplay = achatData.designation;
+  }
+
   function prettyLatin(s) {
     if (!s) return "";
     s = String(s).trim();
