@@ -4,8 +4,11 @@ import {
   getDocs,
   doc,
   getDoc,
-  setDoc
+  setDoc,
+  query,
+  where
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
 
 console.log("DEBUG: stock.js chargé !");
 // robust number parser (définie au top-level)
@@ -346,40 +349,81 @@ function updateTotauxFromDOM() {
 }
 
 /************************************************************
- * 7️⃣  CHARGEMENT du STOCK
+ * 7️⃣  CHARGEMENT du STOCK (version optimisée : batch articles)
  ************************************************************/
 async function loadStock() {
   console.log("DEBUG: Chargement lots…");
 
-  const snapLots = await getDocs(collection(db, "lots"));
-  const snapPV = await getDocs(collection(db, "stock_articles"));
+  // 1) Lire lots (si possible, ne prendre que ceux avec poidsRestant>0)
+  const colLots = collection(db, "lots");
+  let snapLots;
+  try {
+    // essaie de filtrer sur poidsRestant pour réduire le dataset
+    const qLots = query(colLots, where("poidsRestant", ">", 0));
+    snapLots = await getDocs(qLots);
+    // si vide, on retombe sur toute la collection (cas où champ n'existe pas)
+    if (snapLots.empty) {
+      snapLots = await getDocs(colLots);
+    }
+  } catch (e) {
+    console.warn("loadStock: query poidsRestant failed, fallback to full scan", e);
+    snapLots = await getDocs(colLots);
+  }
 
+  // 2) Parallel fetch stock_articles (PV) - on garde l'ancien comportement
+  const snapPV = await getDocs(collection(db, "stock_articles"));
   const pvMap = {};
   snapPV.forEach(d => (pvMap[d.id] = d.data()));
 
-  const regroup = {};
+  // 3) Collecte unique des PLU présents dans les lots (pour batch fetch des articles)
+  const pluSet = new Set();
+  snapLots.forEach(d => {
+    const lot = d.data();
+    const plu = lot.plu || lot.PLU || lot.articleId || null;
+    if (plu) pluSet.add(String(plu));
+  });
 
-  // --- Correction DESIGNATION & RAYON depuis FICHE ARTICLE ---
-  async function enrichArticle(lot) {
-    let art = { ...lot };
-
-    if (!art.designation || !art.rayon) {
-      if (lot.plu) {
-        const snapArt = await getDoc(doc(db, "articles", String(lot.plu)));
-        if (snapArt.exists()) {
-          const A = snapArt.data();
-          art.designation = art.designation || A.Designation || A.designation || "";
-          art.rayon       = art.rayon       || A.rayon || "";
+  // 4) Batch fetch des articles par 'in' (max 10 ids par requête)
+  const articleMap = {}; // id -> data
+  const pluArray = Array.from(pluSet);
+  for (let i = 0; i < pluArray.length; i += 10) {
+    const batch = pluArray.slice(i, i + 10);
+    try {
+      const q = query(collection(db, "articles"), where("__name__", "in", batch));
+      const snapA = await getDocs(q);
+      snapA.forEach(a => { articleMap[a.id] = a.data(); });
+    } catch (e) {
+      console.warn("loadStock: batch fetch articles failed for", batch, e);
+      // fallback : try per-id (parallèle)
+      await Promise.all(batch.map(async id => {
+        try {
+          const s = await getDoc(doc(db, "articles", id));
+          if (s.exists()) articleMap[id] = s.data();
+        } catch (err) {
+          console.warn("loadStock: fallback fetch article failed", id, err);
         }
-      }
+      }));
     }
-
-    return art;
   }
 
+  // 5) Regroupement et enrichissement local des lots (plus aucun getDoc par lot)
+  const regroup = {};
   for (const docLot of snapLots.docs) {
     const lot = docLot.data();
-    const art = await enrichArticle(lot);
+
+    // standardiser poidsRestant (sauts de nom de champ)
+    const poidsRestant = Number(lot.poidsRestant ?? lot.poids ?? lot.remainingQuantity ?? 0);
+    if (poidsRestant <= 0) continue; // ignorer lots vides (gain de perf + logique)
+
+    // créer objet 'art' à partir du lot, puis enrichir depuis articleMap si nécessaire
+    const art = { ...lot };
+    if ((!art.designation || !art.rayon) && art.plu) {
+      const A = articleMap[String(art.plu)];
+      if (A) {
+        art.designation = art.designation || A.Designation || A.designation || "";
+        art.rayon       = art.rayon       || A.rayon || "";
+      }
+    }
 
     const article = {
       designation: art.designation || "",
@@ -391,29 +435,30 @@ async function loadStock() {
     };
 
     const key = articleKey(article);
-
     if (!regroup[key]) regroup[key] = { article, lots: [] };
+    // Ajoute l'objet lot enrichi (art) — on garde noms de champs existants (poundRestant, prixAchatKg…)
     regroup[key].lots.push(art);
   }
 
+  // 6) Calculs (marges, pma, pv conseillés) - logique inchangée
   const margeTrad = getMarginRate("trad", 35);
   const margeFE = getMarginRate("fe", 40);
   const margeLS = getMarginRate("ls", 30);
 
-  let trad = [];
-  let fe = [];
-  let ls = [];
+  const trad = [];
+  const fe = [];
+  const ls = [];
 
   for (const key in regroup) {
     const { article, lots } = regroup[key];
 
+    // normaliser dlc
     lots.forEach(l => (l.dlc = l.dlc || l.dltc || ""));
 
     const pmaData = computeGlobalPMA(lots);
     if (pmaData.stockKg <= 0 || pmaData.pma <= 0) continue;
 
     const cat = detectCategory(article);
-
     const marge =
       cat === "TRAD" ? margeTrad :
       cat === "FE"   ? margeFE :
@@ -422,11 +467,9 @@ async function loadStock() {
     const pvHTconseille = pmaData.pma / (1 - marge);
     const pvTTCconseille = pvHTconseille * 1.055;
 
-    const pvTTCreel =
-      pvMap[key]?.pvTTCreel != null ? Number(pvMap[key].pvTTCreel) : null;
+    const pvTTCreel = pvMap[key]?.pvTTCreel != null ? Number(pvMap[key].pvTTCreel) : null;
 
-    const margeTheo =
-      pvHTconseille > 0 ? (pvHTconseille - pmaData.pma) / pvHTconseille : 0;
+    const margeTheo = pvHTconseille > 0 ? (pvHTconseille - pmaData.pma) / pvHTconseille : 0;
 
     let margeReelle = null;
     if (pvTTCreel > 0) {
@@ -435,9 +478,7 @@ async function loadStock() {
     }
 
     const dlcClosest = getClosestDLC(lots);
-    const dlcStr = dlcClosest
-      ? dlcClosest.toISOString().split("T")[0]
-      : "";
+    const dlcStr = dlcClosest ? dlcClosest.toISOString().split("T")[0] : "";
 
     const item = {
       key,
@@ -459,16 +500,18 @@ async function loadStock() {
     else ls.push(item);
   }
 
-  // 📌 TRI ALPHABÉTIQUE
+  // tri alphabétique
   trad.sort((a, b) => a.designation.localeCompare(b.designation));
   fe.sort((a, b) => a.designation.localeCompare(b.designation));
   ls.sort((a, b) => a.designation.localeCompare(b.designation));
 
+  // 7) Remplissage UI (inchangé)
   fillTable("tbody-trad", trad);
   fillTable("tbody-fe", fe);
   fillTable("tbody-ls", ls);
-
   updateTotaux(trad, fe, ls);
+
+  console.log("DEBUG: loadStock optimisé : lots =", snapLots.size, "pluUnique =", pluArray.length);
 }
 
 /************************************************************
