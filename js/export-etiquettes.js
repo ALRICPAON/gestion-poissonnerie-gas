@@ -20,12 +20,10 @@ function removeDiacritics(str) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-// compacte une chaîne pour comparaison (lettres uniquement, lower)
 function alphaKey(str) {
   return removeDiacritics(String(str || "")).toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
-// Levenshtein distance (simple, OK pour petites chaînes)
 function levenshtein(a, b) {
   if (a === b) return 0;
   a = a || "";
@@ -50,7 +48,7 @@ function levenshtein(a, b) {
 }
 
 /* ===========================================================
-   Canonisation Engin & Méthode / FAO + affichages prettys
+   Normalisations spécifiques (Engin, FAO, Méthode)
    =========================================================== */
 
 function canoniseEngin(v) {
@@ -60,7 +58,6 @@ function canoniseEngin(v) {
   if (s.includes("CHALUT")) return "Chalut OTB";
   if (s.includes("FILET")) return "Filet maillant";
   if (s.includes("LIGNE")) return "Ligne hameçon";
-  // fallback : capitaliser proprement
   return s.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 }
 
@@ -74,30 +71,22 @@ function displayMethodPretty(raw) {
   return k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-/* -----------------------------
-   FAO normalization & display
-   ----------------------------- */
-// transforme "FAO27 -VII-", "fao 27 vii", "FAO27 VII" -> key "fao27 vii"
+/* FAO normalization & pretty display */
 function normalizeFAOKey(raw) {
   if (!raw) return "";
   let s = String(raw || "").trim();
-  s = s.replace(/\s*-\s*/g, ' ');       // unify hyphens to spaces
+  s = s.replace(/\s*-\s*/g, ' ');
   s = s.replace(/\s+/g, ' ');
-  // Detect FAO number + remainder
   const m = s.match(/fa[oô]?\s*[:\-]?\s*([0-9]{1,3})\s*(.*)$/i) || s.match(/^([0-9]{1,3})\s*(.*)$/);
   if (m) {
     const num = m[1];
     const rest = (m[2] || "").trim();
     return (`fao${num}` + (rest ? " " + removeDiacritics(rest).toLowerCase().replace(/\s+/g, ' ') : "")).toLowerCase();
   }
-  // fallback: strip punctuation and lowercase
   return removeDiacritics(s).toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ').trim();
 }
-
-// Affichage "FAO27 - VII"
 function displayFAO(raw) {
   if (!raw) return "";
-  // try to parse normalized key
   const key = normalizeFAOKey(raw);
   const m = key.match(/^fao(\d+)(?:\s*(.*))?$/);
   if (m) {
@@ -105,116 +94,119 @@ function displayFAO(raw) {
     const rest = (m[2] || "").trim();
     return rest ? `FAO${num} - ${rest.toUpperCase()}` : `FAO${num}`;
   }
-  // fallback capitalized
   return String(raw).trim().toUpperCase();
 }
 
 /* ===========================================================
-   Déduplication intelligente (générique)
-   - possibilite de fuzzy regroup (levenshtein <= threshold)
+   splitMulti: découpe une chaîne qui contient plusieurs valeurs
+   (séparateurs: , / ; | ) et nettoie les tirets & espaces
    =========================================================== */
+function splitMulti(raw) {
+  if (!raw && raw !== 0) return [];
+  const s = String(raw).trim();
+  if (!s) return [];
+  // Replace common ' - ' sequences by a single space where appropriate but keep FAO handled separately
+  // We split on , / ; | and also " / " with optional spaces
+  const parts = s.split(/[\/,;|]+/).map(p => p.trim()).filter(Boolean);
+  // additionally, for tokens that include repeated inner punctuation (like "FAO27 -VII-" keep as is),
+  // we trim stray hyphens/spaces at ends
+  return parts.map(p => p.replace(/^[\s\-\–\—\:]+|[\s\-\–\—\:]+$/g,'').trim()).filter(Boolean);
+}
 
-/**
- * dedupeFuzzy(arr, options)
- * - arr : array of raw strings
- * - opts:
- *    normalizer(raw) -> key (for grouping)
- *    display(raw) -> displayString
- *    fuzzyThreshold (integer distance for alphaKey)
- *
- * Retour : array of unique display strings, combined in the order encountered.
- */
+/* ===========================================================
+   dedupeFuzzy: regroupe variants (fuzzy) et renvoie affichage
+   =========================================================== */
 function dedupeFuzzy(arr = [], opts = {}) {
   const normalizer = opts.normalizer || (v => String(v||"").trim().toLowerCase());
   const displayFn = opts.display || (v => v);
   const threshold = (typeof opts.fuzzyThreshold === 'number') ? opts.fuzzyThreshold : 1;
 
-  // map normalized -> list of originals
-  const buckets = new Map();
+  // build frequency map of normalized tokens
+  const tokens = [];
   for (const raw of arr || []) {
     if (raw === undefined || raw === null) continue;
     const s = String(raw).trim();
     if (!s) continue;
-    const norm = normalizer(s);
-    if (!buckets.has(norm)) buckets.set(norm, []);
-    buckets.get(norm).push(s);
+    tokens.push(s);
+  }
+  if (!tokens.length) return [];
+
+  // bucket by normalized key
+  const buckets = new Map();
+  for (const t of tokens) {
+    const k = normalizer(t);
+    if (!buckets.has(k)) buckets.set(k, []);
+    buckets.get(k).push(t);
   }
 
-  // convert buckets keys to array and attempt to merge near keys
+  // attempt to merge near keys
   const keys = Array.from(buckets.keys());
-  const merged = []; // array of {key, values}
-
+  const merged = [];
   const visited = new Set();
-  for (let i = 0; i < keys.length; i++) {
+  for (let i=0;i<keys.length;i++) {
     if (visited.has(keys[i])) continue;
-    const group = { keys: [keys[i]], values: buckets.get(keys[i])?.slice() || [] };
+    const group = { keys: [keys[i]], values: buckets.get(keys[i]).slice() };
     visited.add(keys[i]);
-    for (let j = i+1; j < keys.length; j++) {
+    for (let j=i+1;j<keys.length;j++) {
       if (visited.has(keys[j])) continue;
       const dist = levenshtein(alphaKey(keys[i]), alphaKey(keys[j]));
       if (dist <= threshold) {
-        // merge j into i
         group.keys.push(keys[j]);
-        group.values.push(...(buckets.get(keys[j]) || []));
+        group.values.push(...(buckets.get(keys[j])||[]));
         visited.add(keys[j]);
       }
     }
     merged.push(group);
   }
 
-  // For each merged group choose the best display variant:
-  // pick the most frequent original string (case-sensitive as encountered),
-  // fallback pick longest trimmed.
+  // pick best display for each merged group (most frequent or longest)
   const results = [];
   for (const g of merged) {
     const counts = new Map();
-    for (const v of g.values) {
-      counts.set(v, (counts.get(v) || 0) + 1);
-    }
-    // pick most frequent
-    let best = null;
-    let bestCount = -1;
-    for (const [val, cnt] of counts.entries()) {
+    for (const v of g.values) counts.set(v, (counts.get(v)||0)+1);
+    let best = null; let bestCount = -1;
+    for (const [val,cnt] of counts.entries()) {
       if (cnt > bestCount) { best = val; bestCount = cnt; }
       else if (cnt === bestCount && val.length > (best?.length || 0)) { best = val; }
     }
-    // produce final display via displayFn
     results.push(displayFn(best || g.values[0]));
   }
 
-  // preserve order: we return results in the order of first appearance in original arr
-  // but merged already preserves that because buckets were created in encounter order.
   return results;
 }
 
 /* ===========================================================
-   getInfoPLU : récupère et nettoie données (utilise dedupeFuzzy)
+   getInfoPLU : récupère et nettoie données (split + dedupe)
    =========================================================== */
 
 async function getInfoPLU(plu) {
-  // LOTS
+  // lots ouverts
   const snapLots = await getDocs(
     query(collection(db, "lots"), where("plu", "==", plu), where("closed", "==", false))
   );
 
-  const designations = [];
-  const nomsLatin = [];
-  const faos = [];
-  const engins = [];
+  // collect tokens (split multi-values)
+  const designationsTokens = [];
+  const nomsLatinTokens = [];
+  const faoTokens = [];
+  const enginTokens = [];
   const decongeles = [];
-  const allergenesLots = [];
-  const methodesProd = [];
+  const allergenesTokens = [];
+  const methodesTokens = [];
+  const crieeTokens = [];
 
   snapLots.forEach(l => {
     const d = l.data();
-    if (d.designation) designations.push(d.designation);
-    if (d.nomLatin) nomsLatin.push(d.nomLatin);
-    if (d.fao) faos.push(d.fao);
-    if (d.engin) engins.push(canoniseEngin(d.engin));
+    if (d.designation) splitMulti(d.designation).forEach(x => designationsTokens.push(x));
+    if (d.nomLatin) splitMulti(d.nomLatin).forEach(x => nomsLatinTokens.push(x));
+    if (d.fao) splitMulti(d.fao).forEach(x => faoTokens.push(x));
+    if (d.engin) splitMulti(canoniseEngin(d.engin)).forEach(x => enginTokens.push(x));
     decongeles.push(d.decongele ? "Oui" : "Non");
-    if (d.allergenes) allergenesLots.push(d.allergenes);
-    // methodes
-    methodesProd.push(d.Categorie || d.categorie || d.Elevage || d.methodeProd || d.methode || "");
+    if (d.allergenes) splitMulti(d.allergenes).forEach(x => allergenesTokens.push(x));
+    // méthodes
+    const m = d.Categorie || d.categorie || d.Elevage || d.methodeProd || d.methode || "";
+    if (m) splitMulti(m).forEach(x => methodesTokens.push(x));
+    if (d.criee) splitMulti(d.criee).forEach(x => crieeTokens.push(x));
   });
 
   const hasLots = !snapLots.empty;
@@ -228,16 +220,19 @@ async function getInfoPLU(plu) {
     pvReal = 0;
   }
 
-  // achat fallback
+  // achats fallback
   let achatData = null;
   let achatMethode = "";
   try {
     const snapAchats = await getDocs(query(collection(db, "achats"), where("plu", "==", plu)));
     if (!snapAchats.empty) {
       achatData = snapAchats.docs[0].data();
-      achatMethode = achatData?.Categorie || achatData?.categorie || achatData?.Elevage || achatData?.methodeProd || achatData?.methode || "";
+      const am = achatData?.Categorie || achatData?.categorie || achatData?.Elevage || achatData?.methodeProd || achatData?.methode || "";
+      if (am) splitMulti(am).forEach(x => methodesTokens.push(x));
+      if (achatData?.criee) splitMulti(achatData.criee).forEach(x => crieeTokens.push(x));
+      if (achatData?.Allergenes || achatData?.allergenes) splitMulti(achatData.Allergenes || achatData.allergenes).forEach(x => allergenesTokens.push(x));
     }
-  } catch (e) {
+  } catch(e) {
     achatData = null;
   }
 
@@ -246,58 +241,54 @@ async function getInfoPLU(plu) {
   try {
     const snapArt = await getDoc(doc(db, "articles", plu));
     if (snapArt.exists()) artData = snapArt.data();
-  } catch (e) {
+  } catch(e) {
     artData = {};
   }
   const artMethode = artData?.Categorie || artData?.categorie || artData?.Elevage || artData?.methodeProd || artData?.methode || "";
+  if (artMethode) splitMulti(artMethode).forEach(x => methodesTokens.push(x));
+  if (artData?.Zone) splitMulti(artData.Zone).forEach(x => faoTokens.push(x));
+  if (artData?.Engin || artData?.engin) splitMulti(canoniseEngin(artData.Engin || artData.engin)).forEach(x => enginTokens.push(x));
+  if (artData?.NomLatin || artData?.nomLatin) splitMulti(artData.NomLatin || artData.nomLatin).forEach(x => nomsLatinTokens.push(x));
+  if (artData?.Designation || artData?.designation) splitMulti(artData.Designation || artData.designation).forEach(x => designationsTokens.push(x));
 
-  /* ---- Deduplication & pretty display ---- */
-  // Designation : dedupe case-insensitive, keep first forms
-  const designationDisplay = dedupeFuzzy(
-    designations.length ? designations : [achatData?.designation || artData?.Designation || artData?.designation || ""],
-    { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 1 }
-  ).join(", ");
+  // If tokens empty, fallback to single fields
+  if (!designationsTokens.length) {
+    const fallback = achatData?.designation || artData?.Designation || artData?.designation || "";
+    if (fallback) splitMulti(fallback).forEach(x => designationsTokens.push(x));
+  }
+  if (!nomsLatinTokens.length) {
+    const fallback = achatData?.nomLatin || artData?.NomLatin || artData?.nomLatin || "";
+    if (fallback) splitMulti(fallback).forEach(x => nomsLatinTokens.push(x));
+  }
+  if (!faoTokens.length) {
+    const fallback = achatData?.fao || artData?.Zone || artData?.zone || "";
+    if (fallback) splitMulti(fallback).forEach(x => faoTokens.push(x));
+  }
+  if (!enginTokens.length) {
+    const fallback = achatData?.engin || artData?.Engin || artData?.engin || "";
+    if (fallback) splitMulti(canoniseEngin(fallback)).forEach(x => enginTokens.push(x));
+  }
+  if (!methodesTokens.length && (achatData || artData)) {
+    const fallback = achatData?.Categorie || achatData?.categorie || artData?.Categorie || artData?.categorie || "";
+    if (fallback) splitMulti(fallback).forEach(x => methodesTokens.push(x));
+  }
 
-  // Nom latin : use alpha-key + fuzzy cluster (levenshtein threshold 1)
-  const nlCandidates = nomsLatin.length ? nomsLatin : [achatData?.nomLatin || artData?.NomLatin || artData?.nomLatin || ""];
-  // pretty-capitalize (Title case scientific name: keep case like "Clupea harengus")
+  // dedupe & pretty
+  const designationDisplay = dedupeFuzzy(designationsTokens, { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 1 }).join(", ");
   function prettyLatin(s) {
     if (!s) return "";
-    // try to keep initial capitalization if sensible; else title-case
     s = String(s).trim();
-    // If already has lowercase after first letter (like "Clupea harengus"), keep it.
     if (/[A-Z][a-z]/.test(s)) return s;
-    // else title-case
     return s.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
   }
-  const nls = dedupeFuzzy(nlCandidates, { normalizer: v => alphaKey(v), display: v => prettyLatin(v), fuzzyThreshold: 1 });
-  const nomLatinDisplay = nls.join(", ");
-
-  // FAO : use normalizeFAOKey + displayFAO
-  const faoCandidates = faos.length ? faos : [achatData?.fao || artData?.Zone || artData?.zone || ""];
-  const faoList = dedupeFuzzy(faoCandidates, { normalizer: normalizeFAOKey, display: displayFAO, fuzzyThreshold: 0 });
-  const faoDisplay = faoList.join(", ");
-
-  // Engin : canonise and dedupe
-  const enginCandidates = engins.length ? engins : [canoniseEngin(achatData?.engin) || canoniseEngin(artData?.Engin) || canoniseEngin(artData?.engin) || ""];
-  const enginList = dedupeFuzzy(enginCandidates, { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 0 });
-  const enginDisplay = enginList.join(", ");
-
-  // decongele & allergenes (simple dedupe)
+  const nomLatinDisplay = dedupeFuzzy(nomsLatinTokens, { normalizer: v => alphaKey(v), display: v => prettyLatin(v), fuzzyThreshold: 1 }).join(", ");
+  const faoDisplay = dedupeFuzzy(faoTokens, { normalizer: normalizeFAOKey, display: displayFAO, fuzzyThreshold: 0 }).join(", ");
+  const enginDisplay = dedupeFuzzy(enginTokens, { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 0 }).join(", ");
   const decongeleDisplay = Array.from(new Set(decongeles)).join(", ");
-  const allergenesDisplay = dedupeFuzzy(allergenesLots.length ? allergenesLots : [achatData?.Allergenes || achatData?.allergenes || artData?.Allergenes || artData?.allergenes || ""],
-                                       { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 0 }).join(", ");
+  const allergenesDisplay = dedupeFuzzy(allergenesTokens, { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 0 }).join(", ");
+  const methodeDisplay = dedupeFuzzy(methodesTokens, { normalizer: normalizeMethodKey, display: displayMethodPretty, fuzzyThreshold: 1 }).join(", ");
+  const crieeDisplay = dedupeFuzzy(crieeTokens, { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 0 }).join(", ");
 
-  // Methode prod : dedupe (fuzzy small threshold 1)
-  const methodeCandidates = methodesProd.length ? methodesProd : [achatMethode || artMethode || ""];
-  const methodeList = dedupeFuzzy(methodeCandidates, { normalizer: normalizeMethodKey, display: displayMethodPretty, fuzzyThreshold: 1 });
-  const methodeDisplay = methodeList.join(", ");
-
-  // Criee : simple dedupe
-  const crieeDisplay = dedupeFuzzy(snapLots.docs.map(l => l.data().criee || "").filter(Boolean).length ? snapLots.docs.map(l => l.data().criee || "") : [achatData?.criee || ""],
-                                   { normalizer: v => String(v).trim().toLowerCase(), display: v => String(v).trim(), fuzzyThreshold: 0 }).join(", ");
-
-  // final object
   return {
     type: "TRAD",
     criee: crieeDisplay,
@@ -333,7 +324,6 @@ export async function exportEtiquettes() {
   const workbook = new ExcelJS.Workbook();
   const ws = workbook.addWorksheet("_Etiquettes");
 
-  // En-têtes EXACTS
   ws.addRow([
     "type","criee","", "PLU","designation","Nom scientif","Méthode Prod",
     "Zone Pêche","Engin Pêche","Décongelé","Allergènes","Prix","€/kg ou Pièce"
@@ -352,7 +342,7 @@ export async function exportEtiquettes() {
       info.methodeProd,
       info.fao,
       info.engin,
-      info.decongele === "Oui" ? "Oui" : "",   // mettre Oui si décongelé
+      info.decongele === "Oui" ? "Oui" : "",
       info.allergenes,
       info.prix,
       info.unite
