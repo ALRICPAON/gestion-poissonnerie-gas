@@ -548,38 +548,6 @@ async function loadStock() {
   console.log("DEBUG: loadStock optimisé : lots =", snapLots.size, "pluUnique =", pluArray.length);
 }
 
-/************************************************************
- * 8️⃣  Totaux TRAD / FE / LS
- ************************************************************/
-function updateTotaux(trad, fe, ls) {
-  const fmt = n =>
-    Number(n).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-
-  function calc(arr, divId) {
-    const div = document.getElementById(divId);
-    if (!div) return;
-
-    let achatHT = 0;
-    let venteTTC = 0;
-
-    arr.forEach(it => {
-      achatHT += it.valeurStockHT;
-      const pv = it.pvTTCreel || it.pvTTCconseille || 0;
-      venteTTC += pv * it.stockKg;
-    });
-
-    const venteHT = venteTTC / 1.055;
-    const marge = venteHT > 0 ? ((venteHT - achatHT) / venteHT) * 100 : 0;
-
-    div.querySelector(".aht").textContent = fmt(achatHT);
-    div.querySelector(".vtc").textContent = fmt(venteTTC);
-    div.querySelector(".marge").textContent = marge.toFixed(1) + " %";
-  }
-
-  calc(trad, "totaux-trad");
-  calc(fe,   "totaux-fe");
-  calc(ls,   "totaux-ls");
-}
 
 /************************************************************
  * 9️⃣  UI des marges
