@@ -27,8 +27,89 @@ function canoniseEngin(v) {
 }
 
 /* ---------------------------------------------------------
-   🔥 AGRÉGER TOUTES LES VALEURS MULTIPLES (lots)
+   🔧 Normalisation & déduplication intelligente
 --------------------------------------------------------- */
+
+/** Normalise un champ FAO pour comparaison et affichage */
+function normalizeFAOKey(raw) {
+  if (!raw) return "";
+  let s = String(raw).trim();
+
+  // collapse multiple spaces
+  s = s.replace(/\s+/g, ' ');
+
+  // tidy common forms: FAO 27 VII -> FAO27 VII
+  const m = s.match(/(?:fa[oô]|FAO)\s*[:\-]?\s*([0-9]{1,3})\s*(.*)$/i);
+  if (m) {
+    const num = m[1];
+    const rest = (m[2] || "").trim().replace(/\s+/g, ' ');
+    // lowercase normalized key, keep number and uppercase remainder when displaying
+    return (rest ? `fao${num} ${rest.toUpperCase()}` : `fao${num}`).toLowerCase();
+  }
+
+  // fallback: lowercase trimmed
+  return s.toLowerCase();
+}
+
+/** Retourne affichage canonique FAO (FAO27 VII) */
+function displayFAO(raw) {
+  if (!raw) return "";
+  // re-use normalizeFAOKey and reconstruct nice capitalization
+  let key = normalizeFAOKey(raw);
+  if (!key) return "";
+  // key like "fao27 vii" -> "FAO27 VII" or "fao27" -> "FAO27"
+  const m = key.match(/^fao(\d+)(?:\s*(.*))?$/);
+  if (m) {
+    const num = m[1];
+    const rest = (m[2] || "").toUpperCase();
+    return rest ? `FAO${num} ${rest}` : `FAO${num}`;
+  }
+  // fallback
+  return String(raw).trim().toUpperCase();
+}
+
+/** Normalise méthode pêche pour comparaison */
+function normalizeMethodKey(raw) {
+  if (!raw) return "";
+  return String(raw).trim().replace(/\s+/g,' ').toLowerCase();
+}
+
+/** Affichage pretty pour méthode pêche (Capitalized) */
+function displayMethodPretty(raw) {
+  const k = normalizeMethodKey(raw);
+  if (!k) return "";
+  return k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+/**
+ * uniqNormalized(values, normalizer, displayer)
+ * - values : array of raw strings
+ * - normalizer : function(raw) => normalizedKey (string)
+ * - displayer  : function(raw) => displayString (optional, fallback raw)
+ *
+ * Retour : string joined by ", " of unique (by normalizedKey) display values,
+ * en conservant la première forme affichable rencontrée.
+ */
+function uniqNormalized(values = [], normalizer = v => String(v||"").toLowerCase(), displayer = v => (v||"")) {
+  const map = new Map(); // normKey -> displayString
+  for (const raw of (values || [])) {
+    if (raw === undefined || raw === null) continue;
+    const s = String(raw).trim();
+    if (!s) continue;
+    const key = normalizer(s);
+    if (!map.has(key)) {
+      const disp = (typeof displayer === "function") ? displayer(s) : s;
+      map.set(key, disp);
+    }
+  }
+  return Array.from(map.values()).join(", ");
+}
+
+/* ---------------------------------------------------------
+   🔥 AGRÉGER TOUTES LES VALEURS MULTIPLES (lots)
+   (gardé pour compatibilité si besoin)
+--------------------------------------------------------- */
+// note: on n'utilise plus uniqValues pour FAO/méthode mais on garde une simple version si besoin
 function uniqValues(values) {
   return [...new Set(values.filter(v => v && v.trim() !== ""))].join(", ");
 }
@@ -67,9 +148,9 @@ async function getInfoPLU(plu) {
     decongeles.push(d.decongele ? "Oui" : "Non");
     allergenesLots.push(d.allergenes || "");
 
-    // 🔥 Méthode Prod depuis LOT
+    // 🔥 Méthode Prod depuis LOT (plusieurs champs possibles)
     methodesProd.push(
-      d.Categorie || d.categorie || d.Elevage || d.methodeProd || ""
+      d.Categorie || d.categorie || d.Elevage || d.methodeProd || d.methode || ""
     );
   });
 
@@ -105,6 +186,7 @@ async function getInfoPLU(plu) {
       achatData?.categorie ||
       achatData?.Elevage ||
       achatData?.methodeProd ||
+      achatData?.methode ||
       "";
   }
 
@@ -121,6 +203,7 @@ async function getInfoPLU(plu) {
     artData?.categorie ||
     artData?.Elevage ||
     artData?.methodeProd ||
+    artData?.methode ||
     "";
 
 
@@ -131,56 +214,48 @@ async function getInfoPLU(plu) {
     type: "TRAD",
 
     criee: hasLots
-      ? uniqValues(snapLots.docs.map(l => l.data().criee || ""))
+      ? uniqNormalized(snapLots.docs.map(l => l.data().criee || ""), v => String(v).trim().toLowerCase(), v => v)
       : (achatData?.criee || ""),
 
     designation:
-      uniqValues(designations) ||
-      achatData?.designation ||
-      artData?.Designation ||
-      artData?.designation ||
-      "",
+      // dedupe designations (case-insensitive, keep first form)
+      uniqNormalized(designations.length ? designations : [achatData?.designation || artData?.Designation || artData?.designation || ""],
+                      v => String(v).trim().toLowerCase(),
+                      v => v) || "",
 
     nomLatin:
-      uniqValues(nomsLatin) ||
-      achatData?.nomLatin ||
-      artData?.NomLatin ||
-      artData?.nomLatin ||
-      "",
+      // dedupe noms latins (insensible casse)
+      uniqNormalized(nomsLatin.length ? nomsLatin : [achatData?.nomLatin || artData?.NomLatin || artData?.nomLatin || ""],
+                      v => String(v).trim().toLowerCase(),
+                      v => v) || "",
 
     fao:
-      uniqValues(faos) ||
-      achatData?.fao ||
-      artData?.Zone ||
-      artData?.zone ||
-      "",
+      // dedupe FAO en normalisant les formats (FAO27 VII / FAO 27 VII / fao27 vii -> FAO27 VII)
+      uniqNormalized(faos.length ? faos : [achatData?.fao || artData?.Zone || artData?.zone || ""],
+                      normalizeFAOKey,
+                      displayFAO) || "",
 
     engin:
-      uniqValues(engins) ||
-      canoniseEngin(achatData?.engin) ||
-      canoniseEngin(artData?.Engin) ||
-      canoniseEngin(artData?.engin) ||
-      "",
+      // dedupe engins (canonisés + insensible casse)
+      uniqNormalized(engins.length ? engins : [canoniseEngin(achatData?.engin) || canoniseEngin(artData?.Engin) || canoniseEngin(artData?.engin) || ""],
+                      v => String(v).trim().toLowerCase(),
+                      v => v) || "",
 
     decongele:
-      uniqValues(decongeles) ||
-      (achatData?.decongele ? "Oui" : "Non") ||
-      (artData?.decongele ? "Oui" : "Non") ||
-      "Non",
+      uniqNormalized(decongeles.length ? decongeles : [(achatData?.decongele ? "Oui" : "Non") || (artData?.decongele ? "Oui" : "Non") || "Non"],
+                      v => String(v).trim().toLowerCase(),
+                      v => v) || "Non",
 
     allergenes:
-      uniqValues(allergenesLots) ||
-      achatData?.Allergenes ||
-      achatData?.allergenes ||
-      artData?.Allergenes ||
-      artData?.allergenes ||
-      "",
+      uniqNormalized(allergenesLots.length ? allergenesLots : [achatData?.Allergenes || achatData?.allergenes || artData?.Allergenes || artData?.allergenes || ""],
+                      v => String(v).trim().toLowerCase(),
+                      v => v) || "",
 
     methodeProd:
-      uniqValues(methodesProd) ||   // 🔥 valeurs de lots
-      achatMethode ||               // 🔥 achat
-      artMethode ||                 // 🔥 article
-      "",
+      // dedupe méthode production (lots first, then achat, then article) with pretty display
+      uniqNormalized(methodesProd.length ? methodesProd : [achatMethode || artMethode || ""],
+                      normalizeMethodKey,
+                      displayMethodPretty) || "",
 
     prix: pvReal || 0,
     unite: artData?.Unite || "€/kg",
