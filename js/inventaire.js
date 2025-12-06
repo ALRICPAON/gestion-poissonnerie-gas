@@ -183,23 +183,30 @@ async function findOrCreateDraftSessionForDate(dateInv, rowsFromLots) {
     where("status", "==", "finalized"),
     orderBy("finalizedAt", "desc"));
   const snapFinal = await getDocs(qFinal);
-  if (!snapFinal.empty) {
-    // copié en draft (safe)
+    if (!snapFinal.empty) {
+    // copié en draft (safe) — ne pas recopier les flags d'application
     const finalDoc = snapFinal.docs[0];
     const finalData = finalDoc.data();
     const newDocRef = doc(collection(db, "inventories"));
+    // Build a safe draft copy — do NOT copy applied/appliedAt/appliedBy/finalizedAt
     const copy = {
-      ...finalData,
+      date: finalData.date || dateInv,
       status: "draft",
       createdAt: serverTimestamp(),
       copiedFrom: finalDoc.id,
-      finalizedAt: finalData.finalizedAt || null
+      // lines: keep existing lines if present, else rowsFromLots
+      lines: Array.isArray(finalData.lines) && finalData.lines.length ? finalData.lines : (rowsFromLots || []),
+      // ensure applied flags are reset for the draft
+      applied: false,
+      appliedAt: null,
+      appliedBy: null,
+      finalizedAt: null
     };
-    copy.lines = Array.isArray(finalData.lines) && finalData.lines.length ? finalData.lines : (rowsFromLots || []);
     await setDoc(newDocRef, copy);
     const newSnap = await getDoc(newDocRef);
     return { id: newSnap.id, data: newSnap.data() };
   }
+
 
   // 3) pas de session => create draft from lots (rowsFromLots)
   const newRef = doc(collection(db, "inventories"));
@@ -352,12 +359,26 @@ async function clearSessionApplication(sessionId) {
     await batch.commit();
   }
 
-  // recompute stock_articles impactés
+    // recompute stock_articles impactés
   const impacted = Array.from(new Set(mouvements.map(m => String(m.plu))));
   for (const plu of impacted) await recomputeStockArticleFromLots(plu);
 
+  // ensure the inventory doc is marked as not applied anymore (keeps DB consistent)
+  try {
+    await updateDoc(doc(db, 'inventories', sessionId), {
+      applied: false,
+      appliedAt: null,
+      appliedBy: null,
+      status: 'draft'
+    });
+    console.log('Inventaire mis à jour après rollback : applied=false', sessionId);
+  } catch (e) {
+    console.warn('Impossible de mettre à jour le document inventory après rollback', e);
+  }
+
   console.log("Rollback session terminé:", sessionId);
 }
+
 
 /* ---------- Rendu tableau + saisie (autosave) ---------- */
 
@@ -375,16 +396,15 @@ function renderInventaireTableFromData() {
       <td>${n2(item.prixKg || 0)}</td>
       <td>${n2(item.caTTC || 0)}</td>
       <td>${n2(item.poidsVendu || 0)}</td>
-      <td>${n2(item.caTTC || 0)}</td>
       <td>
         <input class="stock-reel-input" type="number" step="0.01" value="${n2(item.stockReel || 0)}" style="width:80px;">
       </td>
-      <td class="ecart-cell">${n2(item.stockReel - (item.stockTheo || 0))}</td>
-      <td></td>
+      <td class="ecart-cell">${n2((item.stockReel || 0) - (item.stockTheo || 0))}</td>
     </tr>
   `).join("");
   tbody.innerHTML = rowsHtml;
 }
+
 
 function activerSaisieDirecte() {
   document.querySelectorAll(".stock-reel-input").forEach(input => {
@@ -566,6 +586,19 @@ btnValider.addEventListener("click", async () => {
   const sessionSnap = await getDoc(sessionRef);
   if (!sessionSnap.exists()) { alert("Session introuvable."); return; }
   const sessionData = sessionSnap.data();
+
+  // --- NEW: empêcher l'application si une autre session pour la même date est déjà appliquée ---
+  const alreadyAppliedSnap = await getDocs(query(collection(db,'inventories'),
+                                                 where('date','==', dateInv),
+                                                 where('applied','==', true)));
+  const otherApplied = alreadyAppliedSnap.docs.filter(d => d.id !== window.currentInventorySessionId);
+  if (otherApplied.length) {
+    // On préfère forcer l'utilisateur à annuler (rollback) l'autre session avant d'appliquer.
+    const ids = otherApplied.map(d => d.id).join(', ');
+    alert(`ATTENTION : une autre session pour la date ${dateInv} est déjà appliquée (id: ${ids}). Veuillez annuler (rollback) la/les autre(s) session(s) avant d'appliquer celle-ci.`);
+    return;
+  }
+
 
   // if previously applied, rollback
   if (sessionData.applied) {
