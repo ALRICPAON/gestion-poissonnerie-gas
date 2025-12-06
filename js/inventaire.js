@@ -154,14 +154,24 @@ async function expandPlateauxFromCA(ventesEAN) {
  * Recompute stock_articles 'PLU_xxx' poids from lots
  */
 async function recomputeStockArticleFromLots(plu) {
-  const lotsSnap = await getDocs(query(collection(db, "lots"), where("plu", "==", plu)));
+  // On ne prend que les lots ouverts : closed == false
+  const lotsSnap = await getDocs(query(
+    collection(db, "lots"),
+    where("plu", "==", plu),
+    where("closed", "==", false)
+  ));
   let totalKg = 0;
   lotsSnap.forEach(l => { const d = l.data(); totalKg += Number(d.poidsRestant || 0); });
+
+  // protection contre flottants (3 décimales suffisent)
+  totalKg = Number(totalKg.toFixed(3));
+
   await setDoc(doc(db, "stock_articles", "PLU_" + plu), {
     poids: totalKg,
     updatedAt: serverTimestamp()
   }, { merge: true });
 }
+
 
 /**
  * findOrCreateDraftSessionForDate(date, rowsFromLots)
