@@ -19,6 +19,21 @@ function toNum(v) {
   return isFinite(x) ? x : 0;
 }
 
+// normalize createdAt Timestamp/string => ms
+function toMillis(v) {
+  if (!v) return 0;
+  try {
+    if (typeof v === 'number') return v;
+    if (v && typeof v.toDate === 'function') {
+      const d = v.toDate();
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+    const d2 = new Date(v);
+    return isNaN(d2.getTime()) ? 0 : d2.getTime();
+  } catch (e) {
+    return 0;
+  }
+}
 
 
 /************************************************************
@@ -511,8 +526,21 @@ async function loadStock() {
       margeReelle = (pvHT - pmaData.pma) / pvHT;
     }
 
-    const dlcClosest = getClosestDLC(lots);
-    const dlcStr = dlcClosest ? dlcClosest.toISOString().split("T")[0] : "";
+        // Choisir la DLC du lot "pertinent" : lot le plus récent ET en stock si possible
+    const sortedLotsByCreated = [...lots].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
+    // trouver le plus récent avec poidsRestant > 0
+    const chosenLot = sortedLotsByCreated.find(l => {
+      const pr = Number(l.poidsRestant ?? l.poids ?? l.remainingQuantity ?? 0);
+      return pr > 0;
+    }) || (sortedLotsByCreated.length ? sortedLotsByCreated[0] : null);
+
+    let dlcStr = "";
+    if (chosenLot && chosenLot.dlc) {
+      const raw = chosenLot.dlc;
+      const d = raw && typeof raw.toDate === 'function' ? raw.toDate() : new Date(raw);
+      if (!isNaN(d.getTime())) dlcStr = d.toISOString().slice(0,10);
+    }
+
 
     const item = {
       key,
