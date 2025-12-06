@@ -698,11 +698,10 @@ btnValider.addEventListener("click", async () => {
   const newLotId = await createAddLotAndMovement(item.plu, diff, unitCost, window.currentInventorySessionId, { user, date: dateInv });
 
   console.log('[inventaire][apply] created add-lot', { newLotId, plu: item.plu, diff, sessionId: window.currentInventorySessionId });
-}
 
-    } else {
-      // equal -> nothing
-    }
+} else {
+  // equal -> nothing
+}
 
     await recomputeStockArticleFromLots(item.plu);
     journalChanges.push(changeLine);
