@@ -390,6 +390,92 @@ async function clearSessionApplication(sessionId) {
 
   console.log("Rollback session terminé:", sessionId);
 }
+// Applique une session de type "adjustment" : n'annule pas les autres sessions,
+// elle ajuste chaque PLU individuellement par différence courante vs counted.
+async function applyAdjustmentSession(sessionId) {
+  console.log('[inventaire][adjust] applyAdjustmentSession', sessionId);
+  const user = auth.currentUser ? auth.currentUser.email : 'inconnu';
+  const sRef = doc(db, 'inventories', sessionId);
+  const sSnap = await getDoc(sRef);
+  if (!sSnap.exists()) throw new Error('Session introuvable: ' + sessionId);
+  const s = sSnap.data();
+  const dateInv = s.date || null;
+  const lines = Array.isArray(s.lines) ? s.lines : [];
+
+  const journalChanges = [];
+
+  for (const line of lines) {
+    const plu = String(line.plu);
+    const counted = Number(line.stockReel || 0);
+
+    // Preferer stock_articles si disponible (source synthétique), sinon sum lots ouverts
+    let currentKg = 0;
+    const saSnap = await getDoc(doc(db, 'stock_articles', 'PLU_' + plu));
+    if (saSnap.exists() && saSnap.data().poids != null) {
+      currentKg = Number(saSnap.data().poids || 0);
+    } else {
+      // fallback somme lots ouverts
+      const lotsSnap = await getDocs(query(collection(db,'lots'), where('plu','==',plu), where('closed','==', false)));
+      lotsSnap.forEach(l => currentKg += Number(l.data().poidsRestant || 0));
+    }
+
+    const changeLine = {
+      plu,
+      prevStock: currentKg,
+      counted,
+      ecart: counted - currentKg,
+      user,
+      ts: new Date().toISOString()
+    };
+
+    if (counted < currentKg) {
+      // on décrémente via applyInventory (consommation FIFO)
+      console.log('[inventaire][adjust] will reduce', { sessionId, plu, from: currentKg, to: counted });
+      await applyInventory(plu, counted, user, { date: dateInv, sessionId });
+    } else if (counted > currentKg) {
+      // on crée un lot d'ajout
+      const diff = Number((counted - currentKg).toFixed(6));
+      // estimation unitCost comme dans existing code
+      let unitCost = line.unitCost;
+      if (!unitCost || isNaN(unitCost)) {
+        // compute PMA from lots if available
+        const lotsSnap = await getDocs(query(collection(db,'lots'), where('plu','==',plu), where('closed','==', false)));
+        let totalKg = 0, totalAchat = 0;
+        lotsSnap.forEach(l => { const d = l.data(); totalKg += Number(d.poidsRestant || 0); totalAchat += Number(d.prixAchatKg || 0) * Number(d.poidsRestant || 0); });
+        unitCost = totalKg > 0 ? (totalAchat / totalKg) : 0;
+      }
+      console.log('[inventaire][adjust] will add lot', { sessionId, plu, diff, unitCost });
+      await createAddLotAndMovement(plu, diff, unitCost, sessionId, { user, date: dateInv });
+    } else {
+      // égalité -> rien à faire
+    }
+
+    // recalcul synthétique après chaque ligne
+    await recomputeStockArticleFromLots(plu);
+    journalChanges.push(changeLine);
+  }
+
+  // écrire journal_inventaires (ou enrichir)
+  await setDoc(doc(db, 'journal_inventaires', s.date || sessionId), {
+    date: s.date || null,
+    changes: journalChanges,
+    appliedBy: user,
+    appliedAt: serverTimestamp(),
+    type: 'adjustment'
+  }, { merge: true });
+
+  // marquer session appliquée / finalisée (comme les autres)
+  await updateDoc(sRef, {
+    status: 'finalized',
+    finalizedAt: serverTimestamp(),
+    applied: true,
+    appliedAt: serverTimestamp(),
+    appliedBy: user,
+    lines: s.lines
+  });
+
+  console.log('[inventaire][adjust] adjustment applied', sessionId);
+}
 
 
 /* ---------- Rendu tableau + saisie (autosave) ---------- */
@@ -611,17 +697,47 @@ btnValider.addEventListener("click", async () => {
   if (!sessionSnap.exists()) { alert("Session introuvable."); return; }
   const sessionData = sessionSnap.data();
 
-  // --- NEW: empêcher l'application si une autre session pour la même date est déjà appliquée ---
-  const alreadyAppliedSnap = await getDocs(query(collection(db,'inventories'),
-                                                 where('date','==', dateInv),
-                                                 where('applied','==', true)));
-  const otherApplied = alreadyAppliedSnap.docs.filter(d => d.id !== window.currentInventorySessionId);
-  if (otherApplied.length) {
-    // On préfère forcer l'utilisateur à annuler (rollback) l'autre session avant d'appliquer.
-    const ids = otherApplied.map(d => d.id).join(', ');
-    alert(`ATTENTION : une autre session pour la date ${dateInv} est déjà appliquée (id: ${ids}). Veuillez annuler (rollback) la/les autre(s) session(s) avant d'appliquer celle-ci.`);
+    const sessionData = sessionSnap.data();
+
+  // -- Si c'est une session d'ajustement, utiliser applyAdjustmentSession et sortir --
+  if (sessionData && sessionData.type === 'adjustment') {
+    // si déjà appliquée, proposer rollback + ré-application
+    if (sessionData.applied) {
+      if (!confirm("Cette session d'ajustement a déjà été appliquée. Voulez-vous annuler l'application précédente et ré-appliquer ?")) return;
+      valideStatus.textContent = "⏳ Rollback de l'application précédente de l'ajustement…";
+      await clearSessionApplication(window.currentInventorySessionId);
+    }
+
+    try {
+      valideStatus.textContent = "⏳ Application de l'ajustement…";
+      await applyAdjustmentSession(window.currentInventorySessionId);
+      valideStatus.textContent = "✅ Ajustement appliqué !";
+      alert("Ajustement appliqué et finalisé.");
+    } catch (e) {
+      console.error('[inventaire] erreur applyAdjustmentSession', e);
+      alert("Erreur pendant l'application de l'ajustement : " + (e && e.message ? e.message : e));
+      // Ne pas poursuivre la logique normale
+      return;
+    }
+    // recharger l'inventaire et sortir
+    await chargerInventaire();
     return;
   }
+
+
+   // si c'est une session d'ajustement, on autorise l'application même si d'autres sessions sont appliquées
+  if (sessionData.type !== 'adjustment') {
+    const alreadyAppliedSnap = await getDocs(query(collection(db,'inventories'),
+                                                   where('date','==', dateInv),
+                                                   where('applied','==', true)));
+    const otherApplied = alreadyAppliedSnap.docs.filter(d => d.id !== window.currentInventorySessionId);
+    if (otherApplied.length) {
+      const ids = otherApplied.map(d => d.id).join(', ');
+      alert(`ATTENTION : une autre session pour la date ${dateInv} est déjà appliquée (id: ${ids}). Veuillez annuler (rollback) l'autre session avant d'appliquer celle-ci, ou transformez votre session en 'Ajustement'.`);
+      return;
+    }
+  }
+
 
 
   // if previously applied, rollback
