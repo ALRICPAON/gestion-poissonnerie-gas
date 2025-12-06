@@ -253,7 +253,7 @@ async function createAddLotAndMovement(plu, qty, unitCost, sessionId, opts = {})
   const id = `INV_ADD_${plu}_${Date.now()}_${Math.floor(Math.random()*1000)}`;
   const artSnap = await getDoc(doc(db, "articles", String(plu)));
   const designation = artSnap.exists() ? (artSnap.data().designation || "") : "";
-  const lotObj = {
+   const lotObj = {
     plu,
     designation,
     poidsInitial: qty,
@@ -262,7 +262,9 @@ async function createAddLotAndMovement(plu, qty, unitCost, sessionId, opts = {})
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     origin: "inventaire_session",
-    sessionId
+    sessionId,
+    // important : marquer explicitement le lot comme ouvert
+    closed: false
   };
   await setDoc(doc(db, "lots", id), lotObj);
 
