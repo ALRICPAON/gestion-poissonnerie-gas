@@ -421,20 +421,32 @@ function renderInventaireTableFromData() {
 function activerSaisieDirecte() {
   document.querySelectorAll(".stock-reel-input").forEach(input => {
     input.addEventListener("input", e => {
-      const tr = e.target.closest("tr");
-      const plu = tr.dataset.plu;
-      const nv = Number(e.target.value);
-      const item = dataInventaire.find(x => String(x.plu) === String(plu));
-      if (!item) return;
-      item.stockReel = nv;
-      item.ecart = nv - (item.stockTheo || 0);
-      tr.querySelector(".ecart-cell").textContent = n2(item.ecart);
-      const sessionId = window.currentInventorySessionId;
-      if (sessionId) {
-        const sessionObj = { lines: dataInventaire };
-        scheduleSaveSession(sessionId, sessionObj);
-      }
-    });
+  const tr = e.target.closest("tr");
+  const plu = tr.dataset.plu;
+  const nv = Number(e.target.value);
+  const item = dataInventaire.find(x => String(x.plu) === String(plu));
+  if (!item) return;
+  item.stockReel = nv;
+  item.ecart = nv - (item.stockTheo || 0);
+  tr.querySelector(".ecart-cell").textContent = n2(item.ecart);
+
+  // DEBUG: log local change and scheduled save
+  console.log('[inventaire][ui] input change', {
+    sessionId: window.currentInventorySessionId,
+    plu,
+    newStockReel: nv,
+    stockTheo: item.stockTheo,
+    ecart: item.ecart
+  });
+
+  const sessionId = window.currentInventorySessionId;
+  if (sessionId) {
+    const sessionObj = { lines: dataInventaire };
+    scheduleSaveSession(sessionId, sessionObj);
+    console.log('[inventaire][ui] scheduled autosave for session', sessionId);
+  }
+});
+
   });
 }
 
@@ -643,18 +655,51 @@ btnValider.addEventListener("click", async () => {
     };
 
     if (counted < currentKg) {
-      // applyInventory expects (plu, poidsReel, user, opts); pass date & sessionId so movements carry date/sessionId
-      await applyInventory(item.plu, counted, user, { date: dateInv, sessionId: window.currentInventorySessionId });
-    } else if (counted > currentKg) {
-      const diff = counted - currentKg;
-      let unitCost = item.unitCost;
-      if (!unitCost || isNaN(unitCost)) {
-        // compute PMA from lots if available
-        let totalKg = 0, totalAchat = 0;
-        lots.forEach(l => { totalKg += Number(l.poidsRestant || 0); totalAchat += Number(l.prixAchatKg || 0) * Number(l.poidsRestant || 0); });
-        unitCost = totalKg > 0 ? (totalAchat / totalKg) : 0;
-      }
-      await createAddLotAndMovement(item.plu, diff, unitCost, window.currentInventorySessionId, { user, date: dateInv });
+  // DEBUG: log before applying inventory (lots read)
+  console.log('[inventaire][apply] will applyInventory', {
+    sessionId: window.currentInventorySessionId,
+    plu: item.plu,
+    counted,
+    currentKg,
+    ecart: counted - currentKg,
+    user,
+    date: dateInv,
+    lots: lots.map(l => ({ id: l.id, poidsRestant: l.poidsRestant, origin: l.origin || null }))
+  });
+
+  const res = await applyInventory(item.plu, counted, user, { date: dateInv, sessionId: window.currentInventorySessionId });
+
+  console.log('[inventaire][apply] applyInventory result', {
+    sessionId: window.currentInventorySessionId,
+    plu: item.plu,
+    res
+  });
+
+} else if (counted > currentKg) {
+  const diff = counted - currentKg;
+  let unitCost = item.unitCost;
+  if (!unitCost || isNaN(unitCost)) {
+    // compute PMA from lots if available
+    let totalKg = 0, totalAchat = 0;
+    lots.forEach(l => { totalKg += Number(l.poidsRestant || 0); totalAchat += Number(l.prixAchatKg || 0) * Number(l.poidsRestant || 0); });
+    unitCost = totalKg > 0 ? (totalAchat / totalKg) : 0;
+  }
+
+  // DEBUG: log that we will create an add lot
+  console.log('[inventaire][apply] will createAddLotAndMovement', {
+    sessionId: window.currentInventorySessionId,
+    plu: item.plu,
+    diff,
+    unitCost,
+    user,
+    date: dateInv
+  });
+
+  const newLotId = await createAddLotAndMovement(item.plu, diff, unitCost, window.currentInventorySessionId, { user, date: dateInv });
+
+  console.log('[inventaire][apply] created add-lot', { newLotId, plu: item.plu, diff, sessionId: window.currentInventorySessionId });
+}
+
     } else {
       // equal -> nothing
     }
@@ -689,6 +734,7 @@ btnValider.addEventListener("click", async () => {
     appliedBy: user,
     lines: dataInventaire
   });
+console.log('[inventaire] journalChanges sample:', journalChanges.slice(0,5));
 
   valideStatus.textContent = "✅ Inventaire appliqué et finalisé !";
   alert("Inventaire appliqué et finalisé. Journal mis à jour.");
