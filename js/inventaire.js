@@ -668,6 +668,53 @@ btnValider.addEventListener("click", async () => {
   });
 
   const res = await applyInventory(item.plu, counted, user, { date: dateInv, sessionId: window.currentInventorySessionId });
+      // --- DEBUG (inventaire.js): après applyInventory, lister mouvements & lots pour ce PLU/session ---
+console.log('[inventaire][apply] applyInventory result', {
+  sessionId: window.currentInventorySessionId,
+  plu: item.plu,
+  res
+});
+
+try {
+  // mouvements créés par cette session pour ce PLU (chronologique)
+  const mvSnap = await getDocs(query(
+    collection(db, 'stock_movements'),
+    where('sessionId','==', window.currentInventorySessionId),
+    where('plu','==', item.plu),
+    orderBy('createdAt','asc')
+  ));
+  console.log(`[inventaire][apply] stock_movements for session ${window.currentInventorySessionId} / PLU ${item.plu}: ${mvSnap.size}`);
+  mvSnap.docs.forEach(m => {
+    const data = m.data();
+    console.log('  mv:', m.id, {
+      sens: data.sens,
+      poids: data.poids,
+      lotId: data.lotId,
+      origin: data.origin,
+      date: data.date || null
+    });
+  });
+} catch (e) {
+  console.warn('[inventaire][apply] erreur lecture stock_movements', e);
+}
+
+try {
+  // afficher l'état des lots (ouverts) APRES l'application pour vérifier la consommation
+  const afterLotsSnap = await getDocs(query(
+    collection(db, 'lots'),
+    where('plu','==', item.plu),
+    where('closed','==', false),
+    orderBy('createdAt','asc')
+  ));
+  console.log(`[inventaire][apply] lots ouverts APRES applyInventory for PLU ${item.plu}: ${afterLotsSnap.size}`);
+  afterLotsSnap.docs.forEach(d => {
+    const L = d.data();
+    console.log('  lot:', d.id, { poidsRestant: L.poidsRestant, origine: L.origin || null, createdAt: L.createdAt?.toDate?.()?.toISOString?.() || L.createdAt });
+  });
+} catch (e) {
+  console.warn('[inventaire][apply] erreur lecture lots apres apply', e);
+}
+
 
   console.log('[inventaire][apply] applyInventory result', {
     sessionId: window.currentInventorySessionId,
